@@ -271,10 +271,11 @@ function BasketSection() {
           ))}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <Callout tone="warning" title="Only LP into the official pool">
-            Parallel pools are blocklisted as they appear, and a block stops transfers both ways, so a blocked pool cannot be withdrawn from at all. Liquidity
-            you put anywhere but the official pool can be frozen there without warning, your ETH along with your $OURO. Ouro's own pool is never blocked.{" "}
-            <Link to="/docs/#d07">How the Seal works</Link>.
+          <Callout title="What these pools earn">
+            Every swap that crosses a position pays a fee, in both of the tokens that position holds. Each cycle 80% of it goes to holders in the assets it was
+            earned in, nothing sold. The other 20% is added back into the same positions, so the next cycle earns on a slightly larger share. That is the leg
+            that keeps paying when trading cools.{" "}
+            <Link to="/docs/#d06">How compounding works</Link>.
           </Callout>
         </div>
       </Grid>
@@ -303,6 +304,12 @@ function YieldSection() {
         {col("The tax leg", "Two of every five tax points buy tokens and airdrop them to you. This one pays from the first trade, and it rises and falls with volume.", true)}
         {col("The pool leg", "80% of the fees the protocol's own pools earn, airdropped in the tokens and ETH they earned, nothing sold. The other 20% compounds, so this leg grows.", true)}
       </Grid>
+      <Callout tone="warning" title="Don't LP your $OURO" style={{ marginTop: 24 }}>
+        Two reasons. Tokens sitting in a pool are not in your wallet, so they fall below the line and earn no airdrop at all. And parallel pools are
+        blocklisted as they appear: a block stops transfers both ways, so a blocked pool cannot be withdrawn from at all, your ETH as well as your $OURO, with
+        no warning before it happens. Ouro's own pool is never blocked.{" "}
+        <Link to="/docs/#d07">How the Seal works</Link>.
+      </Callout>
       <div style={{ marginTop: 28 }}>
         <Button variant="secondary" arrow to="/docs/#d05">
           How the airdrop works
