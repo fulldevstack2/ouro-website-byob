@@ -243,14 +243,20 @@ export default function Docs() {
             <P style={{ marginTop: 12 }}>
               The two legs arrive differently. The tax leg is bought at market, so it costs a trade each cycle and carries the slippage and price impact any
               trade does. The fee leg is passed through in kind: a full range position collects its fees in both of the tokens it holds, so it arrives as a mix
-              of the Reserve's constituents and whatever each is paired with, usually ETH, exactly as the pools earned it. Nothing is sold for that leg, so it
-              costs no slippage and puts no sell pressure on anything the protocol owns.
+              of the Reserve's constituents and whatever each is paired with, exactly as the pools earned it. Nothing is sold for that leg, so it costs no slippage and
+              puts no sell pressure on anything the protocol owns.
+            </P>
+            <P style={{ marginTop: 12 }}>
+              The ETH share is paid as <strong>WETH</strong>, wrapped one for one. That is a practical choice, not an economic one: a native ETH transfer emits
+              no event, so wallets have nothing to index and it shows up at best as an internal transaction on a separate explorer tab. You would see the tokens
+              land and the ETH apparently missing. WETH emits an ordinary transfer, so every asset in a payout appears in your history together.
             </P>
             <Callout title="Who is excluded" style={{ marginTop: 14 }}>
-              Pool contracts, the treasury's own addresses and the protocol's infrastructure are excluded from the airdrop, so income is never paid to Ouro
+              Pool contracts, the treasury's own addresses and the protocol's infrastructure are left out of the recipient list, so income is not paid to Ouro
               itself or stranded in an AMM. Both competitors pay their own pools as though they were holders. The Index has roughly $5,000 of stock tokens
               stranded in one Uniswap v3 pool because of it. Tokens you hold on an exchange or in a bridge are in someone else's wallet, not yours, and are
-              not paid.
+              not paid. To be precise about what this is: exclusions are applied when the list is built, in the same place the 100,000 line is applied. The
+              contract does not check them, so it is a promise about how payouts are run rather than something the code enforces.
             </Callout>
           </DocSection>
 
@@ -282,6 +288,11 @@ export default function Docs() {
           </DocSection>
 
           <DocSection id="d09" n="09" title="Governance & security">
+            <P>
+              Governance can also point the tax at a different treasury address. That exists so the treasury can move to a multisig without relaunching the token, and it
+              is a real power worth stating plainly: the tax <em>rate</em> is capped by code, the tax <em>destination</em> is not. Every change emits an event
+              carrying the previous address, so a redirect is visible the moment it lands.
+            </P>
             <P>
               Ownership of the token and hook sits with a multisig (Safe). Every change it makes is an ordinary onchain transaction, public the moment it
               lands. There is no delay window in which to see one coming, so watch the addresses. Governance can tune the tax within the hook's ceiling and
