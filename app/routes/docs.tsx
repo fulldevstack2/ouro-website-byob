@@ -80,7 +80,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Can I provide liquidity in a pool other than the official one?",
-    a: "You can, and you should not. Parallel pools get blocklisted as they appear, and a block stops transfers in both directions, so nobody can withdraw from a blocked pool at all, your ETH as well as your $OURO. Unblocking releases the position, so it is a freeze rather than a loss, and Ouro's own pool is never blocked. But a pool can only be blocked once it exists, so there is no warning before it happens and no way to know in advance which venue is next. Provide liquidity to the official pool and nowhere else.",
+    a: "You can, and you should not. The sixteen known venues are already sealed, so adding liquidity to one of those simply fails and nothing is lost. Anywhere else, a pool can be blocked once it appears, and a block stops transfers in both directions, so nobody can withdraw from a blocked pool at all, your ETH as well as your $OURO. Unblocking releases the position, so it is a freeze rather than a loss, and Ouro's own pool is never blocked. But a pool can only be blocked once it exists, so there is no warning before it happens and no way to know in advance which venue is next. Provide liquidity to the official pool and nowhere else.",
   },
 ];
 
@@ -272,17 +272,19 @@ export default function Docs() {
           <DocSection id="d07" n="07" title="The Seal">
             <P>
               Tax index tokens leak: once a token has volume, some of it drifts to venues where the tax does not reach. Measured onchain
-              26 to 28 Aug 2026, the leaders captured only 6% to 36% of their own volume. Ouro pushes back with an address blocklist: parallel v2, v3 and other AMM
-              pools are blocked as they appear. To keep the power off ordinary users, the blocklist can only ever target a contract, so a wallet or a CEX
+              26 to 28 Aug 2026, the leaders captured only 6% to 36% of their own volume. Ouro pushes back with an address blocklist, and the known venues are sealed in the launch
+              transaction itself: sixteen of them, ParitySwap v3 and canonical Uniswap v3 at every fee tier plus ParitySwap v2, each against WETH and USDG,
+              closed before a single one of their pools exists. Any further parallel pool is blocked as it appears. To keep the power off ordinary users, the blocklist can only ever target a contract, so a wallet or a CEX
               deposit address is never affected. It's a deterrent, not a wall, and we don't claim otherwise: some volume finds its way around any pool level tax, which
               is exactly why the tax is only half the design and the pools the treasury keeps are the other half. Trade on the official pool to be sure your
               trade funds the flywheel.
             </P>
             <Callout tone="warning" title="Only provide liquidity to the official pool" style={{ marginTop: 14 }}>
-              If a pool is blocklisted, the block stops transfers in <em>both</em> directions, so nobody can withdraw from it at all — <strong>your ETH as well
-              as your $OURO</strong>. Unblocking releases the position, so it is a freeze rather than a loss, and Ouro's own pool is never blocked. But a pool can
-              only be blocked once it already exists, so there is no warning before it happens, and no way to know in advance which venue is next. Provide
-              liquidity to the official pool and nowhere else.
+              The sixteen known venues are sealed already, so adding liquidity to one of those simply fails: nothing is lost because nothing goes in. The risk
+              is everywhere else. Any other pool can be blocked once it appears, and a block stops transfers in <em>both</em> directions, so it cannot be
+              withdrawn from at all — <strong>your ETH as well as your $OURO</strong>. Unblocking releases the position, so it is a freeze rather than a loss,
+              and Ouro's own pool is never blocked. But a pool can only be blocked once it already exists, so there is no warning before it happens, and no way
+              to know in advance which venue is next. Provide liquidity to the official pool and nowhere else.
             </Callout>
           </DocSection>
 

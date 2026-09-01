@@ -181,10 +181,10 @@ const COMPARE_ROWS: CompareRow[] = [
   },
   {
     label: "Parallel pools",
-    tip: "Volume that never reaches the taxed pool. Measured onchain 26 to 28 Aug 2026, competitors captured only 6% to 36% of their own volume. Ouro pushes back by blocklisting parallel pools as they appear.",
+    tip: "Volume that never reaches the taxed pool. Measured onchain 26 to 28 Aug 2026, competitors captured only 6% to 36% of their own volume. Ouro seals the known venues in the launch transaction itself, before any of their pools exist.",
     hood10: "Only ~36% of volume taxed",
     index: "Only ~6% of volume taxed",
-    ouro: "Blocklisted as they appear",
+    ouro: "16 venues sealed at deploy",
   },
   {
     label: "When volume cools",
@@ -272,7 +272,7 @@ function BasketSection() {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Callout title="What these pools earn">
-            Every swap that crosses a position pays a fee, in both of the tokens that position holds. Each cycle 80% of it goes to holders in the assets it was
+            Every swap that crosses a position pays a fee, in both of the tokens that position holds. Each cycle 80% of it is airdropped to holders in the assets it was
             earned in, nothing sold. The other 20% is added back into the same positions, so the next cycle earns on a slightly larger share. That is the leg
             that keeps paying when trading cools.{" "}
             <Link to="/docs/#d06">How compounding works</Link>.
@@ -311,8 +311,9 @@ function YieldSection() {
           How the airdrop works
         </Button>
         <Callout tone="warning" title="Don't LP your $OURO" style={{ flex: "0 1 440px", marginTop: 0 }}>
-          Tokens in a pool are not in your wallet, so they earn no airdrop. And parallel pools are blocklisted as they appear, with no warning: a block stops
-          transfers both ways, so a blocked pool cannot be withdrawn from at all, your ETH as well as your $OURO. Ouro's own pool is never blocked.{" "}
+          Tokens in a pool are not in your wallet, so they earn no airdrop. The known venues are sealed at launch, so adding liquidity there simply fails. Any
+          other pool can be blocked once it appears, and a block stops transfers both ways, so it cannot be withdrawn from at all, your ETH as well as your
+          $OURO. Ouro's own pool is never blocked.{" "}
           <Link to="/docs/#d07">How the Seal works</Link>.
         </Callout>
       </div>
