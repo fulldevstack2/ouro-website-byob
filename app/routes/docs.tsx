@@ -56,7 +56,7 @@ const PARAM_ROWS = PARAMETERS.map((r) => ({
 const CANT: { lead: string; text: string }[] = [
   { lead: "Can't mint.", text: " Supply is fixed at deploy: there is no mint function and no emission, so nothing dilutes you. Every airdrop is fees the pools already earned." },
   { lead: "Can't raise the tax past the hook's ceiling.", text: " The ceiling is fixed in the contract at deploy and enforced there, not by policy. Governance can move the rate underneath it, and every change is a public onchain transaction." },
-  { lead: "Can't freeze your wallet.", text: " The blocklist only ever targets contracts, so an ordinary wallet or a CEX address can never be blocked." },
+  { lead: "Can't freeze your wallet.", text: " After deploy the blocklist only accepts an address that already has code, so an ordinary wallet or a CEX address can never be added to it. The one exception is the deploy transaction itself, which closes the known parallel pools before they exist; that list is fixed at deploy, readable onchain forever, and nothing can be added to it afterwards." },
   { lead: "Can't hand over ownership in one step.", text: " Token and hook ownership transfers in two steps: the new owner has to accept it before it takes effect." },
 ];
 
