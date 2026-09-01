@@ -224,12 +224,8 @@ export default function Docs() {
             <P>
               Alongside the Reserve the treasury holds one more position: Ouro's own ETH/OURO liquidity, seeded at launch as a full range position and left
               in place, earning fees into the same split as everything else. Be clear on what backs that. It is held by the treasury multisig and protected by
-              its policy, not by code: there is no lock contract. Verify it the honest way, by watching the treasury's onchain transactions and the position's
-              liquidity over time, rather than trusting a claim that it can never be pulled.
+              its policy.
             </P>
-            <Callout tone="caution" title="Memecoins, chosen for liquidity, not safety" style={{ marginTop: 14 }}>
-              Constituents can fail. Treasury value falls with them.
-            </Callout>
           </DocSection>
 
           <DocSection id="d05" n="05" title="The airdrop">
@@ -299,11 +295,6 @@ export default function Docs() {
           </DocSection>
 
           <DocSection id="d09" n="09" title="Governance & security">
-            <P>
-              Governance can also point the tax at a different treasury address. That exists so the treasury can move to a multisig without relaunching the token, and it
-              is a real power worth stating plainly: the tax <em>rate</em> is capped by code, the tax <em>destination</em> is not. Every change emits an event
-              carrying the previous address, so a redirect is visible the moment it lands.
-            </P>
             <P>
               Ownership of the token and hook sits with a multisig (Safe). Every change it makes is an ordinary onchain transaction, public the moment it
               lands. There is no delay window in which to see one coming, so watch the addresses. Governance can tune the tax within the hook's ceiling and
