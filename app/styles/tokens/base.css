@@ -1,0 +1,6 @@
+body{margin:0;font-family:var(--font-body);font-size:var(--text-base);line-height:var(--leading-body);color:var(--text-primary);background:var(--surface-page);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:var(--text-accent);text-decoration:none}
+a:hover{color:var(--neutral-900);text-decoration:underline;text-underline-offset:3px}
+::selection{background:var(--bronze-100)}
+strong,b{font-weight:var(--weight-semibold)}
+code{font-family:var(--font-mono);font-size:0.92em}

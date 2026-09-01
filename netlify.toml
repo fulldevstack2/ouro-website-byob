@@ -1,0 +1,25 @@
+[build]
+  command = "pnpm run build"
+  publish = "build/client"
+
+# The public origin, read by scripts/site-url.mjs for canonical URLs, Open Graph URLs, robots.txt
+# and sitemap.xml. Set explicitly rather than relying on Netlify's own $URL, which follows whichever
+# domain is marked primary in the dashboard — if that ever slips back to the *.netlify.app subdomain
+# the whole site starts advertising the wrong address again.
+[build.environment]
+  SITE_URL = "https://ourolayer.com"
+
+# One address for the site. The *.netlify.app subdomain stays reachable by default, which would give
+# us a second indexable copy of every page and split the same visitor across two hostnames in
+# analytics. Send it to the real domain, preserving the path and query string (so UTM-tagged links
+# posted against the old URL still report correctly). Deploy previews use a different hostname
+# (deploy-preview-N--*.netlify.app) and are unaffected.
+[[redirects]]
+  from = "https://loquacious-griffin-600837.netlify.app/*"
+  to = "https://ourolayer.com/:splat"
+  status = 301
+  force = true
+
+# Every route is pre-rendered to its own index.html. Unknown URLs get build/client/404.html
+# (written by scripts/postbuild.mjs) with a real 404 status; the app hydrates it and shows its
+# own "Page not found". Cache and security headers live in public/_headers.

@@ -1,0 +1,28 @@
+/* Deviates from the Claude Design export in one place: the page ground. The export sat everything on
+   bright white; on review (2026-08-30) the site moved to a warm grey ground with white cards on top
+   (cf. theindex.finance's #EDECE8 page / #FFFFFF surfaces). --paper is still the card colour. */
+:root{
+/* warm neutrals (ink & paper) */
+--paper:#FFFFFF;
+--page:#EEEBE5;/* the ground: a warm grey a step below --neutral-050, so white cards read as sheets on it */
+--neutral-025:#FAF8F3;--neutral-050:#F4F1EA;--neutral-100:#EAE5DB;--neutral-200:#D8D2C6;--neutral-300:#B8B0A2;--neutral-400:#948B7C;--neutral-500:#756C5E;--neutral-600:#5C5447;--neutral-700:#453E33;--neutral-800:#2E2820;--neutral-900:#1B1710;--neutral-950:#14110C;
+/* bronze: primary accent ("ouro" = gold) */
+--bronze-050:#FAF6EC;--bronze-100:#F2E9D3;--bronze-200:#E4D2A4;--bronze-300:#D2B573;--bronze-400:#BC9848;--bronze-500:#A37D2B;--bronze-600:#86641F;--bronze-700:#6A4E19;--bronze-800:#4F3A13;--bronze-900:#37280D;
+/* green: permanence / positive */
+--green-050:#EEF5F0;--green-100:#D8EADD;--green-300:#8FC3A0;--green-500:#2E7D4F;--green-600:#1F6B41;--green-700:#175435;--green-800:#123F29;--green-900:#0C2C1D;
+/* semantic support ramps */
+--red-050:#FAEFEC;--red-100:#F5DDD7;--red-600:#A93B2A;--red-700:#8F3120;
+--amber-050:#FBF5E4;--amber-100:#F4E8CC;--amber-600:#8F6200;--amber-700:#7A5200;
+/* surfaces */
+--surface-page:var(--page);--surface-card:var(--paper);--surface-tint:#F6F3ED;/* bands and row tints: lighter than the page, darker than a card */--surface-sunken:#E5E0D5;/* a step below the page */--surface-inverse:var(--neutral-900);
+--surface-nav:color-mix(in srgb,var(--page) 86%,transparent);
+/* text */
+--text-primary:var(--neutral-900);--text-secondary:var(--neutral-600);--text-muted:var(--neutral-500);--text-faint:#7A7163;/* was var(--neutral-400) #948B7C (3.4:1); this passes AA (4.8:1 on white, 4.5:1 on --surface-tint) */--text-inverse:#FFFFFF;--text-inverse-muted:#B8B0A2;
+--text-accent:var(--bronze-700);--text-positive:var(--green-600);--text-negative:var(--red-600);--text-caution:var(--amber-700);
+/* borders */
+--border-hairline:#E2DBCF;/* was #E7E1D6 on white; a touch darker so it still shows on the grey ground */--border-soft:#D8D2C6;--border-strong:var(--neutral-900);--border-accent:var(--bronze-600);
+/* accents */
+--accent:var(--bronze-600);--accent-strong:var(--bronze-700);--accent-soft:var(--bronze-100);--accent-faint:var(--bronze-050);
+--positive:var(--green-600);--negative:var(--red-600);--caution:var(--amber-600);
+--focus-ring:0 0 0 3px var(--bronze-100),0 0 0 1px var(--bronze-600);
+}

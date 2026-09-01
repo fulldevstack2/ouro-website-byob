@@ -1,15 +1,12 @@
-@import "tailwindcss";
+/* Ouro design-system tokens, copied from the Claude Design export
+   (ouros-website-claude-design/_ds/…/tokens). Fonts are self-hosted
+   (styles/fonts.css) instead of the export's Google Fonts @import. */
+@import "./styles/fonts.css";
+@import "./styles/tokens/colors.css";
+@import "./styles/tokens/typography.css";
+@import "./styles/tokens/spacing.css";
+@import "./styles/tokens/effects.css";
+@import "./styles/tokens/base.css";
 
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-}
-
-html,
-body {
-  @apply bg-white dark:bg-gray-950;
-
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
-  }
-}
+/* Site-level styles: the design's <helmet> rules, hover states, layout, responsive. */
+@import "./styles/site.css";
