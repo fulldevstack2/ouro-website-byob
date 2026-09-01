@@ -82,6 +82,10 @@ const FAQ: { q: string; a: string }[] = [
     q: "Why can't I find $OURO on another DEX?",
     a: "We discourage parallel pools with an address blocklist, so more of the tax funds the treasury. It's a deterrent, not a wall, so buy and sell on the official pool, linked here at launch, to be sure your trade funds the flywheel.",
   },
+  {
+    q: "Can I provide liquidity in a pool other than the official one?",
+    a: "You can, and you should not. Parallel pools get blocklisted as they appear, and a block stops transfers in both directions, so nobody can withdraw from a blocked pool either. On a v2 pair both tokens leave in one call, so you would lose access to both sides, your ETH as well as your $OURO. On a v3 pool you could collect the paired side and the $OURO would stay stranded. Unblocking releases everything, so it is a freeze rather than a loss, and Ouro's own pool is never blocked. But a pool can only be blocked once it exists, so there is no warning before it happens. Provide liquidity to the official pool only.",
+  },
 ];
 
 /* ---------------------------------------------------------------- pieces */
@@ -277,13 +281,13 @@ export default function Docs() {
               deposit address is never affected. It's a deterrent, not a wall: wrappers and parallel v4 pools can still leak, so trade on the official pool to
               be sure your trade funds the flywheel.
             </P>
-            <P style={{ marginTop: 12 }}>
-              <strong>If you provide liquidity, know what a block does to it.</strong> The check runs on transfers in both directions, so a blocked pool cannot be
-              withdrawn from either. On a v2 pair, where both tokens leave in one call, a provider loses access to both sides, the ETH as well as the $OURO. On a
-              v3 pool they can collect the paired side and leave the $OURO behind. Unblocking releases the position in full, so it is a freeze rather than a loss,
-              but liquidity in a parallel pool can be frozen there. Ouro's own pool is never blocked. Pools also cannot be blocked before they exist: the
-              blocklist only accepts an address that already has code.
-            </P>
+            <Callout tone="caution" title="Only provide liquidity to the official pool" style={{ marginTop: 14 }}>
+              If a pool is blocklisted, the block stops transfers in <em>both</em> directions, so nobody can withdraw from it either. On a v2 pair both tokens
+              leave in a single call, so a provider loses access to <strong>both sides — the ETH as well as the $OURO</strong>. On a v3 pool they can collect the
+              paired side and leave the $OURO stranded. Unblocking releases the position in full, so it is a freeze rather than a loss, and Ouro's own pool is
+              never blocked. But liquidity you put into any other pool can be frozen there without warning, because a pool can only be blocked once it already
+              exists. Provide liquidity to the official pool only.
+            </Callout>
           </DocSection>
 
           <DocSection id="d08" n="08" title="Parameters" wide>

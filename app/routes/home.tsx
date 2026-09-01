@@ -275,6 +275,11 @@ function BasketSection() {
             Constituents are volatile crypto tokens, memecoins among them, chosen for liquidity and staying power, not safety. Not stocks, not equities. Any
             of them can go to zero, and the value of the pools falls with them.
           </Callout>
+          <Callout tone="caution" title="Only LP into the official pool">
+            Parallel pools are blocklisted as they appear, and a block stops transfers both ways, so a blocked pool cannot be withdrawn from either. Liquidity
+            you put anywhere but the official pool can be frozen there, your ETH along with your $OURO. Ouro's own pool is never blocked.{" "}
+            <Link to="/docs/#d07">How the Seal works</Link>.
+          </Callout>
           <Callout title="Why own pools instead of tokens?">
             Pools earn the trading fees that feed the Loop, and depth is what a young chain is short of. The tradeoff is impermanent loss versus holding. The
             selection rule targets tokens where fee income covers it.
