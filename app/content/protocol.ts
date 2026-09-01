@@ -38,13 +38,18 @@ export interface ParameterRow {
 }
 
 /**
- * TODO before launch: the hook enforces a hard ceiling on the tax (3% in the committed contract, which
- * predates the 5% rate). Set the new ceiling, then state it here and in the three places that used to
- * claim "capped at 3%": docs §10, docs §11 ("What Ouro can't do") and the "Can the team rug?" FAQ.
+ * The hook's ceiling is 5% and the tax launches AT it, so governance can only ever lower the tax. The one
+ * exception is the anti-snipe surcharge below: it is written once at launch, decays to 5% over 60s, and no
+ * function can restart, extend or re-arm it — after that minute the 5% ceiling is absolute.
  */
 export const PARAMETERS: ParameterRow[] = [
   { parameter: "Total supply", value: "1,000,000,000 OURO", mutable: "No · fixed, no mint" },
-  { parameter: "Trade tax", value: "5% of the ETH leg", mutable: "Governed · multisig" },
+  { parameter: "Trade tax", value: "5% of the ETH leg", mutable: "Governed · multisig · capped at 5%" },
+  {
+    parameter: "Anti-snipe surcharge (first 60s)",
+    value: "99% on buys, decaying to 5%",
+    mutable: "No · expires on its own, cannot be re-armed",
+  },
   { parameter: "Pool LP fee", value: "1%", mutable: "No · fixed at creation" },
   { parameter: "Tax split: airdrop / basket / ops", value: "2% / 2% / 1% of the trade", mutable: "Protocol policy" },
   { parameter: "Fee split: holders / Reserve", value: "80 / 20", mutable: "Protocol policy" },

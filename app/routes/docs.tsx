@@ -156,8 +156,15 @@ export default function Docs() {
           <DocSection id="d02" n="02" title="The tax">
             <P>
               5%, charged in ETH, on every buy and every sell: exact in and exact out, all four shapes. The pool also charges a standard 1% LP fee, so a
-              trade pays about 6% in total, the same total cost as HOOD10, and the reason the tax has to build something that outlasts it. The treasury's own
-              trades are exempt: the protocol doesn't pay a tax to itself.
+              trade pays about 6% in total, the same total cost as HOOD10, and the reason the tax has to build something that outlasts it.
+            </P>
+            <P>
+              <strong>The first 60 seconds carry an anti-snipe surcharge.</strong> Buys made in the first minute after the pool opens pay a tax starting at
+              99% and falling in a straight line to the ordinary 5% by the sixty-second mark, so the opening seconds are worthless to bots. Whatever a sniper
+              pays goes to the treasury like any other tax. Three things about it, all enforced by the contract rather than promised: it applies to buys only,
+              so a seller is never charged more than 5% and nobody is ever trapped; the launch transaction itself is exempt, so the seeding buy is not taxed at
+              99%; and the window is written once at launch and cannot be restarted, extended or re-armed by anyone, governance included. After that minute the
+              5% ceiling is absolute, forever.
             </P>
             <SplitBar
               wedges={[
