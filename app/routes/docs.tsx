@@ -75,10 +75,6 @@ const FAQ: { q: string; a: string }[] = [
   },
   { q: "Is the basket safe? Are these stocks?", a: "No. The basket holds crypto tokens on Robinhood Chain, bluechip memecoins among them, chosen for liquidity and depth. They can go to zero." },
   {
-    q: "Can the team rug?",
-    a: "Be clear about this. The contracts guarantee that supply can't be minted, that the tax can't exceed the ceiling the hook enforces, and that your wallet can never be blocked. Everything else sits with a multisig whose activity is fully public onchain: the treasury, the basket, the splits, the airdrop cadence. That is a trust assumption, not a code guarantee. Judge Ouro on that record and verify it against the addresses once published.",
-  },
-  {
     q: "Why can't I find $OURO on another DEX?",
     a: "We discourage parallel pools with an address blocklist, so more of the tax funds the treasury. It's a deterrent, not a wall, so buy and sell on the official pool, linked here at launch, to be sure your trade funds the flywheel.",
   },
@@ -216,10 +212,14 @@ export default function Docs() {
 
           <DocSection id="d04" n="04" title="The Reserve">
             <P>
-              A small set, target five, of liquid Robinhood Chain tokens, held as full range liquidity Ouro owns, not as loose tokens and never handed out.
-              Selection favors mature, high turnover tokens with the deepest pool on the chain, and each constituent is capped at 20% to 25% of the treasury.
+              A small set, building toward five, of liquid Robinhood Chain tokens, held as full range liquidity Ouro owns, not as loose tokens and never handed
+              out. It opens with <strong>CASHCAT</strong> and <strong>PONS</strong>, the two deepest and most heavily traded crypto markets on the chain, and
+              widens as the treasury grows: early on the basket leg is a small share of a small volume, and splitting it five ways would buy five positions too
+              small to matter against the cost of taking them. Selection favors mature, high turnover tokens with the deepest pool on the chain, and each
+              constituent is capped at 20% to 25% of the treasury.
               Constituents are LP'd where their real liquidity is: canonical Uniswap v3 for most names, v4 for others. LP'ing earns the trading fees that
-              feed the Loop. The tradeoff is impermanent loss versus holding. Basket changes are governance actions, made as public onchain transactions.
+              feed the Loop. The tradeoff is impermanent loss versus holding. Neither name is a commitment to hold it forever: adding, retiring and reweighting
+              are governance actions, made as public onchain transactions, and a constituent that stops meeting the rules is retired the same way it was added.
             </P>
             <P>
               Alongside the Reserve the treasury holds one more position: Ouro's own ETH/OURO liquidity, seeded at launch as a full range position and left

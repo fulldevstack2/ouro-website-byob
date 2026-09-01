@@ -256,8 +256,8 @@ function BasketSection() {
     <Container id="basket" style={{ paddingTop: 96 }}>
       <SectionHead
         kicker="The pools"
-        title="Five pools, chosen for depth."
-        sub="The Reserve is held as full range liquidity the protocol owns in the chain's strongest tokens: bluechip memecoins and proven coins with the deepest pools. Never loose tokens, never handed out. The selection rule is public before the names are."
+        title="It starts with CASHCAT and PONS."
+        sub="The Reserve is full range liquidity the protocol owns in the chain's strongest tokens: never loose tokens, never handed out. It opens with two of the deepest and most heavily traded markets on Robinhood Chain, and widens toward five as the treasury grows enough for a fifth position to be worth holding. The rules below decide what goes in, and every change is a governance action anyone can read."
       />
       <Grid cols="1.1fr 0.9fr" gap={64} align="start">
         <div>

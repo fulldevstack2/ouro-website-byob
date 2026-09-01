@@ -54,6 +54,6 @@ export const PARAMETERS: ParameterRow[] = [
   { parameter: "Tax split: airdrop / basket / ops", value: "2% / 2% / 1% of the trade", mutable: "Protocol policy" },
   { parameter: "Fee split: holders / Reserve", value: "80 / 20", mutable: "Protocol policy" },
   { parameter: "Airdrop minimum", value: "100,000 OURO (0.01%)", mutable: "Protocol policy" },
-  { parameter: "Basket target size", value: "~5, roughly equal weight", mutable: "Protocol policy" },
+  { parameter: "Basket", value: "Opens with CASHCAT + PONS, toward ~5", mutable: "Protocol policy" },
   { parameter: "Chain", value: "Robinhood Chain (4663)", mutable: "No" },
 ];
