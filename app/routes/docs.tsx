@@ -224,8 +224,8 @@ export default function Docs() {
             <P>
               Alongside the Reserve the treasury holds one more position: Ouro's own ETH/OURO liquidity, seeded at launch as a full range position and left
               in place, earning fees into the same split as everything else. Be clear on what backs that. It is held by the treasury multisig and protected by
-              its policy, not by code: there is no lock contract, and the multisig can in principle remove it. Verify it the honest way, by watching the
-              treasury's onchain transactions and the position's liquidity over time, rather than trusting a claim that it can never be pulled.
+              its policy, not by code: there is no lock contract. Verify it the honest way, by watching the treasury's onchain transactions and the position's
+              liquidity over time, rather than trusting a claim that it can never be pulled.
             </P>
             <Callout tone="caution" title="Memecoins, chosen for liquidity, not safety" style={{ marginTop: 14 }}>
               Constituents can fail. Treasury value falls with them.
