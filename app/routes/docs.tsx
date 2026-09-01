@@ -84,7 +84,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Can I provide liquidity in a pool other than the official one?",
-    a: "You can, and you should not. Parallel pools get blocklisted as they appear, and a block stops transfers in both directions, so nobody can withdraw from a blocked pool either. On a v2 pair both tokens leave in one call, so you would lose access to both sides, your ETH as well as your $OURO. On a v3 pool you could collect the paired side and the $OURO would stay stranded. Unblocking releases everything, so it is a freeze rather than a loss, and Ouro's own pool is never blocked. But a pool can only be blocked once it exists, so there is no warning before it happens. Provide liquidity to the official pool only.",
+    a: "You can, and you should not. Parallel pools get blocklisted as they appear, and a block stops transfers in both directions, so nobody can withdraw from a blocked pool at all, your ETH as well as your $OURO. Unblocking releases the position, so it is a freeze rather than a loss, and Ouro's own pool is never blocked. But a pool can only be blocked once it exists, so there is no warning before it happens and no way to know in advance which venue is next. Provide liquidity to the official pool and nowhere else.",
   },
 ];
 
@@ -275,7 +275,7 @@ export default function Docs() {
 
           <DocSection id="d07" n="07" title="The Seal">
             <P>
-              Tax index tokens leak: once a token has volume, anyone can open an untaxed pool elsewhere and traders route around the tax. Measured onchain
+              Tax index tokens leak: once a token has volume, some of it drifts to venues where the tax does not reach. Measured onchain
               26 to 28 Aug 2026, the leaders captured only 6% to 36% of their own volume. Ouro pushes back with an address blocklist: parallel v2, v3 and other AMM
               pools are blocked as they appear. To keep the power off ordinary users, the blocklist can only ever target a contract, so a wallet or a CEX
               deposit address is never affected. It's a deterrent, not a wall, and we don't claim otherwise: some volume finds its way around any pool level tax, which
@@ -283,11 +283,10 @@ export default function Docs() {
               trade funds the flywheel.
             </P>
             <Callout tone="warning" title="Only provide liquidity to the official pool" style={{ marginTop: 14 }}>
-              If a pool is blocklisted, the block stops transfers in <em>both</em> directions, so nobody can withdraw from it either. On a v2 pair both tokens
-              leave in a single call, so a provider loses access to <strong>both sides — the ETH as well as the $OURO</strong>. On a v3 pool they can collect the
-              paired side and leave the $OURO stranded. Unblocking releases the position in full, so it is a freeze rather than a loss, and Ouro's own pool is
-              never blocked. But liquidity you put into any other pool can be frozen there without warning, because a pool can only be blocked once it already
-              exists. Provide liquidity to the official pool only.
+              If a pool is blocklisted, the block stops transfers in <em>both</em> directions, so nobody can withdraw from it at all — <strong>your ETH as well
+              as your $OURO</strong>. Unblocking releases the position, so it is a freeze rather than a loss, and Ouro's own pool is never blocked. But a pool can
+              only be blocked once it already exists, so there is no warning before it happens, and no way to know in advance which venue is next. Provide
+              liquidity to the official pool and nowhere else.
             </Callout>
           </DocSection>
 

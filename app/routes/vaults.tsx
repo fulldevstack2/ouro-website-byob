@@ -46,7 +46,7 @@ const BUILT_IN = [
 const RISKS = [
   "The vault contracts are new and have not been audited. Treat this as experimental software.",
   "Keepers are trusted with the dividend tokens between airdrop and harvest. A bad route costs yield, not principal.",
-  "Every swap the vault makes pays a pool fee and price impact: zaps, dividend sales and compounding rebuys. The keeper sells through the cheapest venue it can quote and rebuys through WETH into the deepest untaxed pool.",
+  "Every swap the vault makes pays a pool fee and price impact: zaps, dividend sales and compounding rebuys. The keeper sells through the cheapest venue it can quote and rebuys through WETH into the deepest pool it can find.",
   "Dividend tokens waiting in a vault belong to whoever holds shares at the harvest. Withdrawing before a harvest forfeits your slice.",
   "INDEX dividends arrive as tokenized stocks. Selling them depends on a venue that trades them, and stock market hours can delay a harvest.",
   "The yield is the index token's dividend and nothing else. When trading in HOOD10 or INDEX cools, dividends shrink, and the value of a deposit moves with the token's price.",
@@ -193,7 +193,7 @@ export default function Vaults() {
       </div>
 
       <Callout title="Which payout?" style={{ marginTop: 24 }}>
-        Compounding keeps you fully in the index token. Each rebuy goes through WETH into the deepest untaxed pool and costs that pool's fee and price
+        Compounding keeps you fully in the index token. Each rebuy goes through WETH into the deepest pool the keeper can find and costs that pool's fee and price
         impact. WETH and USDG payouts leave your deposit untouched and skip the rebuy, but the yield no longer compounds inside the vault. The keeper, the venues and the fee are the same in all six.
       </Callout>
 

@@ -75,7 +75,7 @@ export const PAYOUTS: Payout[] = [
     label: (t) => `Pays in ${t.symbol}`,
     asset: (t) => t.symbol,
     text: (t) =>
-      `Dividends are sold for ${t.symbol} and booked into the vault. Your share count stays the same and each share is worth more ${t.symbol} after every harvest. Nothing to claim. Each rebuy routes through the cheapest pool, usually an untaxed one.`,
+      `Dividends are sold for ${t.symbol} and booked into the vault. Your share count stays the same and each share is worth more ${t.symbol} after every harvest. Nothing to claim. Each rebuy routes through the cheapest venue the keeper can quote.`,
   },
   {
     key: "weth",

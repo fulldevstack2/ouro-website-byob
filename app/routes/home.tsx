@@ -181,9 +181,9 @@ const COMPARE_ROWS: CompareRow[] = [
   },
   {
     label: "Parallel pools",
-    tip: "Untaxed pools that traders route through to dodge the tax. Measured onchain 26 to 28 Aug 2026, competitors capture 6% to 36% of their own volume. Ouro pushes back by blocklisting parallel pools as they appear.",
-    hood10: "20 untaxed pools leak the tax",
-    index: "249+ untaxed pools leak the tax",
+    tip: "Volume that never reaches the taxed pool. Measured onchain 26 to 28 Aug 2026, competitors captured only 6% to 36% of their own volume. Ouro pushes back by blocklisting parallel pools as they appear.",
+    hood10: "Only ~36% of volume taxed",
+    index: "Only ~6% of volume taxed",
     ouro: "Blocklisted as they appear",
   },
   {
@@ -272,8 +272,8 @@ function BasketSection() {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Callout tone="warning" title="Only LP into the official pool">
-            Parallel pools are blocklisted as they appear, and a block stops transfers both ways, so a blocked pool cannot be withdrawn from either. Liquidity
-            you put anywhere but the official pool can be frozen there, your ETH along with your $OURO. Ouro's own pool is never blocked.{" "}
+            Parallel pools are blocklisted as they appear, and a block stops transfers both ways, so a blocked pool cannot be withdrawn from at all. Liquidity
+            you put anywhere but the official pool can be frozen there without warning, your ETH along with your $OURO. Ouro's own pool is never blocked.{" "}
             <Link to="/docs/#d07">How the Seal works</Link>.
           </Callout>
         </div>
