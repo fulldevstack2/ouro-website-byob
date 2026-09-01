@@ -41,6 +41,7 @@ export interface NavItem {
 /** Primary navigation. (Staking was removed on 2026-08-31: holders are paid directly, nothing is staked.) */
 export const NAV: NavItem[] = [
   { to: "/", label: "Overview" },
+  { to: "/swap/", label: "Trade" },
   // Shelved 2026-08-31 until each is ready to show. Routes, pages and URLs are untouched.
   { to: "/vaults/", label: "Vaults", hidden: true },
   { to: "/monitor/", label: "Monitor", hidden: true },
