@@ -278,8 +278,9 @@ export default function Docs() {
               Tax index tokens leak: once a token has volume, anyone can open an untaxed pool elsewhere and traders route around the tax. Measured onchain
               26 to 28 Aug 2026, the leaders captured only 6% to 36% of their own volume. Ouro pushes back with an address blocklist: parallel v2, v3 and other AMM
               pools are blocked as they appear. To keep the power off ordinary users, the blocklist can only ever target a contract, so a wallet or a CEX
-              deposit address is never affected. It's a deterrent, not a wall: wrappers and parallel v4 pools can still leak, so trade on the official pool to
-              be sure your trade funds the flywheel.
+              deposit address is never affected. It's a deterrent, not a wall, and we don't claim otherwise: some volume finds its way around any pool level tax, which
+              is exactly why the tax is only half the design and the pools the treasury keeps are the other half. Trade on the official pool to be sure your
+              trade funds the flywheel.
             </P>
             <Callout tone="warning" title="Only provide liquidity to the official pool" style={{ marginTop: 14 }}>
               If a pool is blocklisted, the block stops transfers in <em>both</em> directions, so nobody can withdraw from it either. On a v2 pair both tokens
