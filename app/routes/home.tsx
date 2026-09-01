@@ -304,16 +304,17 @@ function YieldSection() {
         {col("The tax leg", "Two of every five tax points buy tokens and airdrop them to you. This one pays from the first trade, and it rises and falls with volume.", true)}
         {col("The pool leg", "80% of the fees the protocol's own pools earn, airdropped in the tokens and ETH they earned, nothing sold. The other 20% compounds, so this leg grows.", true)}
       </Grid>
-      <Callout tone="warning" title="Don't LP your $OURO" style={{ marginTop: 24 }}>
-        Two reasons. Tokens sitting in a pool are not in your wallet, so they fall below the line and earn no airdrop at all. And parallel pools are
-        blocklisted as they appear: a block stops transfers both ways, so a blocked pool cannot be withdrawn from at all, your ETH as well as your $OURO, with
-        no warning before it happens. Ouro's own pool is never blocked.{" "}
-        <Link to="/docs/#d07">How the Seal works</Link>.
-      </Callout>
-      <div style={{ marginTop: 28 }}>
+      <div
+        style={{ marginTop: 28, display: "flex", gap: 24, alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap" }}
+      >
         <Button variant="secondary" arrow to="/docs/#d05">
           How the airdrop works
         </Button>
+        <Callout tone="warning" title="Don't LP your $OURO" style={{ flex: "0 1 440px", marginTop: 0 }}>
+          Tokens in a pool are not in your wallet, so they earn no airdrop. And parallel pools are blocklisted as they appear, with no warning: a block stops
+          transfers both ways, so a blocked pool cannot be withdrawn from at all, your ETH as well as your $OURO. Ouro's own pool is never blocked.{" "}
+          <Link to="/docs/#d07">How the Seal works</Link>.
+        </Callout>
       </div>
     </Container>
   );
