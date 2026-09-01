@@ -281,7 +281,7 @@ export default function Docs() {
               deposit address is never affected. It's a deterrent, not a wall: wrappers and parallel v4 pools can still leak, so trade on the official pool to
               be sure your trade funds the flywheel.
             </P>
-            <Callout tone="caution" title="Only provide liquidity to the official pool" style={{ marginTop: 14 }}>
+            <Callout tone="warning" title="Only provide liquidity to the official pool" style={{ marginTop: 14 }}>
               If a pool is blocklisted, the block stops transfers in <em>both</em> directions, so nobody can withdraw from it either. On a v2 pair both tokens
               leave in a single call, so a provider loses access to <strong>both sides — the ETH as well as the $OURO</strong>. On a v3 pool they can collect the
               paired side and leave the $OURO stranded. Unblocking releases the position in full, so it is a freeze rather than a loss, and Ouro's own pool is
