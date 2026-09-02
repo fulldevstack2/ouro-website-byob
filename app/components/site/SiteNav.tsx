@@ -11,7 +11,9 @@ export function SiteNav() {
       <Container className="site-nav__inner">
         <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Wordmark to="/" />
-          <Badge tone="caution">Prelaunch</Badge>
+          <Badge tone="positive" dot>
+            Live
+          </Badge>
         </span>
         <nav className="site-nav__links" aria-label="Primary">
           {VISIBLE_NAV.map((item) => (

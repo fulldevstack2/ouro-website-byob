@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAccount, useBalance, usePublicClient, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { maxUint160, maxUint256, zeroAddress, type Address } from "viem";
 import { ERC20_ABI, PERMIT2_ABI, QUOTER_ABI, UNIVERSAL_ROUTER_ABI } from "~/lib/dex/abis";
 import { OURO, PERMIT2, POOL_KEY, UNIVERSAL_ROUTER, V4_QUOTER } from "~/lib/dex/addresses";
@@ -32,12 +32,18 @@ export function SwapCard() {
   const [err, setErr] = useState<string | null>(null);
 
   const amountIn = useMemo(() => parseAmount(raw), [raw]);
+
+  function edit(next: string) {
+    setRaw(next);
+    if (hash) { setHash(undefined); setAction(null); }
+    if (err) setErr(null);
+  }
   const onRightChain = chainId === robinhood.id;
 
-  const { data: ethBal } = useBalance({ address, query: { enabled: !!address } });
-  const { data: ouroBal, refetch: refetchOuro } = useReadContract({
+  const { data: ethBal } = useBalance({ address, query: { enabled: !!address, refetchInterval: 10_000 } });
+  const { data: ouroBal } = useReadContract({
     address: OURO, abi: ERC20_ABI, functionName: "balanceOf", args: address ? [address] : undefined,
-    query: { enabled: !!address },
+    query: { enabled: !!address, refetchInterval: 10_000 },
   });
 
   const balance = side === "buy" ? (ethBal?.value ?? 0n) : ((ouroBal as bigint | undefined) ?? 0n);
@@ -61,12 +67,12 @@ export function SwapCard() {
   const minOut = amountOut > 0n ? withSlippage(amountOut, slippageBps) : 0n;
 
   // ── sells go through Permit2: ERC20 -> Permit2, then Permit2 -> router ──
-  const { data: erc20Allowance, refetch: refetchErc20 } = useReadContract({
+  const { data: erc20Allowance } = useReadContract({
     address: OURO, abi: ERC20_ABI, functionName: "allowance",
     args: address ? [address, PERMIT2] : undefined,
     query: { enabled: !!address && side === "sell" },
   });
-  const { data: p2Allowance, refetch: refetchP2 } = useReadContract({
+  const { data: p2Allowance } = useReadContract({
     address: PERMIT2, abi: PERMIT2_ABI, functionName: "allowance",
     args: address ? [address, OURO, UNIVERSAL_ROUTER] : undefined,
     query: { enabled: !!address && side === "sell" },
@@ -81,10 +87,16 @@ export function SwapCard() {
 
   const { writeContractAsync, isPending } = useWriteContract();
   const [hash, setHash] = useState<`0x${string}` | undefined>();
+  const [action, setAction] = useState<"approve" | "swap" | null>(null);
   const receipt = useWaitForTransactionReceipt({ hash });
+  const qc = useQueryClient();
 
   useEffect(() => {
-    if (receipt.isSuccess) { refetchOuro(); refetchErc20(); refetchP2(); quote.refetch(); }
+    if (!receipt.isSuccess) return;
+    // Invalidate rather than refetch: this reaches every wagmi query in the tree, so the header
+    // balance in ConnectButton updates too, not just this card's copy.
+    qc.invalidateQueries();
+    if (action === "swap") setRaw("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [receipt.isSuccess]);
 
@@ -92,10 +104,12 @@ export function SwapCard() {
     setErr(null);
     try {
       if (needsErc20) {
+        setAction("approve");
         setHash(await writeContractAsync({ address: OURO, abi: ERC20_ABI, functionName: "approve", args: [PERMIT2, maxUint256] }));
         return;
       }
       if (needsPermit2) {
+        setAction("approve");
         const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30;
         setHash(await writeContractAsync({
           address: PERMIT2, abi: PERMIT2_ABI, functionName: "approve",
@@ -104,6 +118,7 @@ export function SwapCard() {
         return;
       }
       const plan = buildSwap(side, amountIn, minOut);
+      setAction("swap");
       setHash(await writeContractAsync({
         address: UNIVERSAL_ROUTER, abi: UNIVERSAL_ROUTER_ABI, functionName: "execute",
         args: [plan.commands, plan.inputs as readonly `0x${string}`[], BigInt(Math.floor(Date.now() / 1000)) + DEADLINE_S],
@@ -130,7 +145,7 @@ export function SwapCard() {
     <div style={{ display: "flex", flexDirection: "column", gap: 14, maxWidth: 460 }}>
       <div style={{ display: "flex", gap: 8 }}>
         {(["buy", "sell"] as Side[]).map((s) => (
-          <button key={s} onClick={() => { setSide(s); setRaw(""); setErr(null); }}
+          <button key={s} onClick={() => { setSide(s); setRaw(""); setErr(null); setHash(undefined); setAction(null); }}
             style={{
               ...mono, fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", cursor: "pointer",
               padding: "7px 16px", borderRadius: "var(--radius-sm)",
@@ -146,13 +161,13 @@ export function SwapCard() {
       <div style={box}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
           <span style={label}>You pay</span>
-          <button onClick={() => setRaw(fmt(balance, 18, 18))}
+          <button onClick={() => edit(fmt(balance, 18, 18))}
             style={{ ...label, border: 0, background: "none", cursor: "pointer", color: "var(--text-accent)" }}>
             max {fmt(balance, 18, 4)} {symIn}
           </button>
         </div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-          <input value={raw} onChange={(e) => setRaw(e.target.value)} inputMode="decimal" placeholder="0.0"
+          <input value={raw} onChange={(e) => edit(e.target.value)} inputMode="decimal" placeholder="0.0"
             style={{ ...mono, flex: 1, minWidth: 0, fontSize: 26, border: 0, outline: "none",
               background: "transparent", color: "var(--text-primary)" }} />
           <span style={{ ...mono, fontSize: 13, color: "var(--text-secondary)" }}>{symIn}</span>

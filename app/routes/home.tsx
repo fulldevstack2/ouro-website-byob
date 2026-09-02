@@ -4,7 +4,7 @@ import { Link } from "react-router";
 import type { Route } from "./+types/home";
 import { Badge, Button, Callout, Card, Stat } from "~/components/ds";
 import { Container, CrankFeed, Grid, HelpTip, HeroRing, KVRow, LoopRing, MicroLabel, NumberedRow, SectionHead, body14, display, hairline } from "~/components/site";
-import { externalLinkProps, site } from "~/content/site";
+import { site } from "~/content/site";
 import { pageMeta } from "~/lib/meta";
 
 export function meta({ location }: Route.MetaArgs) {
@@ -68,16 +68,21 @@ function Hero() {
               and 80% of the fees they earn is airdropped too.
             </p>
             <div className="cta-row hero-in" style={{ display: "flex", gap: 12, marginTop: 32 }}>
-              <Button size="lg" arrow href={site.links.x} {...externalLinkProps(site.links.x)}>
-                Follow {site.xHandle}
+              <Button size="lg" arrow to="/swap/">
+                Buy {site.ticker}
               </Button>
               <Button size="lg" variant="secondary" to="/docs/">
                 Read the docs
               </Button>
             </div>
             <div className="hero-note hero-in">
-              <Badge tone="caution">Awaiting launch</Badge>
-              <span>Addresses and live figures publish at launch. Until then, every activity number on this site shows a dash.</span>
+              <Badge tone="positive" dot>
+                Live on {site.chain.name}
+              </Badge>
+              <span>
+                {site.ticker} is live and trading now. The treasury Ledger and its activity figures publish as the keeper comes online; until then those show a
+                dash.
+              </span>
             </div>
           </div>
 
