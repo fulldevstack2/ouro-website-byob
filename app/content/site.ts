@@ -19,6 +19,8 @@ export const site = {
   chain: { name: "Robinhood Chain", id: 4663 },
   /** Set to true once the audit report is published; it swaps the docs §10 callout. */
   auditPublished: false,
+  /** First holder payout: 12:00 on 3 Sep 2026, GMT+8 (= 04:00 UTC). One place to change it. */
+  firstPayoutISO: "2026-09-03T04:00:00Z",
   links: {
     x: `https://x.com/${xHandle.replace(/^@/, "")}`,
     /** Where $OURO trades. The token is a letscash launchpad token, so buying happens there. */

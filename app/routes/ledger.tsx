@@ -1,6 +1,6 @@
 import type { Route } from "./+types/ledger";
 import { Badge, Callout, LedgerTable, Stat, type LedgerColumn } from "~/components/ds";
-import { AddressCell, Container, CrankFeed, Grid, KVRow, MicroLabel, PageHeader, PendingCell, SectionHead, hairline, mono } from "~/components/site";
+import { AddressCell, Container, CrankFeed, Grid, KVRow, MicroLabel, PageHeader, PendingCell, SectionHead, hairline, mono , PayoutCountdown} from "~/components/site";
 import { INFRASTRUCTURE, PROTOCOL_CONTRACTS, type AddressEntry } from "~/content/protocol";
 import { site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
@@ -38,12 +38,15 @@ export default function Ledger() {
         lede="Every movement of the treasury, read from the chain. None of it is reported by hand."
         aside={
           <div style={{ display: "flex", alignItems: "center", gap: 14, paddingBottom: 4 }}>
-            <Badge tone="caution">Awaiting launch</Badge>
+            <Badge tone="caution">Awaiting cycle #1</Badge>
             <span style={{ ...mono, fontSize: 12, color: "var(--text-faint)" }}>{clock}</span>
           </div>
         }
       />
 
+      <div style={{ maxWidth: 460, marginTop: 28 }}>
+        <PayoutCountdown />
+      </div>
       <Callout title="The Ledger goes live at launch" style={{ marginTop: 32 }}>
         It reads the treasury’s onchain transactions every cycle. Until the first cycle runs, every activity figure below shows a dash. The parameters shown are
         set at deploy and verifiable from block one.

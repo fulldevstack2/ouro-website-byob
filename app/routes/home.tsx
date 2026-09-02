@@ -3,7 +3,7 @@ import { Link } from "react-router";
 
 import type { Route } from "./+types/home";
 import { Badge, Button, Callout, Card, Stat } from "~/components/ds";
-import { Container, CrankFeed, Grid, HelpTip, HeroRing, KVRow, LoopRing, MicroLabel, NumberedRow, SectionHead, body14, display, hairline } from "~/components/site";
+import { Container, CrankFeed, Grid, HelpTip, HeroRing, KVRow, LoopRing, MicroLabel, NumberedRow, SectionHead, body14, display, hairline , PayoutCountdown} from "~/components/site";
 import { site } from "~/content/site";
 import { pageMeta } from "~/lib/meta";
 
@@ -74,6 +74,9 @@ function Hero() {
               <Button size="lg" variant="secondary" to="/docs/">
                 Read the docs
               </Button>
+            </div>
+            <div className="hero-in" style={{ marginTop: 24, maxWidth: 420 }}>
+              <PayoutCountdown />
             </div>
             <div className="hero-note hero-in">
               <Badge tone="positive" dot>
