@@ -67,7 +67,7 @@ export function PayoutCountdown({ compact = false }: { compact?: boolean }) {
         </div>
       )}
       <span style={{ ...mono, fontSize: 11, color: "var(--text-secondary)" }}>
-        12:00, 3 Sep 2026 · GMT+8 &nbsp;·&nbsp; hold ≥ 100,000 $OURO to be paid
+        12:00 GMT+8 &nbsp;·&nbsp; hold ≥ 100,000 $OURO to be paid
       </span>
     </div>
   );
