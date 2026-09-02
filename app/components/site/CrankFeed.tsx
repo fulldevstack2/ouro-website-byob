@@ -5,7 +5,7 @@ import { hairline, mono } from "./text";
 
 const STEPS: { n: string; title: string; detail: string; unit?: string }[] = [
   { n: "01", title: "Collect", detail: ": fees from every position, in the tokens they were earned in" },
-  { n: "02", title: "Deploy", detail: ": tax ETH split four parts basket to one part ops", unit: " ETH" },
+  { n: "02", title: "Deploy", detail: ": tax ETH split 2 airdrop / 2 LP / 0.7 ops", unit: " ETH" },
   { n: "03", title: "Airdrop", detail: ": cycle fees split 80 / 20 between holders and the Reserve" },
 ];
 

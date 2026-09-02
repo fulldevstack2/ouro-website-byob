@@ -50,7 +50,7 @@ export const PARAMETERS: ParameterRow[] = [
   { parameter: "Total supply", value: "1,000,000,000 OURO", mutable: "No · fixed, no mint" },
   { parameter: "Trade tax", value: "5% of the ETH leg", mutable: "No · fixed at launch" },
   { parameter: "Pool LP fee", value: "0%", mutable: "No · fixed at creation" },
-  { parameter: "Tax split: airdrop / basket / ops", value: "PENDING — see note", mutable: "Protocol policy" },
+  { parameter: "Tax split", value: "2% airdrop / 2% LP / 0.7% ops / 0.3% letscash", mutable: "Protocol policy" },
   { parameter: "Fee split: holders / Reserve", value: "80 / 20", mutable: "Protocol policy" },
   { parameter: "Airdrop minimum", value: "100,000 OURO (0.01%)", mutable: "Protocol policy" },
   { parameter: "Basket", value: "Opens with CASHCAT + PONS, toward ~5", mutable: "Protocol policy" },

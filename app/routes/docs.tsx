@@ -152,26 +152,28 @@ export default function Docs() {
             </P>
             <SplitBar
               wedges={[
-                { label: "Airdrop", value: "2%", weight: 2 },
-                { label: "Basket", value: "2%", weight: 2, tone: "accent" },
-                { label: "Ops", value: "1%", weight: 1 },
+                { label: "Airdrop", value: "2%", weight: 20 },
+                { label: "LP", value: "2%", weight: 20, tone: "accent" },
+                { label: "Ops", value: "0.7%", weight: 7 },
+                { label: "letscash", value: "0.3%", weight: 3 },
               ]}
               left="Paid out to holders"
-              right="Operations"
+              right="Operations · platform"
             />
             <SplitRows
               rows={[
                 ["Airdrop: buys tokens and hands them to holders", "2% of the trade"],
-                ["Basket: buys the Reserve and keeps it as owned liquidity", "2% of the trade"],
-                ["Ops: gas, infra, listings", "1% of the trade"],
+                ["LP: buys the Reserve and keeps it as owned liquidity", "2% of the trade"],
+                ["Ops: gas, infra, listings", "0.7% of the trade"],
+                ["letscash.fun: the launchpad's platform fee", "0.3% of the trade"],
               ]}
             />
           </DocSection>
 
           <DocSection id="d03" n="03" title="The Loop">
             <P>
-              The treasury advances in cycles. Each cycle collects the fees earned by every position, in kind, and deploys the accumulated tax two parts
-              airdrop, two parts basket, one part ops. The fees collected this cycle are then split again:
+              The treasury advances in cycles. Each cycle collects the fees earned by every position, in kind, and deploys the accumulated tax on the split
+              above: 2% of the trade to the airdrop, 2% into liquidity it keeps, 0.7% to ops. The fees collected this cycle are then split again:
             </P>
             <SplitBar
               wedges={[
@@ -303,7 +305,7 @@ export default function Docs() {
               those same tokens means your airdrop falls with them too. A 5% tax on both sides is a heavy round trip, so short term trading in $OURO is
               expensive by design. Everything lives on one chain (4663). Large cycles move prices, and minimum output protection bounds, but does not eliminate,
               bad fills. The Loop advances only when the protocol runs a cycle. Wallets below the 100,000 line are not paid at all. The trading rails are
-              letscash's shared hook, not ours, so its behaviour and its platform cut are outside our control. The airdrop is run by the team from the fee
+              letscash's shared hook, not ours, so its behaviour is outside our control and 0.3% of every trade is theirs, not the treasury's. The airdrop is run by the team from the fee
               stream, which makes it a promise about conduct rather than something code enforces.
             </P>
             <Callout tone="caution" title="No promises" style={{ marginTop: 14 }}>

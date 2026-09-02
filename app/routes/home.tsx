@@ -102,7 +102,7 @@ function ProofBand() {
       <Container style={{ paddingTop: 32, paddingBottom: 32 }}>
         <Grid cols="repeat(4, 1fr)" gap={24} className="grid--2col-md">
           <Stat label="Trade tax" value="5%" footnote="Charged in ETH on every buy and every sell" />
-          <Stat className="cell-rule" label="Tax split" value="2 / 2 / 1" footnote="Airdrop · LP basket · ops" />
+          <Stat className="cell-rule" label="Tax split" value="2 / 2 / 0.7" footnote="Airdrop · LP · ops · 0.3 letscash" />
           <Stat className="cell-rule" label="LP Fee split" value="80 / 20" footnote="Airdrop holders · Compound LP" />
           <Stat className="cell-rule" label="Supply" value="1,000,000,000" unit="OURO"  />
         </Grid>
@@ -134,8 +134,8 @@ function LoopSection() {
             treasury.
           </Step>
           <Step n="02" title="Buy">
-            Four of those five points buy the strongest tokens on Robinhood Chain at market: two to airdrop to holders, two to keep. The fifth covers ops.
-            What the treasury buys is public the moment it happens.
+            Four of those five points buy the strongest tokens on Robinhood Chain at market: two to airdrop to holders, two to keep as liquidity. The rest
+            covers ops, less the launchpad's 0.3% platform fee. What the treasury buys is public the moment it happens.
           </Step>
           <Step n="03" title="Own">
             The half it keeps is paired into full range liquidity the protocol owns and never hands out. Pool by pool,
