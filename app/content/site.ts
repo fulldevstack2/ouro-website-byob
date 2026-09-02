@@ -21,6 +21,8 @@ export const site = {
   auditPublished: false,
   links: {
     x: `https://x.com/${xHandle.replace(/^@/, "")}`,
+    /** Where $OURO trades. The token is a letscash launchpad token, so buying happens there. */
+    buy: "https://www.letscash.fun/token/0x8ea0eb3505f5b3bd2bbea0febae0ce850cc73ecc",
     /** TODO: block explorer for Robinhood Chain (also used for address links on the Ledger). */
     explorer: "#",
     /** TODO: Robinhood Chain site. */
@@ -30,6 +32,8 @@ export const site = {
 
 export interface NavItem {
   to: string;
+  /** When set, the item is an external link and `to` is only its key. */
+  href?: string;
   label: string;
   /**
    * Kept out of the nav and the footer, but still routed, prerendered and reachable at its URL. This is a
@@ -41,7 +45,7 @@ export interface NavItem {
 /** Primary navigation. (Staking was removed on 2026-08-31: holders are paid directly, nothing is staked.) */
 export const NAV: NavItem[] = [
   { to: "/", label: "Overview" },
-  { to: "/swap/", label: "Trade" },
+  { to: "buy", label: "Buy $OURO", href: site.links.buy },
   // Shelved 2026-08-31 until each is ready to show. Routes, pages and URLs are untouched.
   { to: "/vaults/", label: "Vaults", hidden: true },
   { to: "/monitor/", label: "Monitor", hidden: true },

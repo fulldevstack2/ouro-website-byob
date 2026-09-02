@@ -4,7 +4,6 @@ import { type RouteConfig, index, route } from "@react-router/dev/routes";
 // (/stake was removed on 2026-08-31 when staking was dropped: holders are paid directly.)
 export default [
   index("routes/home.tsx"),
-  route("swap", "routes/swap.tsx"),
   route("vaults", "routes/vaults.tsx"),
   route("monitor", "routes/monitor.tsx"),
   route("ledger", "routes/ledger.tsx"),

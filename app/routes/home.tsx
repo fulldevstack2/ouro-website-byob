@@ -68,7 +68,7 @@ function Hero() {
               and 80% of the fees they earn is airdropped too.
             </p>
             <div className="cta-row hero-in" style={{ display: "flex", gap: 12, marginTop: 32 }}>
-              <Button size="lg" arrow to="/swap/">
+              <Button size="lg" arrow href={site.links.buy} target="_blank" rel="noreferrer">
                 Buy {site.ticker}
               </Button>
               <Button size="lg" variant="secondary" to="/docs/">

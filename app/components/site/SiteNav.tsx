@@ -16,11 +16,17 @@ export function SiteNav() {
           </Badge>
         </span>
         <nav className="site-nav__links" aria-label="Primary">
-          {VISIBLE_NAV.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.to === "/"} className="nav-link">
-              {item.label}
-            </NavLink>
-          ))}
+          {VISIBLE_NAV.map((item) =>
+            item.href ? (
+              <a key={item.to} href={item.href} className="nav-link" {...externalLinkProps(item.href)}>
+                {item.label} ↗
+              </a>
+            ) : (
+              <NavLink key={item.to} to={item.to} end={item.to === "/"} className="nav-link">
+                {item.label}
+              </NavLink>
+            ),
+          )}
         </nav>
         <span className="site-nav__right">
           <span className="site-nav__chain" style={{ ...mono, fontSize: 12, color: "var(--text-muted)" }}>
