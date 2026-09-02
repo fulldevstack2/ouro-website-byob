@@ -241,7 +241,7 @@ function DifferenceSection() {
       </div>
       <div style={{ marginTop: 16, fontSize: 13, color: "var(--text-muted)" }}>
         Measured on Robinhood Chain from events and state, 26 to 28 Aug 2026, not from the projects' marketing. The Ouro column describes the shipped design.
-        It becomes verifiable onchain at launch. Method and the Seal mechanics are in the <Link to="/docs/#d07">docs</Link>.
+        It becomes verifiable onchain. Method is in the <Link to="/docs/">docs</Link>.
       </div>
     </Container>
   );
@@ -315,12 +315,6 @@ function YieldSection() {
         <Button variant="secondary" arrow to="/docs/#d05">
           How the airdrop works
         </Button>
-        <Callout tone="warning" title="Don't LP your $OURO" style={{ flex: "0 1 440px", marginTop: 0 }}>
-          Tokens in a pool are not in your wallet, so they earn no airdrop. The known venues are sealed at launch, so adding liquidity there simply fails. Any
-          other pool can be blocked once it appears, and a block stops transfers both ways, so it cannot be withdrawn from at all, your ETH as well as your
-          $OURO. Ouro's own pool is never blocked.{" "}
-          <Link to="/docs/#d07">How the Seal works</Link>.
-        </Callout>
       </div>
     </Container>
   );

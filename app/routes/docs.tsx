@@ -15,7 +15,7 @@ const LEDE =
 export function meta({ location }: Route.MetaArgs) {
   return pageMeta({
     title: `${site.name} docs · How the fee generating layer works`,
-    description: "How Ouro works: the 5% tax, the Loop, the Reserve, the airdrop, compounding, the Seal, parameters, governance and risks.",
+    description: "How Ouro works: the 5% tax, the Loop, the Reserve, the airdrop, compounding, parameters, governance and risks.",
     path: location.pathname,
     image: "/og/docs.png",
     jsonLd: {
@@ -33,13 +33,12 @@ const TOC: { id: string; label: string }[] = [
   { id: "d04", label: "04 · The Reserve" },
   { id: "d05", label: "05 · The airdrop" },
   { id: "d06", label: "06 · Compounding" },
-  { id: "d07", label: "07 · The Seal" },
-  { id: "d08", label: "08 · Parameters" },
-  { id: "d09", label: "09 · Governance & security" },
-  { id: "d10", label: "10 · What Ouro can't do" },
-  { id: "d11", label: "11 · Risks" },
-  { id: "d12", label: "12 · Addresses" },
-  { id: "d13", label: "13 · FAQ" },
+  { id: "d07", label: "07 · Parameters" },
+  { id: "d08", label: "08 · Governance & security" },
+  { id: "d09", label: "09 · What Ouro can't do" },
+  { id: "d10", label: "10 · Risks" },
+  { id: "d11", label: "11 · Addresses" },
+  { id: "d12", label: "12 · FAQ" },
 ];
 
 const PARAM_COLS: LedgerColumn[] = [
@@ -56,14 +55,14 @@ const PARAM_ROWS = PARAMETERS.map((r) => ({
 const CANT: { lead: string; text: string }[] = [
   { lead: "Can't mint.", text: " Supply is fixed at deploy: there is no mint function and no emission, so nothing dilutes you. Every airdrop is fees the pools already earned." },
   { lead: "Can't raise the tax past the hook's ceiling.", text: " The ceiling is fixed in the contract at deploy and enforced there, not by policy. Governance can move the rate underneath it, and every change is a public onchain transaction." },
-  { lead: "Can't freeze your wallet.", text: " After deploy the blocklist only accepts an address that already has code, so an ordinary wallet or a CEX address can never be added to it. The one exception is the deploy transaction itself, which closes the known parallel pools before they exist; that list is fixed at deploy, readable onchain forever, and nothing can be added to it afterwards." },
+  { lead: "Can't touch your wallet.", text: " The token is a standard ERC20 with no transfer tax, no blocklist and no owner. Nobody can freeze, seize or claw back your $OURO." },
   { lead: "Can't hand over ownership in one step.", text: " Token and hook ownership transfers in two steps: the new owner has to accept it before it takes effect." },
 ];
 
 const FAQ: { q: string; a: string }[] = [
   {
     q: "How is Ouro different from HOOD10 or The Index?",
-    a: "They hand out every point of their tax, so when volume cools the payouts stop. Ouro hands out half and keeps the other half as permanent, fee earning liquidity, then airdrops 80% of what those pools earn on top. The first leg behaves like theirs. The second is what keeps paying after the volume goes. It also blocklists parallel pools to keep more of the tax funding the treasury.",
+    a: "They hand out every point of their tax, so when volume cools the payouts stop. Ouro hands out half and keeps the other half as permanent, fee earning liquidity, then airdrops 80% of what those pools earn on top. The first leg behaves like theirs. The second is what keeps paying after the volume goes.",
   },
   {
     q: "What do I have to do to get paid?",
@@ -74,14 +73,6 @@ const FAQ: { q: string; a: string }[] = [
     a: "Tokens. The tax leg buys the strongest tokens on the chain at market and hands those to you. The fee leg arrives in whatever the pools actually earned: each position collects fees in both of its tokens, so it is a mix of the basket tokens and whatever they are paired with, usually ETH. Nothing is sold for that second leg.",
   },
   { q: "Is the basket safe? Are these stocks?", a: "No. The basket holds crypto tokens on Robinhood Chain, bluechip memecoins among them, chosen for liquidity and depth. They can go to zero." },
-  {
-    q: "Why can't I find $OURO on another DEX?",
-    a: "We discourage parallel pools with an address blocklist, so more of the tax funds the treasury. It's a deterrent, not a wall, so buy and sell on the official pool, linked here at launch, to be sure your trade funds the flywheel.",
-  },
-  {
-    q: "Can I provide liquidity in a pool other than the official one?",
-    a: "You can, and you should not. The sixteen known venues are already sealed, so adding liquidity to one of those simply fails and nothing is lost. Anywhere else, a pool can be blocked once it appears, and a block stops transfers in both directions, so nobody can withdraw from a blocked pool at all, your ETH as well as your $OURO. Unblocking releases the position, so it is a freeze rather than a loss, and Ouro's own pool is never blocked. But a pool can only be blocked once it exists, so there is no warning before it happens and no way to know in advance which venue is next. Provide liquidity to the official pool and nowhere else.",
-  },
 ];
 
 /* ---------------------------------------------------------------- pieces */
@@ -155,16 +146,9 @@ export default function Docs() {
 
           <DocSection id="d02" n="02" title="The tax">
             <P>
-              5%, charged in ETH, on every buy and every sell: exact in and exact out, all four shapes. The pool also charges a standard 1% LP fee, so a
-              trade pays about 6% in total, the same total cost as HOOD10, and the reason the tax has to build something that outlasts it.
-            </P>
-            <P>
-              <strong>The first 60 seconds carry an anti-snipe surcharge.</strong> Buys made in the first minute after the pool opens pay a tax starting at
-              99% and falling in a straight line to the ordinary 5% by the sixty-second mark, so the opening seconds are worthless to bots. Whatever a sniper
-              pays goes to the treasury like any other tax. Three things about it, all enforced by the contract rather than promised: it applies to buys only,
-              so a seller is never charged more than 5% and nobody is ever trapped; the launch transaction itself is exempt, so the seeding buy is not taxed at
-              99%; and the window is written once at launch and cannot be restarted, extended or re-armed by anyone, governance included. After that minute the
-              5% ceiling is absolute, forever.
+              5%, charged in ETH, on every buy and every sell: exact in and exact out, all four shapes. The pool charges no LP fee on top, so 5% is the whole
+              cost of a trade. It is taken by letscash's shared hook and fixed at launch — nobody, including us, can raise or lower it. A share goes to the
+              launchpad as their platform fee; the rest funds everything below, and the reason the tax has to build something that outlasts it.
             </P>
             <SplitBar
               wedges={[
@@ -269,26 +253,7 @@ export default function Docs() {
             </P>
           </DocSection>
 
-          <DocSection id="d07" n="07" title="The Seal">
-            <P>
-              Tax index tokens leak: once a token has volume, some of it drifts to venues where the tax does not reach. Measured onchain
-              26 to 28 Aug 2026, the leaders captured only 6% to 36% of their own volume. Ouro pushes back with an address blocklist, and the known venues are sealed in the launch
-              transaction itself: sixteen of them, ParitySwap v3 and canonical Uniswap v3 at every fee tier plus ParitySwap v2, each against WETH and USDG,
-              closed before a single one of their pools exists. Any further parallel pool is blocked as it appears. To keep the power off ordinary users, the blocklist can only ever target a contract, so a wallet or a CEX
-              deposit address is never affected. It's a deterrent, not a wall, and we don't claim otherwise: some volume finds its way around any pool level tax, which
-              is exactly why the tax is only half the design and the pools the treasury keeps are the other half. Trade on the official pool to be sure your
-              trade funds the flywheel.
-            </P>
-            <Callout tone="warning" title="Only provide liquidity to the official pool" style={{ marginTop: 14 }}>
-              The sixteen known venues are sealed already, so adding liquidity to one of those simply fails: nothing is lost because nothing goes in. The risk
-              is everywhere else. Any other pool can be blocked once it appears, and a block stops transfers in <em>both</em> directions, so it cannot be
-              withdrawn from at all — <strong>your ETH as well as your $OURO</strong>. Unblocking releases the position, so it is a freeze rather than a loss,
-              and Ouro's own pool is never blocked. But a pool can only be blocked once it already exists, so there is no warning before it happens, and no way
-              to know in advance which venue is next. Provide liquidity to the official pool and nowhere else.
-            </Callout>
-          </DocSection>
-
-          <DocSection id="d08" n="08" title="Parameters" wide>
+          <DocSection id="d08" n="07" title="Parameters" wide>
             <P style={{ margin: "10px 0 14px", maxWidth: 600 }}>
               "Governed" means changeable only by governance, as public onchain transactions, and only within the hard bounds the contracts
               enforce.
@@ -296,11 +261,12 @@ export default function Docs() {
             <LedgerTable compact columns={PARAM_COLS} rows={PARAM_ROWS} />
           </DocSection>
 
-          <DocSection id="d09" n="09" title="Governance & security">
+          <DocSection id="d09" n="08" title="Governance & security">
             <P>
-              Ownership of the token and hook sits with a multisig (Safe). Every change it makes is an ordinary onchain transaction, public the moment it
-              lands. There is no delay window in which to see one coming, so watch the addresses. Governance can tune the tax within the hook's ceiling and
-              manage the blocklist, and nothing beyond that. The limits the contracts enforce whoever holds the keys are listed in{" "}
+              $OURO trades on letscash's shared launchpad rails, and that is where the trust model now sits. The token itself is a standard ERC20: no owner,
+              no transfer tax, no blocklist, so nothing about your holding can be changed by anyone. The 5% trade tax and its split are fixed in the shared hook
+              at launch and cannot be tuned afterwards. What is discretionary is what the team does with the fee stream it receives — the basket, the airdrop
+              cadence, the splits below — and that is operator policy, visible onchain but not enforced by code. The limits that hold regardless are listed in{" "}
               <Link to="#d10" onClick={smoothScrollNextNavigation}>
                 what Ouro can't do
               </Link>
@@ -318,7 +284,7 @@ export default function Docs() {
             )}
           </DocSection>
 
-          <DocSection id="d10" n="10" title="What Ouro can't do">
+          <DocSection id="d10" n="09" title="What Ouro can't do">
             <div style={{ marginTop: 12, borderTop: hairline }}>
               {CANT.map((c, i) => (
                 <div key={c.lead} style={{ padding: "10px 0", borderBottom: i === CANT.length - 1 ? undefined : hairline, fontSize: 14, lineHeight: 1.6, color: "var(--text-secondary)" }}>
@@ -329,16 +295,16 @@ export default function Docs() {
             </div>
           </DocSection>
 
-          <DocSection id="d11" n="11" title="Risks">
+          <DocSection id="d11" n="10" title="Risks">
             <P>
               Plainly: the airdrop depends on volume. Its tax leg tracks volume one for one and stops when trading does, exactly as a competitor's payout
               would. Its fee leg is funded by the fees the pools earn, and quiet markets earn little. The basket is
               volatile crypto tokens, memecoins among them, that can fall sharply or to zero, and full range LP sells a winner into its rally, and being paid in
-              those same tokens means your airdrop falls with them too. A 5% tax plus the 1% LP fee is a heavy round trip, so short term trading in $OURO is
-              expensive by design. Everything lives on one chain (4663). Large cycles
-              move prices, and minimum output protection bounds, but does not eliminate, bad fills. The Loop advances only when the protocol runs a cycle. Wallets
-              below the 100,000 line are not paid at all. The blocklist means
-              some aggregators that route through a blocked pool can fail until allowlisted. The contracts are new code, unaudited until the audit link is published.
+              those same tokens means your airdrop falls with them too. A 5% tax on both sides is a heavy round trip, so short term trading in $OURO is
+              expensive by design. Everything lives on one chain (4663). Large cycles move prices, and minimum output protection bounds, but does not eliminate,
+              bad fills. The Loop advances only when the protocol runs a cycle. Wallets below the 100,000 line are not paid at all. The trading rails are
+              letscash's shared hook, not ours, so its behaviour and its platform cut are outside our control. The airdrop is run by the team from the fee
+              stream, which makes it a promise about conduct rather than something code enforces.
             </P>
             <Callout tone="caution" title="No promises" style={{ marginTop: 14 }}>
               An airdrop is a share of fees the pools happened to earn. It is not a yield, not a rate, and not a promise of profit. Nothing here is financial
@@ -346,13 +312,13 @@ export default function Docs() {
             </Callout>
           </DocSection>
 
-          <DocSection id="d12" n="12" title="Addresses">
+          <DocSection id="d12" n="11" title="Addresses">
             <P>
               Protocol addresses publish at launch. The canonical Uniswap infrastructure Ouro builds on is already onchain and verifiable today.
             </P>
           </DocSection>
 
-          <DocSection id="d13" n="13" title="FAQ" last titleStyle={{ margin: "0 0 6px" }}>
+          <DocSection id="d13" n="12" title="FAQ" last titleStyle={{ margin: "0 0 6px" }}>
             {FAQ.map((f, i) => (
               <div key={f.q} style={{ padding: "14px 0", borderBottom: i === FAQ.length - 1 ? undefined : hairline }}>
                 <div style={{ fontSize: 15, fontWeight: 600 }}>{f.q}</div>

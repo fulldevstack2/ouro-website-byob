@@ -7,10 +7,14 @@ export interface AddressEntry {
 }
 
 export const PROTOCOL_CONTRACTS: AddressEntry[] = [
-  { name: "OURO token", address: null },
-  { name: "Ouro hook", address: null },
+  { name: "OURO token", address: "0x8ea0eB3505F5b3bd2bBeA0FeBae0ce850cC73eCC" },
+  { name: "Fee recipient (funds the payouts)", address: "0xd8E6c485aC9210A33B434325FAD5743310102405" },
   { name: "Airdrop distributor", address: null },
-  { name: "Treasury / guardian Safe", address: null },
+];
+
+/** The launchpad rails $OURO trades on. Not ours — letscash's, shared by every token they launch. */
+export const VENUE: AddressEntry[] = [
+  { name: "letscash trading hook", address: "0x75a54357d9c78a2db19004a5FdC76c50f9242Aec" },
 ];
 
 /** Canonical infrastructure Ouro builds on (design project → uploads/DOCS.md §13). */
@@ -38,20 +42,15 @@ export interface ParameterRow {
 }
 
 /**
- * The hook's ceiling is 5% and the tax launches AT it, so governance can only ever lower the tax. The one
- * exception is the anti-snipe surcharge below: it is written once at launch, decays to 5% over 60s, and no
- * function can restart, extend or re-arm it — after that minute the 5% ceiling is absolute.
+ * $OURO trades on letscash's shared hook, so the tax rate and the pool's 0% LP fee are fixed at launch and
+ * not ours to change. Everything downstream of the fee stream — the splits, the basket, the cadence — is
+ * operator policy. Nothing here is enforced by a contract we control.
  */
 export const PARAMETERS: ParameterRow[] = [
   { parameter: "Total supply", value: "1,000,000,000 OURO", mutable: "No · fixed, no mint" },
-  { parameter: "Trade tax", value: "5% of the ETH leg", mutable: "Governed · multisig · capped at 5%" },
-  {
-    parameter: "Anti-snipe surcharge (first 60s)",
-    value: "99% on buys, decaying to 5%",
-    mutable: "No · expires on its own, cannot be re-armed",
-  },
-  { parameter: "Pool LP fee", value: "1%", mutable: "No · fixed at creation" },
-  { parameter: "Tax split: airdrop / basket / ops", value: "2% / 2% / 1% of the trade", mutable: "Protocol policy" },
+  { parameter: "Trade tax", value: "5% of the ETH leg", mutable: "No · fixed at launch" },
+  { parameter: "Pool LP fee", value: "0%", mutable: "No · fixed at creation" },
+  { parameter: "Tax split: airdrop / basket / ops", value: "PENDING — see note", mutable: "Protocol policy" },
   { parameter: "Fee split: holders / Reserve", value: "80 / 20", mutable: "Protocol policy" },
   { parameter: "Airdrop minimum", value: "100,000 OURO (0.01%)", mutable: "Protocol policy" },
   { parameter: "Basket", value: "Opens with CASHCAT + PONS, toward ~5", mutable: "Protocol policy" },
