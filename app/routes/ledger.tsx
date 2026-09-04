@@ -1,6 +1,6 @@
 import type { Route } from "./+types/ledger";
 import { Badge, Callout, LedgerTable, Stat, type LedgerColumn } from "~/components/ds";
-import { AddressCell, Container, CrankFeed, Grid, KVRow, MicroLabel, PageHeader, PendingCell, SectionHead, hairline, mono , PayoutCountdown} from "~/components/site";
+import { AddressCell, Container, CrankFeed, Grid, KVRow, MicroLabel, PageHeader, PendingCell, SectionHead, hairline, mono, PayoutCadence } from "~/components/site";
 import { INFRASTRUCTURE, PROTOCOL_CONTRACTS, type AddressEntry } from "~/content/protocol";
 import { site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
@@ -16,7 +16,7 @@ export function meta({ location }: Route.MetaArgs) {
 }
 
 function addressRows(entries: AddressEntry[]) {
-  return entries.map((e) => ({ c: e.name, a: e.address ? <AddressCell address={e.address} /> : <PendingCell>Publishes at launch</PendingCell> }));
+  return entries.map((e) => ({ c: e.name, a: e.address ? <AddressCell address={e.address} linked={!e.poolId} /> : <PendingCell>Publishes at launch</PendingCell> }));
 }
 
 const ADDR_COLS: LedgerColumn[] = [
@@ -45,7 +45,7 @@ export default function Ledger() {
       />
 
       <div style={{ maxWidth: 460, marginTop: 28 }}>
-        <PayoutCountdown />
+        <PayoutCadence />
       </div>
       <Callout title="The Ledger goes live at launch" style={{ marginTop: 32 }}>
         It reads the treasury’s onchain transactions every cycle. Until the first cycle runs, every activity figure below shows a dash. The parameters shown are

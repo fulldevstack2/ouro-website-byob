@@ -4,17 +4,24 @@ import { site } from "./site";
 export interface AddressEntry {
   name: string;
   address: `0x${string}` | null;
+  /**
+   * A Uniswap v4 pool is a 32 byte id inside the PoolManager singleton, not a contract with an
+   * address of its own, so it gets no explorer link.
+   */
+  poolId?: boolean;
 }
 
 export const PROTOCOL_CONTRACTS: AddressEntry[] = [
-  { name: "OURO token", address: "0x8ea0eB3505F5b3bd2bBeA0FeBae0ce850cC73eCC" },
+  { name: "OURO token", address: "0x8Ea0eB3505f5B3Bd2BbEa0fEBae0cE850cC73ecc" },
+  { name: "ETH/OURO pool (Uniswap v4)", address: "0x4abc526118181921d76bf184896938ae7c8fc0921abce79ebef3d36a622968a5", poolId: true },
   { name: "Fee recipient (funds the payouts)", address: "0xd8E6c485aC9210A33B434325FAD5743310102405" },
-  { name: "Airdrop distributor", address: null },
+  { name: "Airdrop distributor", address: "0x0bd09D209292c3359885adDBF9CF94A7AEcC369F" },
+  { name: "Team vest (Sablier Lockup, stream 156)", address: "0x548129a58bC230549DF7F9e33f27E77F6779ff0f" },
 ];
 
 /** The launchpad rails $OURO trades on. Not ours — letscash's, shared by every token they launch. */
 export const VENUE: AddressEntry[] = [
-  { name: "letscash trading hook", address: "0x75a54357d9c78a2db19004a5FdC76c50f9242Aec" },
+  { name: "letscash trading hook", address: "0x75A54357D9C78a2Db19004a5FDc76c50F9242AEC" },
 ];
 
 /** Canonical infrastructure Ouro builds on (design project → uploads/DOCS.md §13). */
@@ -53,6 +60,8 @@ export const PARAMETERS: ParameterRow[] = [
   { parameter: "Tax split", value: "2% airdrop / 2% LP / 0.7% ops / 0.3% letscash", mutable: "Protocol policy" },
   { parameter: "Fee split: holders / Reserve", value: "80 / 20", mutable: "Protocol policy" },
   { parameter: "Airdrop minimum", value: "100,000 OURO (0.01%)", mutable: "Protocol policy" },
+  { parameter: "Airdrop cadence", value: "Target: every 2 hours", mutable: "Protocol policy" },
+  { parameter: "Stream length", value: "~48 hours per collection", mutable: "Protocol policy" },
   { parameter: "Basket", value: "Opens with CASHCAT + PONS, toward ~5", mutable: "Protocol policy" },
   { parameter: "Chain", value: "Robinhood Chain (4663)", mutable: "No" },
 ];

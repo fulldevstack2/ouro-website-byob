@@ -17,4 +17,4 @@ export { TokenIcon } from "./TokenIcon";
 export { SiteNav } from "./SiteNav";
 export { SiteFooter } from "./SiteFooter";
 export * from "./text";
-export { PayoutCountdown } from "./PayoutCountdown";
+export { PayoutCadence } from "./PayoutCadence";

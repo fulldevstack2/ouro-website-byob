@@ -19,14 +19,18 @@ export const site = {
   chain: { name: "Robinhood Chain", id: 4663 },
   /** Set to true once the audit report is published; it swaps the docs §10 callout. */
   auditPublished: false,
-  /** First holder payout: 12:00 on 3 Sep 2026, GMT+8 (= 04:00 UTC). One place to change it. */
-  firstPayoutISO: "2026-09-03T04:00:00Z",
+  /**
+   * The third airdrop, and the last one sent by hand: 12:00 on 4 Sep 2026, GMT+8 (= 04:00 UTC).
+   * Drives the countdown in PayoutCadence, which retires itself once this passes. Delete this
+   * field and the countdown block with it once the keeper is running.
+   */
+  finalManualAirdropISO: "2026-09-04T04:00:00Z",
   links: {
     x: `https://x.com/${xHandle.replace(/^@/, "")}`,
     /** Where $OURO trades. The token is a letscash launchpad token, so buying happens there. */
     buy: "https://www.letscash.fun/token/0x8ea0eb3505f5b3bd2bbea0febae0ce850cc73ecc",
-    /** TODO: block explorer for Robinhood Chain (also used for address links on the Ledger). */
-    explorer: "#",
+    /** Block explorer for Robinhood Chain (also used for address links on the Ledger and in docs §11). */
+    explorer: "https://robinhoodchain.blockscout.com",
     /** TODO: Robinhood Chain site. */
     robinhoodChain: "#",
   },

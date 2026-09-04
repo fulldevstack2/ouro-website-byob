@@ -4,8 +4,8 @@ import { smoothScrollNextNavigation } from "~/lib/scroll";
 
 import type { Route } from "./+types/docs";
 import { Callout, LedgerTable, type LedgerColumn } from "~/components/ds";
-import { Container, Grid, KVRow, MicroLabel, PageHeader, SplitBar, hairline, mono, rowIndex } from "~/components/site";
-import { PARAMETERS } from "~/content/protocol";
+import { AddressCell, Container, Grid, KVRow, MicroLabel, PageHeader, PendingCell, SplitBar, hairline, mono, rowIndex } from "~/components/site";
+import { INFRASTRUCTURE, PARAMETERS, PROTOCOL_CONTRACTS, VENUE, type AddressEntry } from "~/content/protocol";
 import { site } from "~/content/site";
 import { pageMeta } from "~/lib/meta";
 
@@ -32,13 +32,14 @@ const TOC: { id: string; label: string }[] = [
   { id: "d03", label: "03 · The Loop" },
   { id: "d04", label: "04 · The Reserve" },
   { id: "d05", label: "05 · The airdrop" },
-  { id: "d06", label: "06 · Compounding" },
-  { id: "d07", label: "07 · Parameters" },
-  { id: "d08", label: "08 · Governance & security" },
-  { id: "d09", label: "09 · What Ouro can't do" },
-  { id: "d10", label: "10 · Risks" },
-  { id: "d11", label: "11 · Addresses" },
-  { id: "d12", label: "12 · FAQ" },
+  { id: "d06", label: "06 · When it arrives" },
+  { id: "d07", label: "07 · Compounding" },
+  { id: "d08", label: "08 · Parameters" },
+  { id: "d09", label: "09 · Governance & security" },
+  { id: "d10", label: "10 · What Ouro can't do" },
+  { id: "d11", label: "11 · Risks" },
+  { id: "d12", label: "12 · Addresses" },
+  { id: "d13", label: "13 · FAQ" },
 ];
 
 const PARAM_COLS: LedgerColumn[] = [
@@ -52,11 +53,21 @@ const PARAM_ROWS = PARAMETERS.map((r) => ({
   m: <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{r.mutable}</span>,
 }));
 
+function addressRows(entries: AddressEntry[]) {
+  return entries.map((e) => ({
+    c: e.name,
+    a: e.address ? <AddressCell address={e.address} linked={!e.poolId} /> : <PendingCell>Publishes at launch</PendingCell>,
+  }));
+}
+const addrCols = (label: string): LedgerColumn[] => [
+  { key: "c", label },
+  { key: "a", label: "Address", align: "right" },
+];
+
 const CANT: { lead: string; text: string }[] = [
   { lead: "Can't mint.", text: " Supply is fixed at deploy: there is no mint function and no emission, so nothing dilutes you. Every airdrop is fees the pools already earned." },
-  { lead: "Can't raise the tax past the hook's ceiling.", text: " The ceiling is fixed in the contract at deploy and enforced there, not by policy. Governance can move the rate underneath it, and every change is a public onchain transaction." },
+  { lead: "Can't change the tax.", text: " The 5% is written into letscash's shared hook when the pool is registered and the hook has no function that can change it afterwards. Not us, not letscash, not anyone. A pool charges one rate for its whole life." },
   { lead: "Can't touch your wallet.", text: " The token is a standard ERC20 with no transfer tax, no blocklist and no owner. Nobody can freeze, seize or claw back your $OURO." },
-  { lead: "Can't hand over ownership in one step.", text: " Token and hook ownership transfers in two steps: the new owner has to accept it before it takes effect." },
 ];
 
 const FAQ: { q: string; a: string }[] = [
@@ -66,7 +77,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "What do I have to do to get paid?",
-    a: "Hold at least 100,000 $OURO, 0.01% of supply, in your own wallet. There is nothing to stake, nothing to lock and nothing to claim: each cycle's airdrop is sent to every wallet above the line. Tokens sitting in a pool contract, a bridge or an exchange's omnibus wallet are not your wallet, and are excluded.",
+    a: "Hold at least 100,000 $OURO, 0.01% of supply, in your own wallet. There is nothing to stake, nothing to lock and nothing to claim: every wallet above the line earns a share of every cycle and it is sent to you. Small balances are held until they are worth more than the gas to send them, so a wallet near the line is paid every few cycles rather than every single one, for the same total. Tokens sitting in a pool contract, a bridge or an exchange's omnibus wallet are not your wallet, and are excluded.",
   },
   {
     q: "What am I paid in?",
@@ -136,7 +147,8 @@ export default function Docs() {
         <div>
           <DocSection id="d01" n="01" title="Overview">
             <P>
-              $OURO is an ERC20 with a fixed supply of 1,000,000,000 and one trading pool: ETH/OURO on Uniswap v4 with an Ouro hook attached. Every swap pays
+              $OURO is an ERC20 with a fixed supply of 1,000,000,000 and one trading pool: ETH/OURO on Uniswap v4, with letscash's shared trading hook
+              attached. Every swap pays
               a tax in ETH. The tax never reaches a person. It flows to the protocol treasury, which buys the strongest tokens on the chain. Half of what it
               buys is airdropped to holders and half is paired into liquidity the protocol owns and keeps. That liquidity earns fees, and each cycle 80% of
               those fees is airdropped too while 20% buys more liquidity. So holders are paid twice: once from the tax, which rises and falls with volume, and
@@ -147,8 +159,8 @@ export default function Docs() {
           <DocSection id="d02" n="02" title="The tax">
             <P>
               5%, charged in ETH, on every buy and every sell: exact in and exact out, all four shapes. The pool charges no LP fee on top, so 5% is the whole
-              cost of a trade. It is taken by letscash's shared hook and fixed at launch — nobody, including us, can raise or lower it. A share goes to the
-              launchpad as their platform fee; the rest funds everything below, and the reason the tax has to build something that outlasts it.
+              cost of a trade. It is taken by letscash's shared hook and fixed at launch. Nobody, including us, can raise or lower it. A share goes to the
+              launchpad as their platform fee. The rest funds everything below, and the reason the tax has to build something that outlasts it.
             </P>
             <SplitBar
               wedges={[
@@ -246,7 +258,46 @@ export default function Docs() {
             </Callout>
           </DocSection>
 
-          <DocSection id="d06" n="06" title="Compounding">
+          <DocSection id="d06" n="06" title="When it arrives">
+            <P>
+              The target is an airdrop every two hours. That is a target and not a promise: a cycle runs when it is worth running. This section is the
+              honest account of when it does, because the alternative is a clock on the home page that breaks its word the first time a cycle sensibly
+              waits.
+            </P>
+            <SplitRows
+              rows={[
+                ["Target cadence", "every 2 hours"],
+                ["A collection is streamed over", "about 48 hours"],
+                ["Assets paid today", "CASHCAT + PONS"],
+              ]}
+            />
+            <P style={{ marginTop: 12 }}>
+              <strong>Income is not paid out the moment it arrives.</strong> Volume is uneven. On its first day of trading the busiest hour earned
+              roughly five hundred times what the quietest one did, and paying each cycle exactly what the previous two hours brought in would mean one
+              cycle worth several hundred dollars and the next worth almost nothing. So every collection is spread across roughly 48 hours, and each
+              cycle pays a slice of everything still spreading. What arrives tracks the last two days of trading rather than the last two hours of it.
+            </P>
+            <P style={{ marginTop: 12 }}>
+              <strong>Small balances wait until they are worth sending.</strong> If what your wallet is owed is worth less than a few times the gas
+              needed to send it, it stays credited to you and arrives in a later cycle instead. A wallet near the 100,000 line is paid every few cycles
+              rather than every single one, and receives exactly the same total either way. Sending someone two cents of tokens in a transfer that costs
+              three cents helps nobody, and the cost would come out of the airdrop itself.
+            </P>
+            <Callout title="What makes a cycle wait" style={{ marginTop: 14 }}>
+              Gas is expensive, so the cycle waits for a cheaper one. The cycle is thin, and the gas to send it would eat too much of it, so it waits and
+              arrives larger. Nobody is yet owed enough to clear the cost of sending. The keeper that runs the cycle is offline. Or there were no trades,
+              so there is no tax and no fees to pay out. In every one of those cases what you have earned is still yours and still accounted for: a cycle
+              that does not run rolls into the one that does. Nothing is forfeited by waiting.
+            </Callout>
+            <P style={{ marginTop: 12 }}>
+              <strong>The cadence is policy, not code.</strong> The Airdropper contract does not know what a cycle is, how often one should run, or which
+              wallets sit above the line. It moves the amounts it is told to move, out of the treasury, in one transaction. So the schedule is a
+              commitment kept in public against a Ledger anyone can read, and not something a contract enforces. Judge it on that record rather than on
+              this page.
+            </P>
+          </DocSection>
+
+          <DocSection id="d07" n="07" title="Compounding">
             <P>
               Two things grow the Reserve. Two points of every trade buy into it and stay there, and the 20% of each cycle's fees that is not airdropped is
               added straight back into the same positions. Nothing is sold and nothing is distributed for either: the treasury's own income buys it a slightly
@@ -255,7 +306,7 @@ export default function Docs() {
             </P>
           </DocSection>
 
-          <DocSection id="d08" n="07" title="Parameters" wide>
+          <DocSection id="d08" n="08" title="Parameters" wide>
             <P style={{ margin: "10px 0 14px", maxWidth: 600 }}>
               "Governed" means changeable only by governance, as public onchain transactions, and only within the hard bounds the contracts
               enforce.
@@ -263,12 +314,12 @@ export default function Docs() {
             <LedgerTable compact columns={PARAM_COLS} rows={PARAM_ROWS} />
           </DocSection>
 
-          <DocSection id="d09" n="08" title="Governance & security">
+          <DocSection id="d09" n="09" title="Governance & security">
             <P>
               $OURO trades on letscash's shared launchpad rails, and that is where the trust model now sits. The token itself is a standard ERC20: no owner,
               no transfer tax, no blocklist, so nothing about your holding can be changed by anyone. The 5% trade tax and its split are fixed in the shared hook
-              at launch and cannot be tuned afterwards. What is discretionary is what the team does with the fee stream it receives — the basket, the airdrop
-              cadence, the splits below — and that is operator policy, visible onchain but not enforced by code. The limits that hold regardless are listed in{" "}
+              at launch and cannot be tuned afterwards. What is discretionary is what the team does with the fee stream it receives, meaning the basket, the
+              airdrop cadence and the splits below, and that is operator policy, visible onchain but not enforced by code. The limits that hold regardless are listed in{" "}
               <Link to="#d10" onClick={smoothScrollNextNavigation}>
                 what Ouro can't do
               </Link>
@@ -286,7 +337,7 @@ export default function Docs() {
             )}
           </DocSection>
 
-          <DocSection id="d10" n="09" title="What Ouro can't do">
+          <DocSection id="d10" n="10" title="What Ouro can't do">
             <div style={{ marginTop: 12, borderTop: hairline }}>
               {CANT.map((c, i) => (
                 <div key={c.lead} style={{ padding: "10px 0", borderBottom: i === CANT.length - 1 ? undefined : hairline, fontSize: 14, lineHeight: 1.6, color: "var(--text-secondary)" }}>
@@ -297,7 +348,7 @@ export default function Docs() {
             </div>
           </DocSection>
 
-          <DocSection id="d11" n="10" title="Risks">
+          <DocSection id="d11" n="11" title="Risks">
             <P>
               Plainly: the airdrop depends on volume. Its tax leg tracks volume one for one and stops when trading does, exactly as a competitor's payout
               would. Its fee leg is funded by the fees the pools earn, and quiet markets earn little. The basket is
@@ -314,13 +365,23 @@ export default function Docs() {
             </Callout>
           </DocSection>
 
-          <DocSection id="d12" n="11" title="Addresses">
-            <P>
-              Protocol addresses publish at launch. The canonical Uniswap infrastructure Ouro builds on is already onchain and verifiable today.
+          <DocSection id="d12" n="12" title="Addresses" wide>
+            <P style={{ maxWidth: 600 }}>
+              Everything Ouro runs on, onchain and readable today. The team allocation is held in a Sablier stream that cannot be canceled, with nothing
+              withdrawable before the cliff in March 2027 and the last of it vesting in September 2027. Don't take our word for any of it. Read the chain.
+            </P>
+            <div style={{ display: "flex", flexDirection: "column", gap: 28, marginTop: 20 }}>
+              <LedgerTable compact columns={addrCols("Protocol contract")} rows={addressRows(PROTOCOL_CONTRACTS)} />
+              <LedgerTable compact columns={addrCols("Trading venue")} rows={addressRows(VENUE)} />
+              <LedgerTable compact columns={addrCols("Canonical infrastructure")} rows={addressRows(INFRASTRUCTURE)} />
+            </div>
+            <P style={{ maxWidth: 600, fontSize: 13, color: "var(--text-muted)" }}>
+              The ETH/OURO pool is a Uniswap v4 pool, so it is an id inside the PoolManager rather than a contract with an address of its own. That is why it
+              is the one row without an explorer link.
             </P>
           </DocSection>
 
-          <DocSection id="d13" n="12" title="FAQ" last titleStyle={{ margin: "0 0 6px" }}>
+          <DocSection id="d13" n="13" title="FAQ" last titleStyle={{ margin: "0 0 6px" }}>
             {FAQ.map((f, i) => (
               <div key={f.q} style={{ padding: "14px 0", borderBottom: i === FAQ.length - 1 ? undefined : hairline }}>
                 <div style={{ fontSize: 15, fontWeight: 600 }}>{f.q}</div>

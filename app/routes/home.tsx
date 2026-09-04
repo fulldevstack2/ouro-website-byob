@@ -3,7 +3,7 @@ import { Link } from "react-router";
 
 import type { Route } from "./+types/home";
 import { Badge, Button, Callout, Card, Stat } from "~/components/ds";
-import { Container, CrankFeed, Grid, HelpTip, HeroRing, KVRow, LoopRing, MicroLabel, NumberedRow, SectionHead, body14, display, hairline , PayoutCountdown} from "~/components/site";
+import { Container, CrankFeed, Grid, HelpTip, HeroRing, KVRow, LoopRing, MicroLabel, NumberedRow, SectionHead, body14, display, hairline, PayoutCadence } from "~/components/site";
 import { site } from "~/content/site";
 import { pageMeta } from "~/lib/meta";
 
@@ -76,14 +76,14 @@ function Hero() {
               </Button>
             </div>
             <div className="hero-in" style={{ marginTop: 24, maxWidth: 420 }}>
-              <PayoutCountdown />
+              <PayoutCadence />
             </div>
             <div className="hero-note hero-in">
               <Badge tone="positive" dot>
                 Live on {site.chain.name}
               </Badge>
               <span>
-                {site.ticker} is live and trading now. The treasury Ledger and its activity figures publish as the keeper comes online; until then those show a
+                {site.ticker} is live and trading now. The treasury Ledger and its activity figures publish as the keeper comes online. Until then those show a
                 dash.
               </span>
             </div>
@@ -283,7 +283,7 @@ function BasketSection() {
             Every swap that crosses a position pays a fee, in both of the tokens that position holds. Each cycle 80% of it is airdropped to holders in the assets it was
             earned in, nothing sold. The other 20% is added back into the same positions, so the next cycle earns on a slightly larger share. That is the leg
             that keeps paying when trading cools.{" "}
-            <Link to="/docs/#d06">How compounding works</Link>.
+            <Link to="/docs/#d07">How compounding works</Link>.
           </Callout>
         </div>
       </Grid>
@@ -308,7 +308,7 @@ function YieldSection() {
         sub="Nothing to stake, nothing to lock, nothing to claim. Hold the token in your own wallet and each cycle's airdrop arrives there."
       />
       <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md">
-        {col("Hold", "Hold at least 100,000 $OURO, 0.01% of supply, in your own wallet. Every wallet above that line is paid every cycle.", false)}
+        {col("Hold", "Hold at least 100,000 $OURO, 0.01% of supply, in your own wallet. Every wallet above that line earns a share of every cycle, and it is sent as soon as it is worth more than the gas to send it.", false)}
         {col("The tax leg", "Two of every five tax points buy tokens and airdrop them to you. This one pays from the first trade, and it rises and falls with volume.", true)}
         {col("The pool leg", "80% of the fees the protocol's own pools earn, airdropped in the tokens and ETH they earned, nothing sold. The other 20% compounds, so this leg grows.", true)}
       </Grid>
