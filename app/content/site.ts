@@ -55,7 +55,11 @@ export const NAV: NavItem[] = [
   // Shelved 2026-08-31 until each is ready to show. Routes, pages and URLs are untouched.
   { to: "/vaults/", label: "Vaults", hidden: true },
   { to: "/monitor/", label: "Monitor", hidden: true },
-  { to: "/ledger/", label: "Ledger", hidden: true },
+  // Unshelved 2026-09-04: the Reserve holds real positions and the Ledger now reads them from the
+  // chain through ouro-monitor's /v1/reserve. It needs MONITOR_API_URL set at build time.
+  { to: "/ledger/", label: "Ledger" },
+  { to: "/airdrops/", label: "Airdrops" },
+  { to: "/referral/", label: "Referral" },
   { to: "/docs/", label: "Docs" },
 ];
 

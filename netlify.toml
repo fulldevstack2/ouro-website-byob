@@ -9,6 +9,12 @@
 [build.environment]
   SITE_URL = "https://ourolayer.com"
 
+  # Origin of ouro-monitor, the indexer the /ledger and /monitor pages read. Vite inlines this at
+  # BUILD time (vite.config.ts -> __MONITOR_API__), so a deploy is required to change it — and
+  # without it both pages render their "monitor not configured" state, every figure a dash.
+  # Keep CORS_ORIGINS on the monitor's Render service in step with the origins that read it.
+  MONITOR_API_URL = "https://ouro-monitor.onrender.com"
+
 # One address for the site. The *.netlify.app subdomain stays reachable by default, which would give
 # us a second indexable copy of every page and split the same visitor across two hostnames in
 # analytics. Send it to the real domain, preserving the path and query string (so UTM-tagged links

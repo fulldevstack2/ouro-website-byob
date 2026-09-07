@@ -18,3 +18,4 @@ export { SiteNav } from "./SiteNav";
 export { SiteFooter } from "./SiteFooter";
 export * from "./text";
 export { PayoutCadence } from "./PayoutCadence";
+export { AprHeadline } from "./AprHeadline";

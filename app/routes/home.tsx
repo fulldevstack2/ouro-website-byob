@@ -3,7 +3,7 @@ import { Link } from "react-router";
 
 import type { Route } from "./+types/home";
 import { Badge, Button, Callout, Card, Stat } from "~/components/ds";
-import { Container, CrankFeed, Grid, HelpTip, HeroRing, KVRow, LoopRing, MicroLabel, NumberedRow, SectionHead, body14, display, hairline, PayoutCadence } from "~/components/site";
+import { AprHeadline, Container, CrankFeed, Grid, HelpTip, HeroRing, KVRow, LoopRing, MicroLabel, NumberedRow, SectionHead, body14, display, hairline, PayoutCadence } from "~/components/site";
 import { site } from "~/content/site";
 import { pageMeta } from "~/lib/meta";
 
@@ -67,7 +67,8 @@ function Hero() {
               Every $OURO trade pays a 5% tax. Two of those five points are airdropped to you from the first trade. Two more buy pools the protocol keeps,
               and 80% of the fees they earn is airdropped too.
             </p>
-            <div className="cta-row hero-in" style={{ display: "flex", gap: 12, marginTop: 32 }}>
+            <AprHeadline />
+            <div className="cta-row hero-in" style={{ display: "flex", gap: 12, marginTop: 28 }}>
               <Button size="lg" arrow href={site.links.buy} target="_blank" rel="noreferrer">
                 Buy {site.ticker}
               </Button>
@@ -77,15 +78,6 @@ function Hero() {
             </div>
             <div className="hero-in" style={{ marginTop: 24, maxWidth: 420 }}>
               <PayoutCadence />
-            </div>
-            <div className="hero-note hero-in">
-              <Badge tone="positive" dot>
-                Live on {site.chain.name}
-              </Badge>
-              <span>
-                {site.ticker} is live and trading now. The treasury Ledger and its activity figures publish as the keeper comes online. Until then those show a
-                dash.
-              </span>
             </div>
           </div>
 

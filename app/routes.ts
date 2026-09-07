@@ -7,5 +7,7 @@ export default [
   route("vaults", "routes/vaults.tsx"),
   route("monitor", "routes/monitor.tsx"),
   route("ledger", "routes/ledger.tsx"),
+  route("airdrops", "routes/airdrops.tsx"),
+  route("referral", "routes/referral.tsx"),
   route("docs", "routes/docs.tsx"),
 ] satisfies RouteConfig;

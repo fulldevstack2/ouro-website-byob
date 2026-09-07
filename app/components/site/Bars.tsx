@@ -11,6 +11,9 @@ export interface Bar {
  * One-series daily bar chart, inline SVG, no library. Thin marks anchored to the baseline with a
  * rounded top, a 2px surface gap between bars, a recessive baseline, and a hover tooltip. Days with
  * no data draw nothing (an honest gap), never a placeholder bar.
+ *
+ * The first and last day are always labelled; over a long window every 7th day is too, except within
+ * three slots of either end, where the weekly tick would print on top of the first or last label.
  */
 export function Bars({ data, format, color = "var(--bronze-600)", height = 120, ariaLabel, style }: { data: Bar[]; format: (v: number) => string; color?: string; height?: number; ariaLabel: string; style?: CSSProperties }) {
   const [hover, setHover] = useState<number | null>(null);
@@ -48,7 +51,7 @@ export function Bars({ data, format, color = "var(--bronze-600)", height = 120, 
             <g key={d.t} onMouseEnter={() => setHover(i)}>
               <rect x={x} y={padTop} width={barW} height={plotH} fill="transparent" />
               {hh > 0 && <rect x={x} y={padTop + plotH - hh} width={barW} height={hh} rx={Math.min(4, barW / 2)} fill={color} opacity={hover === null || on ? 1 : 0.55} />}
-              {(i === 0 || i === data.length - 1 || (data.length > 14 && i % 7 === 0)) && (
+              {(i === 0 || i === data.length - 1 || (data.length > 14 && i % 7 === 0 && i < data.length - 3 && i > 2)) && (
                 <text x={x + barW / 2} y={height - 6} textAnchor={i === data.length - 1 ? "end" : i === 0 ? "start" : "middle"} style={{ fontFamily: "var(--font-mono)", fontSize: 10, fill: "var(--text-faint)" }}>
                   {label(d.t)}
                 </text>

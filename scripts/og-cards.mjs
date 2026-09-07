@@ -16,7 +16,8 @@ const CARDS = {
   home: { k: "Protocol owned liquidity · Robinhood Chain", t: "Own the fee generating layer of Robinhood Chain.", s: "A 5% trade tax: 2% airdropped to holders, 2% buying pools the protocol keeps, 1% ops. 80% of those pools' fees is airdropped too." },
   monitor: { k: "Live proof · upstream", t: "The dividend monitor.", s: "INDEX and HOOD10 payouts, tax, eligibility and operator actions, read from Robinhood Chain. Nothing reported by hand." },
   vaults: { k: "For HOOD10 and INDEX holders", t: "The vaults.", s: "Pool HOOD10 or INDEX, clear the dividend line together, and take the yield in your token, WETH or USDG." },
-  ledger: { k: "Live proof", t: "The Ledger.", s: "Every movement of the treasury and every airdrop to holders, read from the chain. None of it is reported by hand." },
+  ledger: { k: "Live proof", t: "The Ledger.", s: "Every position the treasury owns, what the pools have earned, and what the same tokens would have been worth simply held." },
+  airdrops: { k: "Live proof", t: "The airdrops.", s: "Every payout Ouro has sent: what each cycle paid, to how many wallets, and what is already collected and waiting to go out." },
   docs: { k: "Documentation", t: "How Ouro works.", s: "The tax, the Loop, the Reserve, the airdrop, compounding, the Seal, governance and risks." },
 };
 

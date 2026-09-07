@@ -5,7 +5,7 @@ import { smoothScrollNextNavigation } from "~/lib/scroll";
 import type { Route } from "./+types/docs";
 import { Callout, LedgerTable, type LedgerColumn } from "~/components/ds";
 import { AddressCell, Container, Grid, KVRow, MicroLabel, PageHeader, PendingCell, SplitBar, hairline, mono, rowIndex } from "~/components/site";
-import { INFRASTRUCTURE, PARAMETERS, PROTOCOL_CONTRACTS, VENUE, type AddressEntry } from "~/content/protocol";
+import { COLLECTION_SPLIT_USD, COLLECT_THRESHOLD_USD, INFRASTRUCTURE, PARAMETERS, PROTOCOL_CONTRACTS, VENUE, type AddressEntry } from "~/content/protocol";
 import { site } from "~/content/site";
 import { pageMeta } from "~/lib/meta";
 
@@ -242,7 +242,9 @@ export default function Docs() {
               The two legs arrive differently. The tax leg is bought at market, so it costs a trade each cycle and carries the slippage and price impact any
               trade does. The fee leg is passed through in kind: a full range position collects its fees in both of the tokens it holds, so it arrives as a mix
               of the Reserve's constituents and whatever each is paired with, exactly as the pools earned it. Nothing is sold for that leg, so it costs no slippage and
-              puts no sell pressure on anything the protocol owns.
+              puts no sell pressure on anything the protocol owns. It also arrives in batches rather than continuously: fees are collected only once {`$${COLLECT_THRESHOLD_USD}`} has
+              accrued across the positions, because a smaller collection would spend too much of itself on gas, and {`$${COLLECTION_SPLIT_USD.holders}`} of
+              each {`$${COLLECT_THRESHOLD_USD}`} collection is what reaches holders. See <a href="#d06">06 · When it arrives</a>.
             </P>
             <P style={{ marginTop: 12 }}>
               The ETH share is paid as <strong>WETH</strong>, wrapped one for one. That is a practical choice, not an economic one: a native ETH transfer emits
@@ -267,10 +269,21 @@ export default function Docs() {
             <SplitRows
               rows={[
                 ["Target cadence", "every 2 hours"],
+                ["Fees are collected once they reach", `$${COLLECT_THRESHOLD_USD} accrued`],
+                ["A collection then splits", `$${COLLECTION_SPLIT_USD.holders} airdropped / $${COLLECTION_SPLIT_USD.reserve} compounded`],
                 ["A collection is streamed over", "about 48 hours"],
                 ["Assets paid today", "CASHCAT + PONS"],
               ]}
             />
+            <P style={{ marginTop: 12 }}>
+              <strong>Fees are not collected the moment they are earned.</strong> A collect is a transaction, and so is moving what it returns to the wallet the
+              airdrop pays from. Sweeping four dollars of fees costs a real fraction of four dollars, and that cost would come out of the airdrop. So fees are
+              left where they are earned until <strong>{`$${COLLECT_THRESHOLD_USD}`} has accrued across all of the positions</strong>. Only then is a collection
+              taken, and it divides on the same 80 / 20 as everything else: {`$${COLLECTION_SPLIT_USD.holders}`} to the wallet the airdrop pays from and{" "}
+              {`$${COLLECTION_SPLIT_USD.reserve}`} compounded straight back into the positions, so the next collection is earned on slightly more liquidity.
+              Waiting costs holders nothing: uncollected fees sit in the position still earning, they are yours the whole time, and the Ledger publishes the
+              running figure and the threshold side by side, so you can see exactly how close the next collection is.
+            </P>
             <P style={{ marginTop: 12 }}>
               <strong>Income is not paid out the moment it arrives.</strong> Volume is uneven. On its first day of trading the busiest hour earned
               roughly five hundred times what the quietest one did, and paying each cycle exactly what the previous two hours brought in would mean one
@@ -285,8 +298,8 @@ export default function Docs() {
             </P>
             <Callout title="What makes a cycle wait" style={{ marginTop: 14 }}>
               Gas is expensive, so the cycle waits for a cheaper one. The cycle is thin, and the gas to send it would eat too much of it, so it waits and
-              arrives larger. Nobody is yet owed enough to clear the cost of sending. The keeper that runs the cycle is offline. Or there were no trades,
-              so there is no tax and no fees to pay out. In every one of those cases what you have earned is still yours and still accounted for: a cycle
+              arrives larger. Nobody is yet owed enough to clear the cost of sending. The pools have earned fees but not yet the {`$${COLLECT_THRESHOLD_USD}`} that makes a
+              collection worth taking. The keeper that runs the cycle is offline. Or there were no trades, so there is no tax and no fees to pay out. In every one of those cases what you have earned is still yours and still accounted for: a cycle
               that does not run rolls into the one that does. Nothing is forfeited by waiting.
             </Callout>
             <P style={{ marginTop: 12 }}>

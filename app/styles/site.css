@@ -57,6 +57,10 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
 
 /* <Grid cols="…" gap={…}> sets --cols / --gap inline. */
 .grid { display: grid; grid-template-columns: var(--cols); gap: var(--gap, 24px); }
+/* A grid item defaults to `min-width: auto`, so it refuses to shrink below its content's min-content
+   width — a wide table inside a column then pushes the whole page out instead of scrolling in its own
+   box. On /airdrops that held the mobile viewport at 536px however narrow the device was. */
+.grid > * { min-width: 0; }
 
 /* Hairline between adjacent cells of a stat band. */
 .cell-rule { border-left: 1px solid var(--border-hairline); padding-left: 24px; }
@@ -106,6 +110,16 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
   .site-nav__links { order: 3; width: 100%; margin-left: 0; gap: 16px; }
   .cta-row { flex-wrap: wrap; }
 }
+
+/* A dense table keeps its column widths and scrolls sideways inside its own box, rather than
+   compressing a timestamp column to 45px on a phone. The page itself never scrolls horizontally.
+
+   `min-width: 0` is load-bearing: a grid or flex item defaults to `min-width: auto`, so it refuses
+   to shrink below its content's min-content width and the 520px table below pushes the whole layout
+   out instead of scrolling. On /airdrops that dragged the mobile viewport from 375px to 536px — the
+   page did not scroll horizontally, it just stopped being 375px wide. */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; min-width: 0; }
+.table-scroll > table { min-width: 520px; }
 
 /* 5. Help tooltips (the design's .qt) ------------------------------- */
 .qt { position: relative; display: inline-flex; }
