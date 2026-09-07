@@ -66,9 +66,9 @@ const TO_RESERVE = `$${COLLECTION_SPLIT_USD.reserve.toLocaleString("en-US")}`;
  * The transactions that paid a cycle, in the order they landed.
  *
  * `meta.txs` is a list because one cycle number can be paid by more than one transaction: a large
- * allocation is split into batches, and a cycle number the keeper never retires is paid again on a
- * later run — cycle 32 went out in three transactions eight hours apart. Every one of them is the
- * cycle's evidence, so every one is linked rather than counted.
+ * allocation is split into batches, and a cycle number the keeper never retires gets paid again on a
+ * later run — cycles 7, 8 and 32 each went out in two or three transactions, hours apart. Every one
+ * of them is the cycle's evidence, so every one is linked rather than counted.
  */
 function cycleTxs(c: OuroCycle): string[] {
   const m = c.meta as { txs?: unknown };
@@ -92,10 +92,10 @@ function TxLink({ explorer, tx }: { explorer: string | null; tx: string | undefi
  *
  * `startTs` and `endTs` bracket the cycle's payout transactions, and for a cycle paid in one — which
  * is nearly all of them — they are the same second. This cell printed `endTs` alone beside a link to
- * `txs[0]`, so the one cycle that spanned two days showed the LAST payment's clock next to the FIRST
- * payment's hash: the row read 09-07 06:00 UTC and the link opened a transaction mined at 09-06
- * 22:00 UTC. Print the bracket instead, and let the Tx cell list every hash inside it. A row that
- * quietly shows one payment's time against another's hash is worse than a wider row.
+ * `txs[0]`, so a cycle paid over several runs showed the LAST payment's clock next to the FIRST
+ * payment's hash: cycle 32's row read 09-07 06:00 UTC and its link opened a transaction mined at
+ * 09-06 22:00 UTC. Print the bracket instead, and let the Tx cell list every hash inside it. A row
+ * that quietly shows one payment's time against another's hash is worse than a wider row.
  */
 function CycleWhen({ c }: { c: OuroCycle }) {
   const first = c.startTs ?? c.endTs;
@@ -554,7 +554,7 @@ export default function Airdrops() {
           kicker="History"
           title="Every cycle, and what it paid."
           titleStyle={{ fontSize: 30 }}
-          sub="One row per airdrop. Value is what the assets were worth when they were sent, not today — an airdrop is worth what it was worth on the day."
+          sub="One row per airdrop. Value is what the assets were worth when they were sent, not today — an airdrop is worth what it was worth on the day. A cycle that took more than one transaction to pay shows the first and the last, and links every one."
           subStyle={{ fontSize: 15 }}
           style={{ marginBottom: 24 }}
         />
