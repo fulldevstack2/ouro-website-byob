@@ -59,7 +59,9 @@ export const NAV: NavItem[] = [
   // chain through ouro-monitor's /v1/reserve. It needs MONITOR_API_URL set at build time.
   { to: "/ledger/", label: "Ledger" },
   { to: "/airdrops/", label: "Airdrops" },
-  { to: "/referral/", label: "Referral" },
+  // Held back 2026-09-07 with its route (see app/routes.ts) — mid-build, and a nav link to a 404
+  // is worse than no link.
+  { to: "/referral/", label: "Referral", hidden: true },
   { to: "/docs/", label: "Docs" },
 ];
 

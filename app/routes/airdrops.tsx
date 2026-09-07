@@ -21,8 +21,10 @@ import {
   shortHash,
   useMonitor,
   type DailyRow,
+  type OuroAsset,
   type OuroCycle,
   type OuroHolders,
+  type OuroPayout,
   type OuroPending,
   type OuroQueueDay,
   type OuroYield,
@@ -88,29 +90,109 @@ function TxLink({ explorer, tx }: { explorer: string | null; tx: string | undefi
 }
 
 /**
- * When a cycle paid.
+ * One row of the history table: one AIRDROP, which is one payout transaction.
  *
- * `startTs` and `endTs` bracket the cycle's payout transactions, and for a cycle paid in one — which
- * is nearly all of them — they are the same second. This cell printed `endTs` alone beside a link to
- * `txs[0]`, so a cycle paid over several runs showed the LAST payment's clock next to the FIRST
- * payment's hash: cycle 32's row read 09-07 06:00 UTC and its link opened a transaction mined at
- * 09-06 22:00 UTC. Print the bracket instead, and let the Tx cell list every hash inside it. A row
- * that quietly shows one payment's time against another's hash is worse than a wider row.
+ * The table was a row per cycle NUMBER, which is the same thing only while a cycle is paid in one
+ * transaction. It is not always: the keeper re-uses a cycle number when a run broadcasts and then
+ * fails to commit its ledger, so cycle 32 was paid four times across eight hours. Merged into one
+ * row that read `09-06 22:00 → 09-07 08:00 UTC` against four hashes, with a single value and a
+ * single wallet count for four different payments — four airdrops described as one. Each payment has
+ * its own clock, its own value and its own wallet set, so each gets its own row.
  */
-function CycleWhen({ c }: { c: OuroCycle }) {
-  const first = c.startTs ?? c.endTs;
-  const last = c.endTs ?? c.startTs;
-  const spans = first !== null && last !== null && last !== first;
+interface PayoutRow {
+  key: string;
+  cycle: number;
+  status: string;
+  /** Position within the cycle, oldest = 1. Both 1 when the cycle was paid once. */
+  nth: number;
+  of: number;
+  ts: number | null;
+  /** Only set on the fallback path below, where the row is a whole cycle rather than one payment. */
+  endTs: number | null;
+  /**
+   * How many payments this row covers when it could NOT be split — 0 on a real per-payment row.
+   *
+   * Without it the fallback row is indistinguishable from a single airdrop while the table claims to
+   * list one row per payout, so the page contradicts itself: cycle 32's row showed one time, one
+   * value and one wallet count for four payments and nothing said so.
+   */
+  merged: number;
+  paidUsd: number | null;
+  recipients: number | null;
+  assets: OuroAsset[];
+  txs: string[];
+}
+
+/**
+ * Flatten cycles into payments, newest first.
+ *
+ * FALLS BACK to one row per cycle when `payouts` is absent — a monitor build older than the field,
+ * or a cycle indexed before the backfill reached it. That row then brackets the cycle's window and
+ * links every hash it knows, which is honest about being an aggregate rather than pretending to be
+ * a single payment.
+ */
+function payoutRows(cycles: OuroCycle[]): PayoutRow[] {
+  const out: PayoutRow[] = [];
+  for (const c of cycles) {
+    const payouts = c.payouts ?? [];
+    if (payouts.length === 0) {
+      out.push({
+        key: `cycle-${c.epoch}`,
+        cycle: c.epoch,
+        status: c.status,
+        nth: 1,
+        of: 1,
+        ts: c.startTs ?? c.endTs,
+        endTs: c.endTs ?? c.startTs,
+        merged: Math.max(cycleTxs(c).length, c.txs ?? 0),
+        paidUsd: c.paidUsd,
+        recipients: c.recipients,
+        assets: c.assets,
+        txs: cycleTxs(c),
+      });
+      continue;
+    }
+    // The API returns them oldest first; the table reads newest first.
+    for (let i = payouts.length - 1; i >= 0; i--) {
+      const p = payouts[i] as OuroPayout;
+      out.push({
+        key: p.tx,
+        cycle: c.epoch,
+        status: c.status,
+        nth: i + 1,
+        of: payouts.length,
+        ts: p.ts,
+        endTs: null,
+        merged: 0,
+        paidUsd: p.paidUsd,
+        recipients: p.recipients,
+        assets: p.assets,
+        txs: [p.tx],
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * When a row paid.
+ *
+ * A payment has one timestamp. A fallback row is a whole cycle, and if that cycle spanned more than
+ * one transaction its window is printed as a bracket rather than as either end alone — the bug this
+ * replaced showed the LAST payment's clock beside the FIRST payment's hash.
+ */
+function RowWhen({ r }: { r: PayoutRow }) {
+  const spans = r.endTs !== null && r.ts !== null && r.endTs !== r.ts;
   return (
     <span style={{ fontSize: 13 }}>
       {spans ? (
         <>
-          {fmtWhen(first).replace(/ UTC$/, "")} <span style={{ color: "var(--text-faint)" }}>→</span> {fmtWhen(last)}
+          {fmtWhen(r.ts).replace(/ UTC$/, "")} <span style={{ color: "var(--text-faint)" }}>→</span> {fmtWhen(r.endTs)}
         </>
       ) : (
-        fmtWhen(first)
+        fmtWhen(r.ts)
       )}
-      {c.status !== "closed" && <span style={{ marginLeft: 8, color: "var(--text-faint)", fontSize: 12 }}>{c.status}</span>}
+      {r.status !== "closed" && <span style={{ marginLeft: 8, color: "var(--text-faint)", fontSize: 12 }}>{r.status}</span>}
     </span>
   );
 }
@@ -288,7 +370,22 @@ export default function Airdrops() {
   const last = closed[0];
   // All-or-nothing, the same rule the API uses: one unvalued cycle and the total is unknown.
   const paidAllTime = closed.length === 0 ? 0 : closed.some((c) => c.paidUsd === null) ? null : closed.reduce((t, c) => t + (c.paidUsd ?? 0), 0);
-  const walletsPaid = closed.reduce((t, c) => t + (c.recipients ?? 0), 0);
+  /**
+   * One row per payout, newest first — see `payoutRows`.
+   *
+   * Derived from `rows` rather than fetched: the payments come nested inside each cycle, so this
+   * costs one pass over what the page already has.
+   */
+  const payouts = useMemo(() => payoutRows(rows), [rows]);
+  /**
+   * Wallet-PAYMENTS, which is what the footnote beside it claims.
+   *
+   * A cycle's own `recipients` is the last leg's count, so summing cycles under-counts a cycle paid
+   * more than once — cycle 32's four payments reached 130, 186, 320 and 362 wallets and the cycle
+   * reported 362. Sum the payments where they are known, and fall back to the cycle where they are
+   * not (an older monitor build).
+   */
+  const walletsPaid = closed.reduce((t, c) => t + (c.payouts?.length ? c.payouts.reduce((a, p) => a + (p.recipients ?? 0), 0) : (c.recipients ?? 0)), 0);
 
   const line = holders.data ? Number(holders.data.eligibilityLine) / 10 ** holders.data.decimals : 100_000;
   const decimals = holders.data?.decimals ?? 18;
@@ -552,27 +649,43 @@ export default function Airdrops() {
       <div style={{ marginTop: 64 }}>
         <SectionHead
           kicker="History"
-          title="Every cycle, and what it paid."
+          title="Every airdrop, and what it paid."
           titleStyle={{ fontSize: 30 }}
-          sub="One row per airdrop. Value is what the assets were worth when they were sent, not today — an airdrop is worth what it was worth on the day. A cycle that took more than one transaction to pay shows the first and the last, and links every one."
+          sub="One row per payout, newest first. Value is what the assets were worth when they were sent, not today — an airdrop is worth what it was worth on the day."
           subStyle={{ fontSize: 15 }}
           style={{ marginBottom: 24 }}
         />
-        {rows.length > 0 ? (
+        {payouts.length > 0 ? (
           <div className="table-scroll">
             <LedgerTable
               columns={CYCLE_COLS}
-              rows={rows.map((c) => ({
-                n: <span style={{ ...mono, fontSize: 13 }}>#{c.epoch}</span>,
-                when: <CycleWhen c={c} />,
-                value: <span style={{ ...mono, fontSize: 13 }}>{fmtUsd(c.paidUsd)}</span>,
-                recipients: <span style={{ ...mono, fontSize: 13 }}>{fmtNum(c.recipients)}</span>,
-                assets: (
-                  <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                    {c.assets.map((a) => `${fmtTokens(a.amountF)} ${a.symbol ?? shortHash(a.address)}`).join(" + ") || "—"}
+              rows={payouts.map((r) => ({
+                n: (
+                  <span style={{ ...mono, fontSize: 13 }}>
+                    #{r.cycle}
+                    {r.of > 1 && (
+                      <span style={{ color: "var(--text-faint)", fontSize: 11 }}>
+                        {" "}
+                        {r.nth}/{r.of}
+                      </span>
+                    )}
+                    {r.merged > 1 && (
+                      <span style={{ color: "var(--text-faint)", fontSize: 11 }}>
+                        {" "}
+                        {r.merged} payments
+                      </span>
+                    )}
                   </span>
                 ),
-                tx: <CycleTxs explorer={explorer} txs={cycleTxs(c)} />,
+                when: <RowWhen r={r} />,
+                value: <span style={{ ...mono, fontSize: 13 }}>{fmtUsd(r.paidUsd)}</span>,
+                recipients: <span style={{ ...mono, fontSize: 13 }}>{fmtNum(r.recipients)}</span>,
+                assets: (
+                  <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                    {r.assets.map((a) => `${fmtTokens(a.amountF)} ${a.symbol ?? shortHash(a.address)}`).join(" + ") || "—"}
+                  </span>
+                ),
+                tx: <CycleTxs explorer={explorer} txs={r.txs} />,
               }))}
             />
           </div>

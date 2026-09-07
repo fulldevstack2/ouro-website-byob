@@ -245,6 +245,23 @@ export interface OuroAsset {
   recipients?: number | null;
 }
 
+/**
+ * One payout transaction inside a cycle, as `/v1/ouro/epochs` returns it.
+ *
+ * A cycle number can be paid several times hours apart — the keeper re-uses a number when a run
+ * broadcasts and then fails to commit its ledger — so this, not the cycle, is one airdrop. Absent
+ * (or empty) from a monitor that predates the field, which the page falls back for.
+ */
+export interface OuroPayout {
+  tx: string;
+  block: number;
+  ts: number;
+  /** All-or-nothing: null when any leg of this transaction was unpriced. */
+  paidUsd: number | null;
+  recipients: number | null;
+  assets: OuroAsset[];
+}
+
 /** One airdrop cycle, as `/v1/ouro/epochs` returns it. */
 export interface OuroCycle {
   epoch: number;
@@ -262,6 +279,8 @@ export interface OuroCycle {
   eligibleTokens: number | null;
   txs: number;
   assets: OuroAsset[];
+  /** The transactions that paid it, oldest first. Missing on an older monitor build. */
+  payouts?: OuroPayout[];
   meta: Record<string, unknown>;
 }
 
