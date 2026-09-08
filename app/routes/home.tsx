@@ -345,12 +345,15 @@ const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] 
   {
     n: "01",
     horizon: "Short term",
-    title: "The vaults",
+    title: "The vault",
     body: (
       <>
-        The Reserve needs a keeper that collects on schedule, sells through the right venue and books every step onchain. The vaults run that machinery
-        first, in public and at a smaller scale, before it goes anywhere near the protocol's own liquidity. They charge 10% of what they earn and nothing on
-        the way in or out, so the treasury takes a fee while the keeper proves itself.
+        The airdrop pays wallets holding at least 100,000 $OURO, which is 0.01% of the supply. That line is fixed in tokens, so what it costs to clear
+        climbs with the market cap: 0.01% of a billion-dollar market cap is $100,000. It prices out everyone who arrives later, and lowering it only moves
+        the problem, because the keeper then spends more gas sending smaller amounts to more wallets. A vault answers both ends. Deposit any amount, the
+        pooled balance clears the line on behalf of everyone in it, and each cycle is split pro-rata across the depositors. The keeper pays one address
+        instead of hundreds, so a cycle costs less to run, and the smallest holder still earns a share of the yield and the airdrop. How expensive 100,000
+        $OURO becomes stops being a problem.
       </>
     ),
   },
