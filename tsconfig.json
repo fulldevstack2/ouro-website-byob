@@ -5,7 +5,7 @@
     "**/.client/**/*",
     ".react-router/types/**/*"
   ],
-  // Held back 2026-09-07 with its route (app/routes.ts), so both files are out of the type-check
+  // Held back with its route (app/routes.ts), so both files are out of the type-check
   // until it is re-registered. Delete this block in the same commit that re-registers the route.
   //
   //  - routes/referral.tsx: an unregistered route gets no generated `./+types/referral`, so
