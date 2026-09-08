@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
 import type { Route } from "./+types/airdrops";
-import { Badge, Callout, Card, Input, LedgerTable, Stat, Tabs, type BadgeTone, type LedgerColumn } from "~/components/ds";
+import { Badge, Button, Callout, Card, Input, LedgerTable, Stat, Tabs, type BadgeTone, type LedgerColumn } from "~/components/ds";
 import { AddressCell, Container, Grid, KVRow, MicroLabel, PageHeader, PayoutCadence, SectionHead, body14, hairline, mono } from "~/components/site";
 import { Bars } from "~/components/site/Bars";
 import { COLLECTION_SPLIT_USD, COLLECT_THRESHOLD_USD } from "~/content/protocol";
@@ -59,6 +59,14 @@ const CYCLE_COLS: LedgerColumn[] = [
   { key: "assets", label: "In" },
   { key: "tx", label: "Tx", align: "right", nowrap: true },
 ];
+
+/**
+ * Rows of history per page: one day of payouts at the two-hourly cadence.
+ *
+ * The table is the longest block on the page and gains twelve rows a day, so it is paged rather
+ * than left to run — a reader after cycle 3 should not have to walk past everything since.
+ */
+const HISTORY_PAGE_SIZE = 12;
 
 const THRESHOLD = `$${COLLECT_THRESHOLD_USD.toLocaleString("en-US")}`;
 const TO_HOLDERS = `$${COLLECTION_SPLIT_USD.holders.toLocaleString("en-US")}`;
@@ -213,6 +221,39 @@ function CycleTxs({ explorer, txs }: { explorer: string | null; txs: string[] })
         <TxLink key={t} explorer={explorer} tx={t} />
       ))}
     </span>
+  );
+}
+
+/**
+ * Pages the history table.
+ *
+ * Client-side, over rows the page has already fetched: the stats and the chart above are computed
+ * from the whole history anyway, so paging the request would cost a round trip and buy nothing.
+ *
+ * Labelled NEWER and OLDER rather than previous and next. The table is reverse-chronological, so
+ * "next" would walk backwards in time — the one direction a reader of a ledger has to be sure of.
+ */
+function Pager({ page, pageCount, total, onPage }: { page: number; pageCount: number; total: number; onPage: (n: number) => void }) {
+  if (pageCount <= 1) return null;
+  const from = page * HISTORY_PAGE_SIZE + 1;
+  const to = Math.min(total, (page + 1) * HISTORY_PAGE_SIZE);
+  return (
+    <nav
+      aria-label="Airdrop history pages"
+      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginTop: 20 }}
+    >
+      <span aria-live="polite" style={{ ...mono, fontSize: 12, color: "var(--text-muted)" }}>
+        {fmtNum(from)}–{fmtNum(to)} of {fmtNum(total)} payouts
+      </span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+        <Button variant="secondary" size="sm" disabled={page === 0} onClick={() => onPage(page - 1)} aria-label="Newer payouts">
+          <span aria-hidden="true">←</span> Newer
+        </Button>
+        <Button variant="secondary" size="sm" disabled={page >= pageCount - 1} onClick={() => onPage(page + 1)} aria-label="Older payouts" arrow>
+          Older
+        </Button>
+      </span>
+    </nav>
   );
 }
 
@@ -377,6 +418,37 @@ export default function Airdrops() {
    * costs one pass over what the page already has.
    */
   const payouts = useMemo(() => payoutRows(rows), [rows]);
+  /**
+   * Which page of history is shown.
+   *
+   * Clamped on read rather than reset on load: the list is re-polled every minute and grows at the
+   * top, and a reader on page three should stay on page three when a payout lands. `safePage` only
+   * matters if the history ever shrinks, which it should not, but an empty table would be a silent
+   * way to be wrong about it.
+   */
+  const [historyPage, setHistoryPage] = useState(0);
+  const historyRef = useRef<HTMLDivElement>(null);
+  const pageCount = Math.max(1, Math.ceil(payouts.length / HISTORY_PAGE_SIZE));
+  const safePage = Math.min(historyPage, pageCount - 1);
+  const visiblePayouts = useMemo(
+    () => payouts.slice(safePage * HISTORY_PAGE_SIZE, safePage * HISTORY_PAGE_SIZE + HISTORY_PAGE_SIZE),
+    [payouts, safePage],
+  );
+  /**
+   * Turn the page, and bring the table back into view if it has scrolled off the top.
+   *
+   * The buttons sit under twelve rows, so after a click the new rows start about a screen above the
+   * cursor — the same dead-button feeling the chart tabs had. Only scroll when the table's top is
+   * actually above the viewport, so a reader who can already see it is left alone, and honour
+   * `prefers-reduced-motion` as the rest of the site does.
+   */
+  const goToPage = useCallback((n: number) => {
+    setHistoryPage(n);
+    const el = historyRef.current;
+    if (!el || el.getBoundingClientRect().top >= 0) return;
+    const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  }, []);
   /**
    * Wallet-PAYMENTS, which is what the footnote beside it claims.
    *
@@ -646,7 +718,7 @@ export default function Airdrops() {
         </Grid>
       </div>
 
-      <div style={{ marginTop: 64 }}>
+      <div ref={historyRef} style={{ marginTop: 64, scrollMarginTop: 24 }}>
         <SectionHead
           kicker="History"
           title="Every airdrop, and what it paid."
@@ -656,39 +728,42 @@ export default function Airdrops() {
           style={{ marginBottom: 24 }}
         />
         {payouts.length > 0 ? (
-          <div className="table-scroll">
-            <LedgerTable
-              columns={CYCLE_COLS}
-              rows={payouts.map((r) => ({
-                n: (
-                  <span style={{ ...mono, fontSize: 13 }}>
-                    #{r.cycle}
-                    {r.of > 1 && (
-                      <span style={{ color: "var(--text-faint)", fontSize: 11 }}>
-                        {" "}
-                        {r.nth}/{r.of}
-                      </span>
-                    )}
-                    {r.merged > 1 && (
-                      <span style={{ color: "var(--text-faint)", fontSize: 11 }}>
-                        {" "}
-                        {r.merged} payments
-                      </span>
-                    )}
-                  </span>
-                ),
-                when: <RowWhen r={r} />,
-                value: <span style={{ ...mono, fontSize: 13 }}>{fmtUsd(r.paidUsd)}</span>,
-                recipients: <span style={{ ...mono, fontSize: 13 }}>{fmtNum(r.recipients)}</span>,
-                assets: (
-                  <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                    {r.assets.map((a) => `${fmtTokens(a.amountF)} ${a.symbol ?? shortHash(a.address)}`).join(" + ") || "—"}
-                  </span>
-                ),
-                tx: <CycleTxs explorer={explorer} txs={r.txs} />,
-              }))}
-            />
-          </div>
+          <>
+            <div className="table-scroll">
+              <LedgerTable
+                columns={CYCLE_COLS}
+                rows={visiblePayouts.map((r) => ({
+                  n: (
+                    <span style={{ ...mono, fontSize: 13 }}>
+                      #{r.cycle}
+                      {r.of > 1 && (
+                        <span style={{ color: "var(--text-faint)", fontSize: 11 }}>
+                          {" "}
+                          {r.nth}/{r.of}
+                        </span>
+                      )}
+                      {r.merged > 1 && (
+                        <span style={{ color: "var(--text-faint)", fontSize: 11 }}>
+                          {" "}
+                          {r.merged} payments
+                        </span>
+                      )}
+                    </span>
+                  ),
+                  when: <RowWhen r={r} />,
+                  value: <span style={{ ...mono, fontSize: 13 }}>{fmtUsd(r.paidUsd)}</span>,
+                  recipients: <span style={{ ...mono, fontSize: 13 }}>{fmtNum(r.recipients)}</span>,
+                  assets: (
+                    <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                      {r.assets.map((a) => `${fmtTokens(a.amountF)} ${a.symbol ?? shortHash(a.address)}`).join(" + ") || "—"}
+                    </span>
+                  ),
+                  tx: <CycleTxs explorer={explorer} txs={r.txs} />,
+                }))}
+              />
+            </div>
+            <Pager page={safePage} pageCount={pageCount} total={payouts.length} onPage={goToPage} />
+          </>
         ) : (
           <Card label="Cycles">
             <div style={{ ...body14, fontStyle: "italic" }}>
