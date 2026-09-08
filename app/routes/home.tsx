@@ -348,10 +348,9 @@ const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] 
     title: "The vaults",
     body: (
       <>
-        HOOD10 and INDEX pay their holders in kind, on their own clock, and leave every holder to do something with it. The vaults do it once for everyone:
-        deposit the index token and take its dividend compounded back into itself, or paid in WETH or USDG, for 10% of the gain and nothing on the way in or
-        out. They also run the machinery the Reserve needs: a keeper that collects on schedule, sells through the right venue and books it onchain. It runs
-        early, and against someone else's basket.
+        The Reserve needs a keeper that collects on schedule, sells through the right venue and books every step onchain. The vaults run that machinery
+        first, in public and at a smaller scale, before it goes anywhere near the protocol's own liquidity. They charge 10% of what they earn and nothing on
+        the way in or out, so the treasury takes a fee while the keeper proves itself.
       </>
     ),
   },
