@@ -19,18 +19,33 @@ export const TAX_PCT = 5;
 export const REFERRAL_RATE_OF_TAX_PCT = Number(((REFERRAL_RATE_PCT / TAX_PCT) * 100).toFixed(0));
 
 /**
- * Rebates are paid on BUYS only. Sells pay the tax too, so paying on them would be defensible on the
- * mechanics, but it points the incentive at the wrong behaviour and is harder to say out loud.
+ * Rebates are paid on EVERY TRADE, both directions.
+ *
+ * A sell pays the same 5% a buy does, so it funds the treasury identically and earning on it is
+ * consistent rather than generous. Measured on 8 hours of live flow, sells were 53.9% of traded ETH
+ * and attributed just as cleanly as buys (46.5% of sell volume terminates on an EOA, against 46.8%
+ * of buy volume), so this roughly doubles both the reach and the cost: about 13% of the ops leg at
+ * full uptake, against 8% for buys alone.
+ *
+ * The attribution is a mirror, not a special case. A buy walks the $OURO forward out of the pool to
+ * where it comes to rest; a sell walks it backward from the pool to whoever sent it.
  */
-export const PAYS_ON = "buys";
+export const PAYS_ON = "every trade";
 
 /**
- * Flip to true when the accrual engine, the epoch roots and the distributor are live. Until then the
- * page renders its pre-launch state: the mechanics in full, every figure a dash, and no wallet write
- * offered. The site already works this way everywhere else, and it is why nothing here invents a
- * number it cannot read from the chain.
+ * There is deliberately NO "is it live yet" constant here.
+ *
+ * There used to be, and it was the wrong shape: a hardcoded flag has to be remembered and flipped,
+ * and it can disagree with reality in both directions. The service already knows the answer and
+ * says so, so the page reads it instead:
+ *
+ *   - `/v1/referrals/:address` answers 503 while the binding store is unconfigured or down
+ *     -> the programme has not opened, show that.
+ *   - a 200 carries `accrualLive`, which is false until the accrual engine is counting buys
+ *     -> binding works, earnings are not being counted yet, so show dashes and say why.
+ *
+ * Two independent facts, each from the only place that can know it.
  */
-export const PROGRAM_LIVE = false;
 
 /**
  * A referral code is derived from the referrer's own address rather than stored in a registry, so
@@ -75,12 +90,12 @@ export const BIND_DOMAIN = {
   chainId: site.chain.id,
 } as const;
 
+/**
+ * Only the `Bind` struct. The EIP712Domain type is constructed by viem (client side) and by
+ * `verifyTypedData` (server side) from the domain itself, so declaring it here as well is both
+ * redundant and a common source of a signature that verifies in one place and not the other.
+ */
 export const BIND_TYPES = {
-  EIP712Domain: [
-    { name: "name", type: "string" },
-    { name: "version", type: "string" },
-    { name: "chainId", type: "uint256" },
-  ],
   Bind: [
     { name: "referee", type: "address" },
     { name: "referrerCode", type: "string" },
@@ -89,11 +104,15 @@ export const BIND_TYPES = {
   ],
 } as const;
 
-export function bindPayload(referee: string, referrerCode: string, nonce: number, deadline: number) {
+/**
+ * Shaped for `signTypedData` directly. `nonce` and `deadline` are uint256 on the wire, so they are
+ * bigints here even though the API takes them as plain numbers in JSON.
+ */
+export function bindPayload(referee: `0x${string}`, referrerCode: string, nonce: number, deadline: number) {
   return {
+    domain: BIND_DOMAIN,
     types: BIND_TYPES,
     primaryType: "Bind" as const,
-    domain: BIND_DOMAIN,
-    message: { referee, referrerCode, nonce, deadline },
+    message: { referee, referrerCode, nonce: BigInt(nonce), deadline: BigInt(deadline) },
   };
 }

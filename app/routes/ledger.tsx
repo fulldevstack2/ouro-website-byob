@@ -275,7 +275,7 @@ export default function Ledger() {
       )}
       {status === "syncing" && (
         <Callout title="The monitor is still reading the chain" style={{ marginTop: 32 }}>
-          It has not finished indexing the Reserve's history yet, so nothing below is stated as fact — a dash here means
+          It has not finished indexing the Reserve's history yet, so nothing below is stated as fact. A dash here means
           "not read", not "zero". Figures fill in on their own within a few minutes of the monitor starting.
         </Callout>
       )}
@@ -430,7 +430,7 @@ export default function Ledger() {
       <Grid cols="1fr 1fr" gap={48} align="start" style={{ marginBottom: 64 }}>
         <div>
           <Method n="01" title="What a position holds">
-            A v3 position stores liquidity, not balances, so the token amounts are derived from the pool's current price and the position's range — the same
+            A v3 position stores liquidity, not balances, so the token amounts are derived from the pool's current price and the position's range. That is the same
             arithmetic <code style={mono}>LiquidityAmounts.sol</code> does, checked against a simulated full withdrawal to the wei.
           </Method>
           <Method n="02" title="Uncollected fees">
@@ -449,8 +449,8 @@ export default function Ledger() {
           </Method>
           <Method n="05" title="Fees already collected">
             Valued at the price when they were collected, not today's. A collect in the same transaction as a withdrawal reports principal and fees together, so
-            the principal is netted back out. Collections are taken only once {THRESHOLD} of fees has accrued across the positions, so this figure stays at zero
-            — and the uncollected figure keeps rising — between collections. It counts the whole collection, including the fifth of it that compounds rather
+            the principal is netted back out. Collections are taken only once {THRESHOLD} of fees has accrued across the positions, so this figure stays at zero between
+            collections, while the uncollected figure keeps rising. It counts the whole collection, including the fifth of it that compounds rather
             than being airdropped.
           </Method>
           <Method n="06" title="What is withheld">

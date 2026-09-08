@@ -30,6 +30,7 @@ export default function Home() {
       <BasketSection />
       <YieldSection />
       <LiveProofSection />
+      <RoadmapSection />
       <LockSection />
     </>
   );
@@ -323,9 +324,84 @@ function LiveProofSection() {
       <SectionHead
         kicker="Live proof"
         title="Every cycle, narrated."
-        sub="The treasury advances in public cycles. Every amount is an onchain transaction this feed reads, starting with cycle #1."
+        sub="The treasury advances in public cycles. Every amount below is an onchain transaction this feed reads: the three most recent, newest first."
       />
-      <CrankFeed footer="Every amount here will link to its transaction. If a number on this site ever disagrees with the chain, the chain is right." />
+      <CrankFeed footer="Every payment links to its transaction on the airdrops page. If a number on this site ever disagrees with the chain, the chain is right." />
+    </Container>
+  );
+}
+
+/* ---------------------------------------------------------------- Roadmap */
+
+/**
+ * What is being built next, in the order it is being built.
+ *
+ * Deliberately three items and no dates. A roadmap is the one part of a site like this that cannot
+ * be read off the chain, so it says the least it can get away with: what the work is, why it is
+ * worth doing, and which of them is nearest. Anything more specific would be a promise the
+ * contracts cannot keep, on a page whose whole argument is that they can.
+ */
+const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] = [
+  {
+    n: "01",
+    horizon: "Short term",
+    title: "The vault",
+    body: (
+      <>
+        Deposit any amount of $OURO and earn a share of every airdrop, however small your holding. Today the airdrop pays wallets holding at least
+        100,000 $OURO, which is 0.01% of the supply, and that line is fixed in tokens: 0.01% of a billion-dollar market cap is $100,000. It prices out every
+        holder who arrives later. Pooled in a vault, deposits clear the line together and scaling the marketcap is no longer a problem.
+      </>
+    ),
+  },
+  {
+    n: "02",
+    horizon: "Medium term",
+    title: "Close the leak: token and liquidity migration",
+    body: (
+      <>
+        $OURO trades on letscash's shared hook. That fixes the 5% for the pool's whole life, which is a guarantee worth having, but the rails are not ours:
+        0.3% of every trade is theirs, and nothing on them stops a second ETH/OURO pool that pays no tax at all. Leakage like that is what leaves the
+        projects in the table above taxing as little as 6% of their own volume. Closing it means moving the token and its liquidity onto rails Ouro
+        controls: a venue of our own, or a partner's on terms we set. On rails like that, sealed venues stop being a design and become something a contract
+        enforces, the 0.3% comes back to the treasury, and the pools the protocol already owns sit on an exchange it has a say in rather than one it rents.
+      </>
+    ),
+  },
+  {
+    n: "03",
+    horizon: "Long term",
+    title: "Multichain expansion",
+    body: (
+      <>
+        Owning the fee generating layer is not a claim about Robinhood Chain in particular. Every chain has one, and every chain asks the same two things
+        of it: pools deep enough to be worth owning, and a venue that lets one charge a fee. Where both hold, the machine runs unchanged. The Reserve takes
+        a position in the layer the chain's own trading has to cross, and one holder base is paid out of all of them at once. A chain each, not a token
+        each.
+      </>
+    ),
+  },
+];
+
+function RoadmapSection() {
+  return (
+    <Container id="roadmap" style={{ paddingTop: 96 }}>
+      <SectionHead
+        kicker="Roadmap"
+        title="Three things, in order."
+        sub="The order the work is being done in, not a schedule, and nothing here carries a date. Each one arrives as a transaction you can read rather than an announcement, and this list changes when the work does."
+      />
+      <div>
+        {ROADMAP.map((r, i) => (
+          <NumberedRow key={r.n} n={r.n} py={20} borderBottom={i === ROADMAP.length - 1}>
+            <MicroLabel className="roadmap-horizon" style={{ whiteSpace: "nowrap" }}>
+              {r.horizon}
+            </MicroLabel>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>{r.title}</div>
+            <div style={{ ...body14, marginTop: 6, maxWidth: 620 }}>{r.body}</div>
+          </NumberedRow>
+        ))}
+      </div>
     </Container>
   );
 }

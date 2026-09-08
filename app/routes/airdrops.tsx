@@ -2,12 +2,13 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
 import type { Route } from "./+types/airdrops";
-import { Badge, Callout, Card, Input, LedgerTable, Stat, Tabs, type BadgeTone, type LedgerColumn } from "~/components/ds";
+import { Badge, Button, Callout, Card, Input, LedgerTable, Stat, Tabs, type BadgeTone, type LedgerColumn } from "~/components/ds";
 import { AddressCell, Container, Grid, KVRow, MicroLabel, PageHeader, PayoutCadence, SectionHead, body14, hairline, mono } from "~/components/site";
 import { Bars } from "~/components/site/Bars";
 import { COLLECTION_SPLIT_USD, COLLECT_THRESHOLD_USD } from "~/content/protocol";
 import { externalLinkProps, site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
+import { useEthBalance } from "~/hooks/useEthBalance";
 import { pageMeta } from "~/lib/meta";
 import {
   MONITOR_API,
@@ -21,8 +22,10 @@ import {
   shortHash,
   useMonitor,
   type DailyRow,
+  type OuroAsset,
   type OuroCycle,
   type OuroHolders,
+  type OuroPayout,
   type OuroPending,
   type OuroQueueDay,
   type OuroYield,
@@ -58,6 +61,14 @@ const CYCLE_COLS: LedgerColumn[] = [
   { key: "tx", label: "Tx", align: "right", nowrap: true },
 ];
 
+/**
+ * Rows of history per page: one day of payouts at the two-hourly cadence.
+ *
+ * The table is the longest block on the page and gains twelve rows a day, so it is paged rather
+ * than left to run — a reader after cycle 3 should not have to walk past everything since.
+ */
+const HISTORY_PAGE_SIZE = 12;
+
 const THRESHOLD = `$${COLLECT_THRESHOLD_USD.toLocaleString("en-US")}`;
 const TO_HOLDERS = `$${COLLECTION_SPLIT_USD.holders.toLocaleString("en-US")}`;
 const TO_RESERVE = `$${COLLECTION_SPLIT_USD.reserve.toLocaleString("en-US")}`;
@@ -88,29 +99,109 @@ function TxLink({ explorer, tx }: { explorer: string | null; tx: string | undefi
 }
 
 /**
- * When a cycle paid.
+ * One row of the history table: one AIRDROP, which is one payout transaction.
  *
- * `startTs` and `endTs` bracket the cycle's payout transactions, and for a cycle paid in one — which
- * is nearly all of them — they are the same second. This cell printed `endTs` alone beside a link to
- * `txs[0]`, so a cycle paid over several runs showed the LAST payment's clock next to the FIRST
- * payment's hash: cycle 32's row read 09-07 06:00 UTC and its link opened a transaction mined at
- * 09-06 22:00 UTC. Print the bracket instead, and let the Tx cell list every hash inside it. A row
- * that quietly shows one payment's time against another's hash is worse than a wider row.
+ * The table was a row per cycle NUMBER, which is the same thing only while a cycle is paid in one
+ * transaction. It is not always: the keeper re-uses a cycle number when a run broadcasts and then
+ * fails to commit its ledger, so cycle 32 was paid four times across eight hours. Merged into one
+ * row that read `09-06 22:00 → 09-07 08:00 UTC` against four hashes, with a single value and a
+ * single wallet count for four different payments — four airdrops described as one. Each payment has
+ * its own clock, its own value and its own wallet set, so each gets its own row.
  */
-function CycleWhen({ c }: { c: OuroCycle }) {
-  const first = c.startTs ?? c.endTs;
-  const last = c.endTs ?? c.startTs;
-  const spans = first !== null && last !== null && last !== first;
+interface PayoutRow {
+  key: string;
+  cycle: number;
+  status: string;
+  /** Position within the cycle, oldest = 1. Both 1 when the cycle was paid once. */
+  nth: number;
+  of: number;
+  ts: number | null;
+  /** Only set on the fallback path below, where the row is a whole cycle rather than one payment. */
+  endTs: number | null;
+  /**
+   * How many payments this row covers when it could NOT be split — 0 on a real per-payment row.
+   *
+   * Without it the fallback row is indistinguishable from a single airdrop while the table claims to
+   * list one row per payout, so the page contradicts itself: cycle 32's row showed one time, one
+   * value and one wallet count for four payments and nothing said so.
+   */
+  merged: number;
+  paidUsd: number | null;
+  recipients: number | null;
+  assets: OuroAsset[];
+  txs: string[];
+}
+
+/**
+ * Flatten cycles into payments, newest first.
+ *
+ * FALLS BACK to one row per cycle when `payouts` is absent — a monitor build older than the field,
+ * or a cycle indexed before the backfill reached it. That row then brackets the cycle's window and
+ * links every hash it knows, which is honest about being an aggregate rather than pretending to be
+ * a single payment.
+ */
+function payoutRows(cycles: OuroCycle[]): PayoutRow[] {
+  const out: PayoutRow[] = [];
+  for (const c of cycles) {
+    const payouts = c.payouts ?? [];
+    if (payouts.length === 0) {
+      out.push({
+        key: `cycle-${c.epoch}`,
+        cycle: c.epoch,
+        status: c.status,
+        nth: 1,
+        of: 1,
+        ts: c.startTs ?? c.endTs,
+        endTs: c.endTs ?? c.startTs,
+        merged: Math.max(cycleTxs(c).length, c.txs ?? 0),
+        paidUsd: c.paidUsd,
+        recipients: c.recipients,
+        assets: c.assets,
+        txs: cycleTxs(c),
+      });
+      continue;
+    }
+    // The API returns them oldest first; the table reads newest first.
+    for (let i = payouts.length - 1; i >= 0; i--) {
+      const p = payouts[i] as OuroPayout;
+      out.push({
+        key: p.tx,
+        cycle: c.epoch,
+        status: c.status,
+        nth: i + 1,
+        of: payouts.length,
+        ts: p.ts,
+        endTs: null,
+        merged: 0,
+        paidUsd: p.paidUsd,
+        recipients: p.recipients,
+        assets: p.assets,
+        txs: [p.tx],
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * When a row paid.
+ *
+ * A payment has one timestamp. A fallback row is a whole cycle, and if that cycle spanned more than
+ * one transaction its window is printed as a bracket rather than as either end alone — the bug this
+ * replaced showed the LAST payment's clock beside the FIRST payment's hash.
+ */
+function RowWhen({ r }: { r: PayoutRow }) {
+  const spans = r.endTs !== null && r.ts !== null && r.endTs !== r.ts;
   return (
     <span style={{ fontSize: 13 }}>
       {spans ? (
         <>
-          {fmtWhen(first).replace(/ UTC$/, "")} <span style={{ color: "var(--text-faint)" }}>→</span> {fmtWhen(last)}
+          {fmtWhen(r.ts).replace(/ UTC$/, "")} <span style={{ color: "var(--text-faint)" }}>→</span> {fmtWhen(r.endTs)}
         </>
       ) : (
-        fmtWhen(first)
+        fmtWhen(r.ts)
       )}
-      {c.status !== "closed" && <span style={{ marginLeft: 8, color: "var(--text-faint)", fontSize: 12 }}>{c.status}</span>}
+      {r.status !== "closed" && <span style={{ marginLeft: 8, color: "var(--text-faint)", fontSize: 12 }}>{r.status}</span>}
     </span>
   );
 }
@@ -131,6 +222,39 @@ function CycleTxs({ explorer, txs }: { explorer: string | null; txs: string[] })
         <TxLink key={t} explorer={explorer} tx={t} />
       ))}
     </span>
+  );
+}
+
+/**
+ * Pages the history table.
+ *
+ * Client-side, over rows the page has already fetched: the stats and the chart above are computed
+ * from the whole history anyway, so paging the request would cost a round trip and buy nothing.
+ *
+ * Labelled NEWER and OLDER rather than previous and next. The table is reverse-chronological, so
+ * "next" would walk backwards in time — the one direction a reader of a ledger has to be sure of.
+ */
+function Pager({ page, pageCount, total, onPage }: { page: number; pageCount: number; total: number; onPage: (n: number) => void }) {
+  if (pageCount <= 1) return null;
+  const from = page * HISTORY_PAGE_SIZE + 1;
+  const to = Math.min(total, (page + 1) * HISTORY_PAGE_SIZE);
+  return (
+    <nav
+      aria-label="Airdrop history pages"
+      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginTop: 20 }}
+    >
+      <span aria-live="polite" style={{ ...mono, fontSize: 12, color: "var(--text-muted)" }}>
+        {fmtNum(from)}–{fmtNum(to)} of {fmtNum(total)} payouts
+      </span>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+        <Button variant="secondary" size="sm" disabled={page === 0} onClick={() => onPage(page - 1)} aria-label="Newer payouts">
+          <span aria-hidden="true">←</span> Newer
+        </Button>
+        <Button variant="secondary" size="sm" disabled={page >= pageCount - 1} onClick={() => onPage(page + 1)} aria-label="Older payouts" arrow>
+          Older
+        </Button>
+      </span>
+    </nav>
   );
 }
 
@@ -178,7 +302,7 @@ function AddressCheck({ holders, decimals, lineTokens, y }: { holders: OuroHolde
         {looksLikeAddress && !holders && <div style={{ ...body14, fontStyle: "italic" }}>Reading the holder list…</div>}
         {looksLikeAddress && holders && !hit && (
           <div style={body14}>
-            Not in the indexed holder set as of block {fmtNum(holders.snapshotBlock)}. That means it holds no $OURO, or its balance has never moved — it does not
+            Not in the indexed holder set as of block {fmtNum(holders.snapshotBlock)}. That means it holds no $OURO, or its balance has never moved. It does not
             mean it is excluded.
           </div>
         )}
@@ -216,7 +340,7 @@ function AddressCheck({ holders, decimals, lineTokens, y }: { holders: OuroHolde
                 })()}
                 <div style={{ ...body14, marginTop: 12 }}>
                   A wallet above the line is included in every cycle. If a small balance is owed less than the gas to send it, that cycle holds it and a later
-                  one pays it — the total is the same. The figures above are what recent payouts would pay a holding this size, not a forecast: they move with
+                  one pays it, and the total is the same. The figures above are what recent payouts would pay a holding this size, not a forecast: they move with
                   volume, and this check does not report on any individual cycle.
                 </div>
               </>
@@ -254,7 +378,7 @@ const SERIES: { id: SeriesId; label: string; title: string; note: string; ariaLa
     id: "wallet",
     label: "Airdrop wallet",
     title: "The airdrop wallet, by day",
-    note: "Closing balance each day, at that day's price. It fills when a collection lands and drains as each cycle pays, so a flat or falling line is the wallet doing its job — not a stall.",
+    note: "Closing balance each day, at that day's price. It fills when a collection lands and drains as each cycle pays, so a flat or falling line is the wallet doing its job, not a stall.",
     ariaLabel: "Balance of the airdrop wallet in US dollars, by day",
   },
 ];
@@ -288,7 +412,53 @@ export default function Airdrops() {
   const last = closed[0];
   // All-or-nothing, the same rule the API uses: one unvalued cycle and the total is unknown.
   const paidAllTime = closed.length === 0 ? 0 : closed.some((c) => c.paidUsd === null) ? null : closed.reduce((t, c) => t + (c.paidUsd ?? 0), 0);
-  const walletsPaid = closed.reduce((t, c) => t + (c.recipients ?? 0), 0);
+  /**
+   * One row per payout, newest first — see `payoutRows`.
+   *
+   * Derived from `rows` rather than fetched: the payments come nested inside each cycle, so this
+   * costs one pass over what the page already has.
+   */
+  const payouts = useMemo(() => payoutRows(rows), [rows]);
+  /**
+   * Which page of history is shown.
+   *
+   * Clamped on read rather than reset on load: the list is re-polled every minute and grows at the
+   * top, and a reader on page three should stay on page three when a payout lands. `safePage` only
+   * matters if the history ever shrinks, which it should not, but an empty table would be a silent
+   * way to be wrong about it.
+   */
+  const [historyPage, setHistoryPage] = useState(0);
+  const historyRef = useRef<HTMLDivElement>(null);
+  const pageCount = Math.max(1, Math.ceil(payouts.length / HISTORY_PAGE_SIZE));
+  const safePage = Math.min(historyPage, pageCount - 1);
+  const visiblePayouts = useMemo(
+    () => payouts.slice(safePage * HISTORY_PAGE_SIZE, safePage * HISTORY_PAGE_SIZE + HISTORY_PAGE_SIZE),
+    [payouts, safePage],
+  );
+  /**
+   * Turn the page, and bring the table back into view if it has scrolled off the top.
+   *
+   * The buttons sit under twelve rows, so after a click the new rows start about a screen above the
+   * cursor — the same dead-button feeling the chart tabs had. Only scroll when the table's top is
+   * actually above the viewport, so a reader who can already see it is left alone, and honour
+   * `prefers-reduced-motion` as the rest of the site does.
+   */
+  const goToPage = useCallback((n: number) => {
+    setHistoryPage(n);
+    const el = historyRef.current;
+    if (!el || el.getBoundingClientRect().top >= 0) return;
+    const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  }, []);
+  /**
+   * Wallet-PAYMENTS, which is what the footnote beside it claims.
+   *
+   * A cycle's own `recipients` is the last leg's count, so summing cycles under-counts a cycle paid
+   * more than once — cycle 32's four payments reached 130, 186, 320 and 362 wallets and the cycle
+   * reported 362. Sum the payments where they are known, and fall back to the cycle where they are
+   * not (an older monitor build).
+   */
+  const walletsPaid = closed.reduce((t, c) => t + (c.payouts?.length ? c.payouts.reduce((a, p) => a + (p.recipients ?? 0), 0) : (c.recipients ?? 0)), 0);
 
   const line = holders.data ? Number(holders.data.eligibilityLine) / 10 ** holders.data.decimals : 100_000;
   const decimals = holders.data?.decimals ?? 18;
@@ -346,9 +516,16 @@ export default function Airdrops() {
     return queue.data?.days.find((d) => d.day === today) ?? null;
   }, [queue.data, nowSec]);
 
-  const claimableEth = pending.data ? Number(pending.data.claimableWei) / 1e18 : null;
+  /**
+   * ETH the airdrop wallet holds back rather than streams out — what underwrites a cycle on a day
+   * the tax leg is thin. Read straight from the chain: it is a balance, not something the indexer
+   * derives. The address comes from the monitor rather than being hardcoded, so it follows the
+   * keeper's `treasury()` if that ever moves.
+   */
+  const reserveWei = useEthBalance(pending.data?.treasury as `0x${string}` | undefined);
+  const reserveEth = reserveWei === null ? null : Number(reserveWei) / 1e18;
   const ethUsd = reserve.data?.positions[0]?.side1.symbol === "WETH" ? reserve.data.positions[0].side1.priceUsd : (reserve.data?.positions.flatMap((p) => [p.side0, p.side1]).find((s) => s.symbol === "WETH")?.priceUsd ?? null);
-  const claimableUsd = claimableEth === null || ethUsd === null ? null : claimableEth * ethUsd;
+  const reserveUsd = reserveEth === null || ethUsd === null ? null : reserveEth * ethUsd;
   const uncollected = reserve.data?.totals.uncollectedFeesUsd ?? null;
 
   return (
@@ -387,8 +564,9 @@ export default function Airdrops() {
         </Callout>
       )}
 
-      <Grid cols="repeat(4, 1fr)" gap={24} className="grid--2col-md" style={{ margin: "40px 0 48px", padding: "28px 0", borderTop: hairline, borderBottom: hairline }}>
-        <Stat label="Paid to holders · all time" value={fmtUsd(paidAllTime, { compact: true })} footnote={`Across ${fmtNum(closed.length)} cycle${closed.length === 1 ? "" : "s"}, marked at the time of each`} />
+      {/* Three, not four: "Paid to holders · all time" lived here and now closes the reserves row
+          below as "Total airdrops", where it ends an argument rather than opening one. */}
+      <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md" style={{ margin: "40px 0 48px", padding: "28px 0", borderTop: hairline, borderBottom: hairline }}>
         <Stat label="Cycles run" value={fmtNum(closed.length)} footnote={last ? `Last one ${fmtWhen(last.endTs)}` : "None yet"} />
         <Stat label="Wallets paid · last cycle" value={fmtNum(last?.recipients ?? null)} footnote={`${fmtNum(walletsPaid)} wallet-payments in total`} />
         <Stat
@@ -425,18 +603,16 @@ export default function Airdrops() {
 
       <SectionHead
         kicker="On its way"
-        title="What is already earned but not yet sent."
+        title="What backs the next cycles, and what has already gone out."
         titleStyle={{ fontSize: 30 }}
-        sub="Three pools feed the airdrop, at three different stages. None of these is a scheduled amount: a cycle runs when it is worth running, and a collection is spread over roughly 48 hours."
+        sub="Two of these fund what is coming: ETH held back so a quiet day still pays, and the assets already collected and waiting to stream. The third is everything sent so far. None of them is a scheduled amount: a cycle runs when it is worth running, and a collection is spread over roughly 48 hours."
         subStyle={{ fontSize: 15 }}
         style={{ marginBottom: 24 }}
       />
       <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md" style={{ marginBottom: 24 }}>
-        <Card label="1 · Still in the hook">
-          <Stat label="Tax claimable" value={claimableUsd === null ? "—" : fmtUsd(claimableUsd)} unit={claimableEth === null ? undefined : `${fmtEth(claimableEth)} ETH`} />
-          <div style={{ ...body14, marginTop: 12 }}>
-            Tax the pool has charged and nobody has pulled out yet. Only the pool creator can claim it, and letscash keeps 6% of the gross when they do.
-          </div>
+        <Card label="1 · Held in reserve">
+          <Stat label="Airdrop reserves" value={fmtUsd(reserveUsd)} unit={reserveEth === null ? undefined : `${fmtEth(reserveEth)} ETH`} />
+          <div style={{ ...body14, marginTop: 12 }}>ETH held back in the airdrop wallet. On slower trading days, the airdrop is paid out of this.</div>
         </Card>
         <Card label="2 · Collected, waiting to stream">
           <Stat label="Queued in the airdrop wallet" value={fmtUsd(pending.data?.queuedUsd ?? null)} />
@@ -459,11 +635,14 @@ export default function Airdrops() {
             </button>
           </div>
         </Card>
-        <Card label="3 · Still in the pools">
-          <Stat label="LP fees accrued" value={fmtUsd(uncollected)} footnote={uncollected === null ? `Collected at ${THRESHOLD}` : `of ${THRESHOLD} before a collection`} />
+        <Card label="3 · Already paid">
+          <Stat
+            label="Total airdrops"
+            value={fmtUsd(paidAllTime)}
+            footnote={`Across ${fmtNum(closed.length)} cycle${closed.length === 1 ? "" : "s"}, each valued when it was sent`}
+          />
           <div style={{ ...body14, marginTop: 12 }}>
-            Fees the Reserve's positions have earned and not yet collected. At {THRESHOLD} a collection is taken: {TO_HOLDERS} to the airdrop wallet,{" "}
-            {TO_RESERVE} compounded. <Link to="/ledger/">See the positions →</Link>
+            Every payout Ouro has made, valued on the day it was made rather than today. Each one is listed below, a row per payment.
           </div>
         </Card>
       </Grid>
@@ -509,7 +688,7 @@ export default function Airdrops() {
             footnote={
               y?.aprPct == null
                 ? (y?.withheld ?? "Needs a payout and a price to measure")
-                : `${y.annualisable ? "Over the last seven days" : `On ${fmtNum(y.historyDays, 1)} days of payouts — subject to change`}. Pays back the cost in ${y.paybackDays == null ? "—" : fmtNum(y.paybackDays, 0)} days at this rate`
+                : `${y.annualisable ? "Over the last seven days" : `On ${fmtNum(y.historyDays, 1)} days of payouts, subject to change`}. Pays back the cost in ${y.paybackDays == null ? "—" : fmtNum(y.paybackDays, 0)} days at this rate`
             }
           />
         </Grid>
@@ -518,17 +697,17 @@ export default function Airdrops() {
           {y?.caveat ?? "The rate is measured over the last seven days of payouts."} An annual figure is the one number here that says anything about the
           future, and it is only as old as the payouts behind it: {fmtNum(y?.cycles ?? 0)} cycles over{" "}
           {y?.historyDays ? fmtNum(y.historyDays, 1) : "—"} days, at launch volume. The same payouts annualise to roughly a fifth of this over a seven-day
-          window, because the divisor picks the answer. Treat it as what recent trading paid, not as a rate anyone is promising — the daily figures beside it
+          window, because the divisor picks the answer. Treat it as what recent trading paid, not as a rate anyone is promising. The daily figures beside it
           are the measurements, and every cycle behind them is listed below.
         </Callout>
 
         <Grid cols="1fr 1fr" gap={48} align="start" style={{ marginTop: 28 }}>
           <div style={{ borderTop: hairline }}>
-            <KVRow label="Eligible supply — what a cycle is divided among" value={y?.eligibleTokens == null ? "—" : `${fmtNum(y.eligibleTokens)} $OURO`} />
+            <KVRow label="Eligible supply: what a cycle is divided among" value={y?.eligibleTokens == null ? "—" : `${fmtNum(y.eligibleTokens)} $OURO`} />
             <KVRow label="Its value at spot" value={fmtUsd(y?.eligibleValueUsd ?? null)} />
             <KVRow label="$OURO price used" value={y?.priceUsd == null ? "—" : `$${y.priceUsd.toPrecision(3)}`} />
             <KVRow
-              label={`Cost of ${fmtNum(y?.lineTokens ?? 100_000)} $OURO — at mid, then with the tax`}
+              label={`Cost of ${fmtNum(y?.lineTokens ?? 100_000)} $OURO: at mid, then with the tax`}
               value={y?.lineCostUsd == null ? "—" : `${fmtUsd(y.lineCostUsd)} → ${fmtUsd(y.lineCostWithTaxUsd)}`}
             />
             <KVRow label="Payout history indexed" value={y?.historyDays == null ? "—" : `${fmtNum(y.historyDays, 1)} days`} border="none" />
@@ -544,38 +723,57 @@ export default function Airdrops() {
             <br />
             <br />
             The cost is a floor too: the quantity at the mid price plus the trade tax a buy pays on top of it. It leaves out what the pool charges in slippage,
-            which at this size is small next to the tax — a line is worth tens of dollars against a pool holding tens of thousands.
+            which at this size is small next to the tax. A line is worth tens of dollars against a pool holding tens of thousands.
           </div>
         </Grid>
       </div>
 
-      <div style={{ marginTop: 64 }}>
+      <div ref={historyRef} style={{ marginTop: 64, scrollMarginTop: 24 }}>
         <SectionHead
           kicker="History"
-          title="Every cycle, and what it paid."
+          title="Every airdrop, and what it paid."
           titleStyle={{ fontSize: 30 }}
-          sub="One row per airdrop. Value is what the assets were worth when they were sent, not today — an airdrop is worth what it was worth on the day. A cycle that took more than one transaction to pay shows the first and the last, and links every one."
+          sub="One row per payout, newest first. Value is what the assets were worth when they were sent, not today. An airdrop is worth what it was worth on the day."
           subStyle={{ fontSize: 15 }}
           style={{ marginBottom: 24 }}
         />
-        {rows.length > 0 ? (
-          <div className="table-scroll">
-            <LedgerTable
-              columns={CYCLE_COLS}
-              rows={rows.map((c) => ({
-                n: <span style={{ ...mono, fontSize: 13 }}>#{c.epoch}</span>,
-                when: <CycleWhen c={c} />,
-                value: <span style={{ ...mono, fontSize: 13 }}>{fmtUsd(c.paidUsd)}</span>,
-                recipients: <span style={{ ...mono, fontSize: 13 }}>{fmtNum(c.recipients)}</span>,
-                assets: (
-                  <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-                    {c.assets.map((a) => `${fmtTokens(a.amountF)} ${a.symbol ?? shortHash(a.address)}`).join(" + ") || "—"}
-                  </span>
-                ),
-                tx: <CycleTxs explorer={explorer} txs={cycleTxs(c)} />,
-              }))}
-            />
-          </div>
+        {payouts.length > 0 ? (
+          <>
+            <div className="table-scroll">
+              <LedgerTable
+                columns={CYCLE_COLS}
+                rows={visiblePayouts.map((r) => ({
+                  n: (
+                    <span style={{ ...mono, fontSize: 13 }}>
+                      #{r.cycle}
+                      {r.of > 1 && (
+                        <span style={{ color: "var(--text-faint)", fontSize: 11 }}>
+                          {" "}
+                          {r.nth}/{r.of}
+                        </span>
+                      )}
+                      {r.merged > 1 && (
+                        <span style={{ color: "var(--text-faint)", fontSize: 11 }}>
+                          {" "}
+                          {r.merged} payments
+                        </span>
+                      )}
+                    </span>
+                  ),
+                  when: <RowWhen r={r} />,
+                  value: <span style={{ ...mono, fontSize: 13 }}>{fmtUsd(r.paidUsd)}</span>,
+                  recipients: <span style={{ ...mono, fontSize: 13 }}>{fmtNum(r.recipients)}</span>,
+                  assets: (
+                    <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+                      {r.assets.map((a) => `${fmtTokens(a.amountF)} ${a.symbol ?? shortHash(a.address)}`).join(" + ") || "—"}
+                    </span>
+                  ),
+                  tx: <CycleTxs explorer={explorer} txs={r.txs} />,
+                }))}
+              />
+            </div>
+            <Pager page={safePage} pageCount={pageCount} total={payouts.length} onPage={goToPage} />
+          </>
         ) : (
           <Card label="Cycles">
             <div style={{ ...body14, fontStyle: "italic" }}>
@@ -659,7 +857,7 @@ export default function Airdrops() {
               priced legs, which would read as a complete figure.
             </Method>
             <Method n="03" title="Eligibility">
-              Balances are replayed from the token's own <code style={mono}>Transfer</code> events and compared to the line exactly, in raw units — a float
+              Balances are replayed from the token's own <code style={mono}>Transfer</code> events and compared to the line exactly, in raw units. A float
               comparison drops a wallet sitting precisely on it. Pool contracts, the treasury and vesting are excluded when the list is built.
             </Method>
           </div>
@@ -679,7 +877,7 @@ export default function Airdrops() {
           </div>
         </Grid>
         <Callout style={{ marginTop: 32 }} title="Where the money comes from">
-          Two legs fund every cycle: the tax on each trade, and the fees the protocol's own liquidity earns. The Ledger reports the second one — what the pools
+          Two legs fund every cycle: the tax on each trade, and the fees the protocol's own liquidity earns. The Ledger reports the second one: what the pools
           hold, what they have earned, and whether owning them beats simply holding the tokens. <Link to="/ledger/">Open the Ledger →</Link>
         </Callout>
       </div>

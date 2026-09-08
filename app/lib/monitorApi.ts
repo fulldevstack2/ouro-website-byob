@@ -245,6 +245,23 @@ export interface OuroAsset {
   recipients?: number | null;
 }
 
+/**
+ * One payout transaction inside a cycle, as `/v1/ouro/epochs` returns it.
+ *
+ * A cycle number can be paid several times hours apart — the keeper re-uses a number when a run
+ * broadcasts and then fails to commit its ledger — so this, not the cycle, is one airdrop. Absent
+ * (or empty) from a monitor that predates the field, which the page falls back for.
+ */
+export interface OuroPayout {
+  tx: string;
+  block: number;
+  ts: number;
+  /** All-or-nothing: null when any leg of this transaction was unpriced. */
+  paidUsd: number | null;
+  recipients: number | null;
+  assets: OuroAsset[];
+}
+
 /** One airdrop cycle, as `/v1/ouro/epochs` returns it. */
 export interface OuroCycle {
   epoch: number;
@@ -262,6 +279,8 @@ export interface OuroCycle {
   eligibleTokens: number | null;
   txs: number;
   assets: OuroAsset[];
+  /** The transactions that paid it, oldest first. Missing on an older monitor build. */
+  payouts?: OuroPayout[];
   meta: Record<string, unknown>;
 }
 
@@ -280,10 +299,10 @@ export interface OuroQueuedAsset {
  * next several cycles draw from.
  */
 export interface OuroPending {
-  pendingWei: string;
-  tabWei: string;
-  /** What a claim actually returns — letscash keeps 6% of the gross. */
-  claimableWei: string;
+  // `pendingWei`, `tabWei` and `claimableWei` — the tax accrued in letscash's hook and what a claim
+  // would return of it — are still served here, and still read by the keeper's cycle tool. They were
+  // dropped from this type when the site stopped publishing them: an interface field nothing renders
+  // reads as a figure someone shows, and this one is not shown anywhere.
   creator: string;
   treasury: string;
   queued: OuroQueuedAsset[];

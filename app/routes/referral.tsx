@@ -3,12 +3,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAccount, useChainId, useSignTypedData, useSwitchChain } from "wagmi";
 
 import type { Route } from "./+types/referral";
-import { Badge, Button, Callout, Card, LedgerTable, Stat, type LedgerColumn } from "~/components/ds";
+import { Button, Callout, Card, LedgerTable, Stat, type LedgerColumn } from "~/components/ds";
 import { Container, Grid, KVRow, MicroLabel, PageHeader, SectionHead, body14, hairline, mono } from "~/components/site";
 import {
   OPS_FLOOR_PCT,
   OPS_PCT,
-  PROGRAM_LIVE,
   REFERRAL_RATE_OF_TAX_PCT,
   REFERRAL_RATE_PCT,
   TAX_PCT,
@@ -25,7 +24,7 @@ import { MONITOR_API, fmtEth, fmtNum, useMonitor } from "~/lib/monitorApi";
 export function meta({ location }: Route.MetaArgs) {
   return pageMeta({
     title: "Referral · earn on every trade you bring, and on your own",
-    description: `Share your link and both sides earn ${REFERRAL_RATE_PCT}% of the ETH on every $OURO buy the wallet you referred makes. Funded from the ops leg, so the airdrop is untouched.`,
+    description: `Share your link and both sides earn ${REFERRAL_RATE_PCT}% of the ETH on every $OURO trade the wallet you referred makes, buying or selling. Funded from the ops leg, so the airdrop is untouched.`,
     path: location.pathname,
   });
 }
@@ -37,19 +36,27 @@ export function meta({ location }: Route.MetaArgs) {
 
 interface RefereeRow {
   address: string;
-  boundAt: number;
-  buys: number;
-  volumeEth: number;
-  earnedEth: number;
+  boundAtBlock: number;
+  buys: number | null;
+  volumeEth: number | null;
+  earnedEth: number | null;
 }
 interface ReferralAccount {
   address: string;
+  code: string;
+  link: string | null;
   boundTo: string | null;
+  boundAtBlock: number | null;
   asReferrer: { referees: number; attributedBuys: number; attributedVolumeEth: number; earnedEth: number; earnedUsd: number | null };
   asReferee: { attributedBuys: number; attributedVolumeEth: number; earnedEth: number; earnedUsd: number | null };
   claimable: { epoch: number | null; amountEth: number; proof: string[] } | null;
   claimed: { cumulativeEth: number };
   referees: RefereeRow[];
+  /**
+   * False until the accrual engine is counting buys. A page that ignores this and renders zeroes is
+   * telling a wallet it earned nothing, when the truth is that nothing has been counted yet.
+   */
+  accrualLive: boolean;
 }
 
 type Phase = "idle" | "signing" | "posting" | "done" | "error";
@@ -73,13 +80,13 @@ function TheDeal() {
       <Card label="They earn">
         <div style={{ ...mono, fontSize: 28, fontWeight: 600, color: "var(--text-primary)" }}>{REFERRAL_RATE_PCT}%</div>
         <p style={{ ...body14, margin: "8px 0 0" }}>
-          of the ETH on every $OURO buy the wallet you referred makes, for as long as they keep buying.
+          of the ETH on every $OURO trade the wallet you referred makes, buying or selling, for as long as they keep trading.
         </p>
       </Card>
       <Card label="You earn">
         <div style={{ ...mono, fontSize: 28, fontWeight: 600, color: "var(--text-primary)" }}>{REFERRAL_RATE_PCT}%</div>
         <p style={{ ...body14, margin: "8px 0 0" }}>
-          on your own buys, the moment you bind. Being referred is not a favour you do for someone else.
+          on your own trades, the moment you bind. Being referred is not a favour you do for someone else.
         </p>
       </Card>
       <Card label="Holders pay nothing">
@@ -137,8 +144,9 @@ function WrongChain({ chainId }: { chainId: number | undefined }) {
 
 /* ── the referrer's own link ──────────────────────────────────────────────── */
 
-function YourLink({ address }: { address: string }) {
-  const link = referralLink(address);
+function YourLink({ address, apiLink }: { address: string; apiLink: string | null }) {
+  // Prefer the link the service built: it proves the service resolved this code to this wallet.
+  const link = apiLink ?? referralLink(address);
   const [copied, setCopied] = useState(false);
 
   const copy = useCallback(async () => {
@@ -188,10 +196,13 @@ function BindPanel({
   address,
   code,
   account,
+  open,
 }: {
-  address: string;
+  address: `0x${string}`;
   code: string;
   account: ReferralAccount | null;
+  /** The binding store answered, so binding is actually possible. */
+  open: boolean;
 }) {
   const { signTypedDataAsync } = useSignTypedData();
   const [phase, setPhase] = useState<Phase>("idle");
@@ -204,13 +215,7 @@ function BindPanel({
     setMessage(null);
     try {
       const deadline = Math.floor(Date.now() / 1000) + 3600;
-      const payload = bindPayload(address, code, 0, deadline);
-      const signature = await signTypedDataAsync({
-        domain: payload.domain,
-        types: { Bind: payload.types.Bind },
-        primaryType: "Bind",
-        message: payload.message,
-      });
+      const signature = await signTypedDataAsync(bindPayload(address, code, 0, deadline));
       setPhase("posting");
       const r = await fetch(`${MONITOR_API}/v1/referrals/bind`, {
         method: "POST",
@@ -249,8 +254,8 @@ function BindPanel({
     return (
       <Callout tone="note" title="Bound">
         <p style={{ ...body14, margin: 0 }}>
-          Every $OURO buy this wallet makes from here on earns {REFERRAL_RATE_PCT}% back for you and {REFERRAL_RATE_PCT}%
-          for whoever sent you. Buys made before now do not count.
+          Every $OURO trade this wallet makes from here on, buying or selling, earns {REFERRAL_RATE_PCT}% back for you and
+          {REFERRAL_RATE_PCT}% for whoever sent you. Trades made before now do not count.
         </p>
       </Callout>
     );
@@ -260,13 +265,13 @@ function BindPanel({
     <Card label="You arrived through a referral link" tone="tint">
       <p style={{ ...body14, margin: 0 }}>
         Sign once to bind this wallet. It costs nothing, it is a signature and not a transaction, and from that moment
-        both you and the person who sent you earn {REFERRAL_RATE_PCT}% of the ETH on every buy you make.
+        both you and the person who sent you earn {REFERRAL_RATE_PCT}% of the ETH on every trade you make, in either direction.
       </p>
       <p style={{ ...body14, margin: "12px 0 0" }}>
-        Binding starts from the block you sign in. It is never applied backwards, so bind before you buy.
+        Binding starts from the block you sign in. It is never applied backwards, so bind before you trade.
       </p>
       <div style={{ marginTop: 20 }}>
-        {PROGRAM_LIVE ? (
+        {open ? (
           <Button onClick={() => void bind()} disabled={phase === "signing" || phase === "posting"}>
             {phase === "signing" ? "Check your wallet…" : phase === "posting" ? "Recording…" : "Sign and bind"}
           </Button>
@@ -282,7 +287,9 @@ function BindPanel({
 /* ── the profile ──────────────────────────────────────────────────────────── */
 
 function Earnings({ account }: { account: ReferralAccount | null }) {
-  const a = account;
+  // Only show a figure once the service says it is counting. Otherwise a dash: "not counted yet"
+  // and "earned nothing" are different claims and must not render the same.
+  const a = account?.accrualLive ? account : null;
   const dash = "—";
   return (
     <Grid
@@ -291,8 +298,18 @@ function Earnings({ account }: { account: ReferralAccount | null }) {
       className="grid--2col-md"
       style={{ margin: "40px 0 48px", padding: "28px 0", borderTop: hairline, borderBottom: hairline }}
     >
-      <Stat label="Earned referring" value={a ? fmtEth(a.asReferrer.earnedEth) : dash} unit="ETH" footnote={a ? `${fmtNum(a.asReferrer.referees)} referees` : "Nothing yet"} />
-      <Stat label="Earned on your own buys" value={a ? fmtEth(a.asReferee.earnedEth) : dash} unit="ETH" footnote={a ? `${fmtNum(a.asReferee.attributedBuys)} buys` : "Bind to start"} />
+      <Stat
+        label="Earned referring"
+        value={a ? fmtEth(a.asReferrer.earnedEth) : dash}
+        unit="ETH"
+        footnote={account ? `${fmtNum(account.asReferrer.referees)} bound` : "Nothing yet"}
+      />
+      <Stat
+        label="Earned on your own trades"
+        value={a ? fmtEth(a.asReferee.earnedEth) : dash}
+        unit="ETH"
+        footnote={account?.boundTo ? "Bound" : "Not bound"}
+      />
       <Stat label="Claimable now" value={a?.claimable ? fmtEth(a.claimable.amountEth) : dash} unit="ETH" footnote={a?.claimable ? `Epoch ${a.claimable.epoch}` : "After the next epoch closes"} />
       <Stat label="Claimed to date" value={a ? fmtEth(a.claimed.cumulativeEth) : dash} unit="ETH" footnote="Paid out on chain" />
     </Grid>
@@ -324,60 +341,92 @@ function Referees({ account }: { account: ReferralAccount | null }) {
   return <LedgerTable columns={REFEREE_COLUMNS} rows={rows} />;
 }
 
-/* ── page ─────────────────────────────────────────────────────────────────── */
+/* ── the wallet half ──────────────────────────────────────────────────────── */
 
-export default function ReferralRoute() {
-  const w = useWallet();
-  const [code, setCode] = useState<string | null>(null);
-
-  // Read ?ref= on the client only: this route is prerendered, so there is no query string at build.
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get("ref");
-    if (q) setCode(q.trim().toLowerCase().slice(0, 16));
-  }, []);
-
-  const account = useMonitor<ReferralAccount>(
-    PROGRAM_LIVE && MONITOR_API && w.address ? `/v1/referrals/${w.address}` : null,
-    30_000,
+/**
+ * What the prerender writes, and what the first client frame shows before the wallet tree mounts.
+ * It has to be the real logged-out card rather than a spinner, because this is the frame a crawler
+ * and a shared link both get.
+ */
+function ConnectPlaceholder() {
+  return (
+    <Card>
+      <Grid cols="1fr auto" gap={24} align="center" className="grid--2col-md">
+        <div>
+          <div style={{ fontSize: 17, fontWeight: 600, color: "var(--text-primary)" }}>Connect to see your link and what it has earned</div>
+          <p style={{ ...body14, margin: "8px 0 0" }}>
+            A signature, never a transaction. Ouro cannot move anything in your wallet and does not ask to.
+          </p>
+        </div>
+        <Button size="lg" disabled>Connect wallet</Button>
+      </Grid>
+    </Card>
   );
+}
 
-  const connected = Boolean(w.address);
+function WalletSection({ code }: { code: string | null }) {
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  // Every address we compare against, and every path we build, is lowercased.
+  const me = address ? (address.toLowerCase() as `0x${string}`) : null;
+
+  const account = useMonitor<ReferralAccount>(MONITOR_API && me ? `/v1/referrals/${me}` : null, 30_000);
+
+  const onRightChain = chainId === robinhoodChain.id;
+  const claimable = account.data?.claimable;
+
+  /**
+   * The code is a one-way hash of the address, so the service cannot invert it: it has to be told
+   * the mapping before anyone can follow the link. Registering on connect is the moment that always
+   * precedes sharing, and the call is idempotent and needs no signature, because the code is a pure
+   * function of the address that anyone could recompute.
+   */
+  useEffect(() => {
+    if (!me || !MONITOR_API) return;
+    const ctrl = new AbortController();
+    void fetch(`${MONITOR_API}/v1/referrals/code`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ address: me }),
+      signal: ctrl.signal,
+    }).catch(() => {
+      /* the page still works: it falls back to the locally derived link */
+    });
+    return () => ctrl.abort();
+  }, [me]);
+
+  // The service is the only thing that knows whether the programme has opened. A 503 (or no
+  // configured store) means it has not; anything else means binding works.
+  const storeOpen = account.data !== null;
 
   return (
-    <Container style={{ paddingTop: 64, minHeight: 640 }}>
-      <PageHeader
-        kicker="Referral"
-        title={<>Both sides earn.<br />Not just the one sharing the link.</>}
-        lede={`Share your link and you earn ${REFERRAL_RATE_PCT}% of the ETH on every $OURO buy the wallet you referred makes. They earn the same ${REFERRAL_RATE_PCT}% on those buys themselves. Both legs come out of the ops share of the tax, so the airdrop is untouched.`}
-        aside={
-          <Badge tone={PROGRAM_LIVE ? "positive" : "neutral"} dot>
-            {PROGRAM_LIVE ? "Live" : "Opens at launch"}
-          </Badge>
-        }
-      />
-
-      <div style={{ marginTop: 48 }}>
-        <TheDeal />
-      </div>
-
-      {!PROGRAM_LIVE && (
-        <Callout tone="note" title="Not live yet" style={{ marginTop: 24 }}>
+    <>
+      {!storeOpen && !account.loading && (
+        <Callout tone="note" title="Not open yet" style={{ marginTop: 24 }}>
           <p style={{ ...body14, margin: 0 }}>
-            You can connect and see the page exactly as it will work. Binding and claiming open when the accrual engine
-            and the distributor are deployed. Until then every figure on this page shows a dash, the same way the rest of
-            this site handles a number it cannot yet read from the chain.
+            Connect and read the page exactly as it will work. Binding opens once the service is holding
+            bindings, and figures appear once buys are being counted. Until then every number here shows a dash,
+            the same way the rest of this site handles a figure it cannot read from the chain.
+          </p>
+        </Callout>
+      )}
+      {storeOpen && account.data && !account.data.accrualLive && (
+        <Callout tone="note" title="Binding is open, counting is not" style={{ marginTop: 24 }}>
+          <p style={{ ...body14, margin: 0 }}>
+            You can bind and share a link now, and a binding is permanent from the block you sign in. Buys are not
+            being attributed yet, so every figure below stays a dash rather than a zero.
           </p>
         </Callout>
       )}
 
       <div style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 20 }}>
-        {!connected && <ConnectPanel w={w} />}
-        {connected && !w.onRightChain && <WrongChain w={w} />}
-        {connected && code && <BindPanel w={w} code={code} account={account.data} />}
-        {connected && <YourLink address={w.address as string} />}
+        {!isConnected && <ConnectPanel />}
+        {isConnected && !onRightChain && <WrongChain chainId={chainId} />}
+        {isConnected && me && code && <BindPanel address={me} code={code} account={account.data} open={storeOpen} />}
+        {isConnected && me && <YourLink address={me} apiLink={account.data?.link ?? null} />}
       </div>
 
-      {connected && (
+      {isConnected && (
         <>
           <SectionHead
             kicker="Your earnings"
@@ -387,18 +436,18 @@ export default function ReferralRoute() {
           />
           <Earnings account={account.data} />
 
-          {account.data?.claimable && account.data.claimable.amountEth > 0 && (
+          {claimable && claimable.amountEth > 0 && (
             <Card tone="tint" style={{ marginBottom: 48 }}>
               <Grid cols="1fr auto" gap={24} align="center" className="grid--2col-md">
                 <div>
                   <div style={{ fontSize: 17, fontWeight: 600, color: "var(--text-primary)" }}>
-                    {fmtEth(account.data.claimable.amountEth)} ETH ready to claim
+                    {fmtEth(claimable.amountEth)} ETH ready to claim
                   </div>
                   <p style={{ ...body14, margin: "6px 0 0" }}>
                     One transaction, a few cents of gas. It pays out everything owed across every epoch, not just this one.
                   </p>
                 </div>
-                <Button size="lg" disabled={!PROGRAM_LIVE}>Claim</Button>
+                <Button size="lg">Claim</Button>
               </Grid>
             </Card>
           )}
@@ -409,15 +458,47 @@ export default function ReferralRoute() {
           </div>
         </>
       )}
+    </>
+  );
+}
+
+/* ── page ─────────────────────────────────────────────────────────────────── */
+
+export default function ReferralRoute() {
+  const [code, setCode] = useState<string | null>(null);
+
+  // Read ?ref= on the client only: this route is prerendered, so there is no query string at build.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("ref");
+    if (q) setCode(q.trim().toLowerCase().slice(0, 16));
+  }, []);
+
+  return (
+    <Container style={{ paddingTop: 64, minHeight: 640 }}>
+      <PageHeader
+        kicker="Referral"
+        title={<>Both sides earn.<br />Not just the one sharing the link.</>}
+        lede={`Share your link and you earn ${REFERRAL_RATE_PCT}% of the ETH on every $OURO trade the wallet you referred makes, buying or selling. They earn the same ${REFERRAL_RATE_PCT}% on those trades themselves. Both legs come out of the ops share of the tax, so the airdrop is untouched.`}
+
+      />
+
+      <div style={{ marginTop: 48 }}>
+        <TheDeal />
+      </div>
+
+      <WalletProvider fallback={<div style={{ marginTop: 32 }}><ConnectPlaceholder /></div>}>
+        <WalletSection code={code} />
+      </WalletProvider>
 
       <SectionHead
         kicker="How it works"
         title="Read this before you share it"
         sub="Four things that are easy to get wrong, stated plainly so nobody is surprised by them later."
+        style={{ marginTop: 64 }}
       />
       <Grid cols="1fr 1fr" gap={48} align="start" style={{ marginBottom: 64 }}>
         <div>
-          <KVRow label="Paid on buys" value={`${REFERRAL_RATE_PCT}% of the ETH leg`} />
+          <KVRow label="Paid on every trade" value={`${REFERRAL_RATE_PCT}% of the ETH leg`} />
           <KVRow label="As a share of the tax" value={`${REFERRAL_RATE_OF_TAX_PCT}% of the ${TAX_PCT}%, each side`} />
           <KVRow label="Funded by" value={`Ops, ${OPS_PCT}% down to ${OPS_FLOOR_PCT}%`} />
           <KVRow label="Airdrop, LP, Reserve" value="Unchanged" />
@@ -426,13 +507,14 @@ export default function ReferralRoute() {
           <div>
             <MicroLabel>Never backdated</MicroLabel>
             <p style={{ ...body14, margin: "8px 0 0" }}>
-              A binding counts from the block it is signed in. Buys made before then earn nothing, for either side.
+              A binding counts from the block it is signed in. Trades made before then earn nothing, for either side.
             </p>
           </div>
           <div>
-            <MicroLabel>Buy to the wallet you bound</MicroLabel>
+            <MicroLabel>Trade from the wallet you bound</MicroLabel>
             <p style={{ ...body14, margin: "8px 0 0" }}>
-              Attribution follows the $OURO to where it lands. Route a buy to a different address and there is nothing to
+              Attribution follows the $OURO itself. On a buy it follows the tokens to where they land, on a sell it
+              follows them back to whoever sent them. Route a trade through a different address and there is nothing to
               match it against.
             </p>
           </div>
@@ -444,10 +526,10 @@ export default function ReferralRoute() {
             </p>
           </div>
           <div>
-            <MicroLabel>Sells do not count</MicroLabel>
+            <MicroLabel>Both directions count</MicroLabel>
             <p style={{ ...body14, margin: "8px 0 0" }}>
-              A sell pays the tax like any trade, but the rebate is meant to reward bringing buyers, so it is paid on
-              buys only.
+              A sell pays the same tax a buy does, so it earns the same rebate. What is being rewarded is volume routed
+              through the taxed pool, not a guess about which way it went.
             </p>
           </div>
         </div>
@@ -455,8 +537,8 @@ export default function ReferralRoute() {
 
       <Callout tone="note" title="Where the numbers come from">
         <p style={{ ...body14, margin: 0 }}>
-          Every buy is read from the $OURO pool on {site.chain.name} and matched to the wallet the tokens came to rest
-          in. Each epoch publishes its full input set alongside the root the payouts commit to, so anyone can rebuild the
+          Every trade is read from the $OURO pool on {site.chain.name} and matched to the wallet the tokens came from or
+          came to rest in. Each epoch publishes its full input set alongside the root the payouts commit to, so anyone can rebuild the
           figures and check their own row rather than take ours.{" "}
           <a href={site.links.buy} {...externalLinkProps(site.links.buy)}>
             Buy $OURO
