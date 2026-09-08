@@ -47,7 +47,7 @@ app/
   lib/monitorApi.ts        ouro-monitor client: useMonitor() poller, the response types, the formatters
   content/site.ts          name, tagline, X handle, chain, `auditPublished`, external links (TODOs)
   content/protocol.ts      protocol contract list (TBD until launch), the Reserve's pools, canonical infra, parameters
-  content/vaults.ts        the six vaults (HOOD10 / INDEX × pays in itself / WETH / USDG): status, terms, addresses
+  content/vaults.ts        the nine vaults (OURO / HOOD10 / INDEX × pays in itself / WETH / USDG): status, terms, addresses; the OURO three are live
   hooks/useClock.ts        the "HH:MM:SS UTC" ticker on the Ledger / crank feed
   styles/tokens/*.css      design tokens, copied verbatim from the export
   styles/site.css          the design's <helmet> rules, hover states, layout + responsive collapse

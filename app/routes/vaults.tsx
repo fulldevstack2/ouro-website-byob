@@ -4,26 +4,26 @@ import type { Route } from "./+types/vaults";
 import { Badge, Button, Callout, Card, LedgerTable, Stat, type LedgerColumn } from "~/components/ds";
 import { AddressCell, Container, Grid, KVRow, MicroLabel, NumberedRow, PageHeader, PendingCell, SectionHead, TokenIcon, body14, hairline, mono } from "~/components/site";
 import { externalLinkProps, site } from "~/content/site";
-import { PAYOUTS, STATUS_LABEL, TERMS, TOKENS, VAULTS, vaultFor, type IndexToken } from "~/content/vaults";
+import { LIVE_TOKENS, PAYOUTS, STATUS_LABEL, TERMS, TOKENS, VAULTS, vaultFor, type IndexToken } from "~/content/vaults";
 import { pageMeta } from "~/lib/meta";
 
 const LEDE =
-  "Pool your HOOD10 or INDEX in one vault. Together the deposits clear the dividend line, and one keeper sells each epoch's dividend for everyone. Choose what it pays you in: more of the token you deposited, WETH, or USDG.";
+  "Pool your OURO, HOOD10 or INDEX in one vault. Together the deposits clear the dividend line, and one keeper sells every payout for everyone. Choose what it pays you in: more of the token you deposited, WETH, or USDG. The OURO vaults are live.";
 
 export function meta({ location }: Route.MetaArgs) {
   return pageMeta({
-    title: `HOOD10 and INDEX vaults · ${site.name}`,
-    description: "Pool HOOD10 or INDEX, clear the dividend line together and let one keeper sell each epoch's dividend for everyone. Paid in your token, WETH or USDG.",
+    title: `OURO, HOOD10 and INDEX vaults · ${site.name}`,
+    description: "Pool OURO, HOOD10 or INDEX, clear the dividend line together and let one keeper sell every payout for everyone. Paid in your token, WETH or USDG. The OURO vaults are live on Robinhood Chain.",
     path: location.pathname,
     image: "/og/vaults.png",
   });
 }
 
 const HOW: { title: string; text: string }[] = [
-  { title: "Deposit", text: "Deposit HOOD10 or INDEX into the vault of your choice and receive ERC4626 shares priced in your token. Zap in with ETH if you prefer." },
+  { title: "Deposit", text: "Deposit OURO, HOOD10 or INDEX into the vault of your choice and receive ERC4626 shares priced in your token. Zap in with ETH if you prefer." },
   {
     title: "Collect",
-    text: "Each token pays every address above its dividend line a dividend in kind each epoch, pushed straight to the holder: ten Robinhood Chain tokens for HOOD10, tokenized stocks for INDEX. Pooled, the vault clears the line even when no single depositor does.",
+    text: "Each token pays every address above its dividend line in kind, pushed straight to the holder: the Reserve basket for OURO, ten Robinhood Chain tokens for HOOD10, tokenized stocks for INDEX. Pooled, the vault clears the line even when no single depositor does.",
   },
   {
     title: "Harvest",
@@ -49,7 +49,7 @@ const RISKS = [
   "Every swap the vault makes pays a pool fee and price impact: zaps, dividend sales and compounding rebuys. The keeper sells through the cheapest venue it can quote and rebuys through WETH into the deepest pool it can find.",
   "Dividend tokens waiting in a vault belong to whoever holds shares at the harvest. Withdrawing before a harvest forfeits your slice.",
   "INDEX dividends arrive as tokenized stocks. Selling them depends on a venue that trades them, and stock market hours can delay a harvest.",
-  "The yield is the index token's dividend and nothing else. When trading in HOOD10 or INDEX cools, dividends shrink, and the value of a deposit moves with the token's price.",
+  "The yield is the deposit token's dividend and nothing else. When trading in OURO, HOOD10 or INDEX cools, dividends shrink, and the value of a deposit moves with the token's price.",
 ];
 
 const TRUST: { who: string; can: string; cannot: string }[] = [
@@ -71,7 +71,7 @@ const PARAM_COLS: LedgerColumn[] = [
   { key: "v", label: "Value", align: "right", numeric: true },
 ];
 const PARAM_ROWS = [
-  ["Vaults", "6: HOOD10 and INDEX, each paying in itself, WETH or USDG"],
+  ["Vaults", `${VAULTS.length}: ${TOKENS.map((t) => t.symbol).join(", ")}, each paying in itself, WETH or USDG. ${VAULTS.filter((v) => v.status === "live").length} live`],
   ["Performance fee", `${TERMS.performanceFeePct}% of harvest gains, cap ${TERMS.maxPerformanceFeePct}%`],
   ["Deposit and withdrawal fees", "0"],
   ["Gains vest over", `${TERMS.profitUnlock}, cap ${TERMS.maxProfitUnlock}`],
@@ -136,7 +136,9 @@ function TokenVaults({ token }: { token: IndexToken }) {
             <div key={p.key} className={i ? "cell-rule" : undefined}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                 <MicroLabel>{p.label(token)}</MicroLabel>
-                <Badge tone={entry.status === "awaiting-deploy" ? "caution" : "neutral"}>{STATUS_LABEL[entry.status]}</Badge>
+                <Badge tone={entry.status === "live" ? "positive" : entry.status === "awaiting-deploy" ? "caution" : "neutral"} dot={entry.status === "live"}>
+                  {STATUS_LABEL[entry.status]}
+                </Badge>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 600, marginTop: 10 }}>
                 <TokenIcon symbol={token.symbol} src={token.icon} size={20} />
@@ -146,6 +148,11 @@ function TokenVaults({ token }: { token: IndexToken }) {
               </div>
               <div style={{ ...body14, marginTop: 6 }}>{p.text(token)}</div>
               <div style={{ marginTop: 12, ...mono, fontSize: 12, color: "var(--text-faint)" }}>TVL — · {entry.shareSymbol ?? "Share token set at deploy"}</div>
+              {entry.address && (
+                <div style={{ marginTop: 6 }}>
+                  <AddressCell address={entry.address} />
+                </div>
+              )}
             </div>
           );
         })}
@@ -174,15 +181,21 @@ export default function Vaults() {
         ledeStyle={{ maxWidth: 620 }}
         aside={
           <div style={{ paddingBottom: 4 }}>
-            <Badge tone="caution">Awaiting deploy</Badge>
+            {LIVE_TOKENS.length ? (
+              <Badge tone="positive" dot>
+                {LIVE_TOKENS.map((t) => t.symbol).join(", ")} vaults live
+              </Badge>
+            ) : (
+              <Badge tone="caution">Awaiting deploy</Badge>
+            )}
           </div>
         }
       />
 
       <Grid cols="repeat(4, 1fr)" gap={24} className="grid--2col-md" style={{ margin: "40px 0 48px", padding: "28px 0", borderTop: hairline, borderBottom: hairline }}>
-        <Stat label="Vaults" value={String(VAULTS.length)} footnote="Two index tokens, three payouts each" />
-        <Stat className="cell-rule" label="Combined TVL" value="—" footnote="Publishes at deploy" />
-        <Stat className="cell-rule" label="Harvests" value="0" footnote="One per epoch once dividends arrive" />
+        <Stat label="Vaults" value={String(VAULTS.length)} footnote={`${TOKENS.length} deposit tokens, three payouts each. ${VAULTS.filter((v) => v.status === "live").length} live`} />
+        <Stat className="cell-rule" label="Combined TVL" value="—" footnote="Not read from the chain yet" />
+        <Stat className="cell-rule" label="Harvests" value="0" footnote="One per payout once the keeper runs" />
         <Stat className="cell-rule" label="Performance fee" value={`${TERMS.performanceFeePct}%`} footnote={`Of harvest gains only. Hard cap ${TERMS.maxPerformanceFeePct}%, and no deposit or withdrawal fee`} />
       </Grid>
 
@@ -194,14 +207,17 @@ export default function Vaults() {
 
       <Callout title="Which payout?" style={{ marginTop: 24 }}>
         Compounding keeps you fully in the index token. Each rebuy goes through WETH into the deepest pool the keeper can find and costs that pool's fee and price
-        impact. WETH and USDG payouts leave your deposit untouched and skip the rebuy, but the yield no longer compounds inside the vault. The keeper, the venues and the fee are the same in all six.
+        impact. WETH and USDG payouts leave your deposit untouched and skip the rebuy, but the yield no longer compounds inside the vault. The keeper, the venues and the fee are the same in every vault.
       </Callout>
 
       <Grid cols="0.95fr 1.05fr" gap={48} align="start" style={{ marginTop: 64 }}>
         <Card label="Deposit and withdraw">
-          <div style={{ padding: "8px 0 16px", ...body14 }}>The vault app handles deposits, zaps from ETH, claims and withdrawals. It opens with the first deploy. The terms are fixed now.</div>
+          <div style={{ padding: "8px 0 16px", ...body14 }}>
+            The vault app handles deposits, zaps from ETH, claims and withdrawals. It is not hosted yet; until it is, the live OURO vaults can be used from the
+            contracts directly, at the addresses below. The terms are fixed.
+          </div>
           <div style={{ borderTop: hairline }}>
-            <KVRow label="You deposit" value="HOOD10 or INDEX, or ETH via zap" />
+            <KVRow label="You deposit" value="OURO, HOOD10 or INDEX, or ETH via zap" />
             <KVRow label="You receive" value="ERC4626 shares" />
             <KVRow label="Minimum deposit" value="None" />
             <KVRow label="Deposit and withdrawal fees" value="0" />
@@ -210,7 +226,7 @@ export default function Vaults() {
             <KVRow label="Withdraw" value="Any time, even while paused" />
           </div>
           <div className="cta-row" style={{ marginTop: 20, display: "flex", gap: 12 }}>
-            <Button disabled>Open the vaults · at deploy</Button>
+            <Button disabled>Open the vaults · app coming soon</Button>
           </div>
         </Card>
 
@@ -234,7 +250,7 @@ export default function Vaults() {
           </div>
 
           <Callout tone="caution" title="The yield is the token's dividend, nothing else" style={{ marginTop: 24 }}>
-            Each vault holds its deposit token and only that. Its growth is whatever the token pays: when trading in HOOD10 or INDEX cools, dividends shrink
+            Each vault holds its deposit token and only that. Its growth is whatever the token pays: when trading in OURO, HOOD10 or INDEX cools, dividends shrink
             and so does the vault's yield, and the value of a deposit moves with the token's price. Nothing here is a promise of returns.
           </Callout>
         </div>
@@ -244,12 +260,12 @@ export default function Vaults() {
         <SectionHead kicker="Why a vault" title="Many swaps every epoch, done once for everyone." />
         <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md">
           <Col label="The line">
-            HOOD10 pays only wallets above 0.01% of supply, 100,000 HOOD10. INDEX pays only wallets holding at least 10,000 INDEX. Pools and the distributors
-            are excluded, and ordinary contracts are not. Pooled deposits clear the line together.
+            OURO and HOOD10 pay only wallets above 0.01% of supply, 100,000 tokens. INDEX pays only wallets holding at least 10,000 INDEX. Pools and the
+            distributors are excluded, and ordinary contracts are not. Pooled deposits clear the line together.
           </Col>
           <Col label="The chore" rule>
-            Dividends arrive as many tokens: ten for HOOD10 roughly every three hours, tokenized stocks for INDEX every hour. Turning them into one asset by
-            hand is a job. One keeper does it once, for everyone.
+            Payouts arrive as other tokens: the Reserve basket for OURO about every two hours, ten tokens for HOOD10 roughly every three hours, tokenized
+            stocks for INDEX every hour. Turning them into one asset by hand is a job. One keeper does it once, for everyone.
           </Col>
           <Col label="The proof" rule>
             Every harvest is a transaction: what was sold, where, and how much came back, booked against the vault's real balance. Each vault's history is
@@ -266,8 +282,8 @@ export default function Vaults() {
           style={{ marginBottom: 0 }}
         />
         <p style={{ margin: "12px 0 0", fontSize: 16, lineHeight: 1.6, color: "var(--text-secondary)", maxWidth: 620 }}>
-          The vaults are that machinery running in public before Ouro's own pool opens. HOOD10 and INDEX holders get their yield in the form they prefer, and
-          Ouro gets a track record anyone can check.
+          The vaults are that machinery running in public. OURO holders pool to clear the airdrop line and choose what the airdrop pays them in, HOOD10 and
+          INDEX holders get their yield in the form they prefer, and Ouro gets a track record anyone can check.
         </p>
       </div>
 
@@ -309,7 +325,7 @@ export default function Vaults() {
           kicker="Parameters and addresses"
           title="Verify everything."
           titleStyle={{ fontSize: 30 }}
-          sub="The terms are set at deploy and readable from each contract. Vault addresses publish here the moment they exist."
+          sub="The terms are set at deploy and readable from each contract. The OURO vault addresses are below; the HOOD10 and INDEX ones publish here the moment they exist."
           subStyle={{ fontSize: 15 }}
           style={{ marginBottom: 32 }}
         />

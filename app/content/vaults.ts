@@ -1,13 +1,15 @@
 /**
- * The vaults: two index tokens (HOOD10, INDEX) × three payout assets (the deposit token, WETH, USDG).
+ * The vaults: three deposit tokens (OURO, HOOD10, INDEX) × three payout assets (the deposit token, WETH, USDG).
+ * The three OURO vaults are live on Robinhood Chain since 2026-09-08; the HOOD10 and INDEX ones are not deployed.
  *
- * Sources: ../hood10-vault-contracts (README, script/Deploy.s.sol defaults), ../hood10-vault-ui
- * src/config/contracts.ts, and ../HOOD10-VS-INDEX.md (chain measurements, 2026-08-27). Flip a vault's
- * `status` and set its `address` as each contract ships; the page reads everything from here.
+ * Sources: ../hood10-vault-contracts (README "Deployments", chains/4663.reward-tokens.json,
+ * broadcast/DeployRewardTokenVaults.s.sol/4663), ../hood10-vault-ui src/config/contracts.ts, and
+ * ../HOOD10-VS-INDEX.md (chain measurements, 2026-08-27). Flip a vault's `status` and set its `address` as each
+ * contract ships; the page reads everything from here.
  */
-export type TokenKey = "hood10" | "index";
+export type TokenKey = "ouro" | "hood10" | "index";
 export type PayoutKey = "compound" | "weth" | "usdg";
-export type VaultStatus = "awaiting-deploy" | "in-build";
+export type VaultStatus = "live" | "awaiting-deploy" | "in-build";
 
 export interface IndexToken {
   key: TokenKey;
@@ -32,6 +34,20 @@ export interface IndexToken {
 }
 
 export const TOKENS: IndexToken[] = [
+  {
+    key: "ouro",
+    symbol: "OURO",
+    name: "OuroLayer",
+    address: "0x8Ea0eB3505f5B3Bd2BbEa0fEBae0cE850cC73ecc",
+    icon: "/tokens/ouro.svg",
+    siteUrl: "/",
+    docsUrl: "/docs/",
+    taxLine: "5% of the ETH leg on every buy and sell",
+    dividend: "Ouro's airdrop: the Reserve basket (CASHCAT and PONS today), in kind",
+    cadence: "About every two hours, each collection streamed over two days",
+    threshold: "100,000 OURO (0.01% of supply)",
+    hook: { name: "OURO pool hook (letscash, shared with HOOD10)", address: "0x75A54357D9C78a2Db19004a5FDc76c50F9242AEC" },
+  },
   {
     key: "hood10",
     symbol: "HOOD10",
@@ -102,6 +118,11 @@ export interface VaultEntry {
 }
 
 export const VAULTS: VaultEntry[] = [
+  // Deployed 2026-09-08 (CREATE2, blocks 57376688 / 57376741 / 57376793). Owner, fee recipient and keeper:
+  // 0x4183988484943ABE0cFD3Fb00925883Eb8Fb150C. Names are the permit domain and never change.
+  { token: "ouro", payout: "compound", status: "live", shareSymbol: "vOURO", address: "0x74ea0A8D3DE28dFbB4744A2b023c096bA532A514" },
+  { token: "ouro", payout: "weth", status: "live", shareSymbol: "vOUROweth", address: "0xAc0E041AeDC87E115DA61566F84948afc792386B" },
+  { token: "ouro", payout: "usdg", status: "live", shareSymbol: "vOUROusdg", address: "0x8EbF99A1C60bd0C5D00Eeea9ce32FBDAD7b6EA79" },
   { token: "hood10", payout: "compound", status: "awaiting-deploy", shareSymbol: "vHOOD10", address: null },
   { token: "hood10", payout: "weth", status: "in-build", address: null },
   { token: "hood10", payout: "usdg", status: "in-build", address: null },
@@ -110,7 +131,10 @@ export const VAULTS: VaultEntry[] = [
   { token: "index", payout: "usdg", status: "in-build", address: null },
 ];
 
-export const STATUS_LABEL: Record<VaultStatus, string> = { "awaiting-deploy": "Awaiting deploy", "in-build": "In build" };
+export const STATUS_LABEL: Record<VaultStatus, string> = { live: "Live", "awaiting-deploy": "Awaiting deploy", "in-build": "In build" };
+
+/** Deposit tokens with at least one live vault, in display order. */
+export const LIVE_TOKENS: IndexToken[] = TOKENS.filter((t) => VAULTS.some((v) => v.token === t.key && v.status === "live"));
 
 export function vaultFor(token: TokenKey, payout: PayoutKey): VaultEntry {
   return VAULTS.find((x) => x.token === token && x.payout === payout)!;
