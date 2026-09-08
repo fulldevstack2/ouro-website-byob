@@ -15,6 +15,15 @@
   # Keep CORS_ORIGINS on the monitor's Render service in step with the origins that read it.
   MONITOR_API_URL = "https://ouro-monitor.onrender.com"
 
+  # WalletConnect project id for /referral, from cloud.reown.com. A PUBLIC identifier that ships in
+  # the client bundle, not a secret, but it must be OURO'S OWN project: WalletConnect attributes
+  # sessions and analytics to whoever owns the id, so borrowing another product's would file Ouro's
+  # wallet traffic under that product. Vite inlines it at BUILD time, so a deploy is required to
+  # change it. Left empty deliberately until the project exists: app/lib/wagmi.ts then builds an
+  # injected-only config, so browser extension wallets keep working and only the QR / mobile path is
+  # missing. That is a degraded page, not a broken one.
+  WALLETCONNECT_PROJECT_ID = ""
+
 # One address for the site. The *.netlify.app subdomain stays reachable by default, which would give
 # us a second indexable copy of every page and split the same visitor across two hostnames in
 # analytics. Send it to the real domain, preserving the path and query string (so UTM-tagged links
