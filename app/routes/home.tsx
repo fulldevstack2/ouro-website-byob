@@ -30,6 +30,7 @@ export default function Home() {
       <BasketSection />
       <YieldSection />
       <LiveProofSection />
+      <RoadmapSection />
       <LockSection />
     </>
   );
@@ -323,9 +324,82 @@ function LiveProofSection() {
       <SectionHead
         kicker="Live proof"
         title="Every cycle, narrated."
-        sub="The treasury advances in public cycles. Every amount is an onchain transaction this feed reads, starting with cycle #1."
+        sub="The treasury advances in public cycles. Every amount below is an onchain transaction this feed reads — the three most recent, newest first."
       />
-      <CrankFeed footer="Every amount here will link to its transaction. If a number on this site ever disagrees with the chain, the chain is right." />
+      <CrankFeed footer="Every payment links to its transaction on the airdrops page. If a number on this site ever disagrees with the chain, the chain is right." />
+    </Container>
+  );
+}
+
+/* ---------------------------------------------------------------- Roadmap */
+
+/**
+ * What is being built next, in the order it is being built.
+ *
+ * Deliberately three items and no dates. A roadmap is the one part of a site like this that cannot
+ * be read off the chain, so it says the least it can get away with: what the work is, why it is
+ * worth doing, and which of them is nearest. Anything more specific would be a promise the
+ * contracts cannot keep, on a page whose whole argument is that they can.
+ */
+const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] = [
+  {
+    n: "01",
+    horizon: "Short term",
+    title: "The vaults",
+    body: (
+      <>
+        HOOD10 and INDEX pay their holders in kind, on their own clock, and leave every holder to do something with it. The vaults do it once for everyone:
+        deposit the index token and take its dividend compounded back into itself, or paid in WETH or USDG, for 10% of the gain and nothing on the way in or
+        out. They also run the machinery the Reserve needs — a keeper that collects on schedule, sells through the right venue and books it onchain — early,
+        and against someone else's basket. <Link to="/vaults/">See the vaults</Link>.
+      </>
+    ),
+  },
+  {
+    n: "02",
+    horizon: "Medium term",
+    title: "Close the leak: token and liquidity migration",
+    body: (
+      <>
+        $OURO trades on letscash's shared hook. That fixes the 5% for the pool's whole life, which is a guarantee worth having, but the rails are not ours:
+        0.3% of every trade is theirs, and nothing on them stops a second ETH/OURO pool that pays no tax at all. Leakage like that is what leaves the
+        projects in the table above taxing as little as 6% of their own volume. Moving the token and its liquidity onto Ouro's own contracts is what turns
+        sealed venues from a design into something a contract enforces, and returns that 0.3% to the treasury.
+      </>
+    ),
+  },
+  {
+    n: "03",
+    horizon: "Long term",
+    title: "Multichain expansion",
+    body: (
+      <>
+        The loop needs two things from a chain: pools deep enough to be worth owning, and a venue that lets one charge a fee. Where both hold, the same
+        machine runs unchanged. The Reserve would then own liquidity on more than one chain and pay the same holders out of all of it.
+      </>
+    ),
+  },
+];
+
+function RoadmapSection() {
+  return (
+    <Container id="roadmap" style={{ paddingTop: 96 }}>
+      <SectionHead
+        kicker="What's next"
+        title="Three things, in order."
+        sub="The order the work is being done in, not a schedule — nothing here carries a date. Each one arrives as a transaction you can read rather than an announcement, and this list changes when the work does."
+      />
+      <div>
+        {ROADMAP.map((r, i) => (
+          <NumberedRow key={r.n} n={r.n} py={20} borderBottom={i === ROADMAP.length - 1}>
+            <MicroLabel className="roadmap-horizon" style={{ whiteSpace: "nowrap" }}>
+              {r.horizon}
+            </MicroLabel>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>{r.title}</div>
+            <div style={{ ...body14, marginTop: 6, maxWidth: 620 }}>{r.body}</div>
+          </NumberedRow>
+        ))}
+      </div>
     </Container>
   );
 }

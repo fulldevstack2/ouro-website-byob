@@ -111,6 +111,16 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
   .cta-row { flex-wrap: wrap; }
 }
 
+/* Roadmap horizons (home → "What's next"). Short/Medium/Long term belong in a right-hand column
+   beside the item, which is how a roadmap wants to be read — until that column steals the width the
+   copy needs: on a 390px phone it left the body about 28 characters wide. Floated rather than put in
+   NumberedRow's `trailing` slot, because that slot's sibling carries an inline `flex: 1` that no
+   stylesheet can reorder without `!important`. A float drops to its own line for free. */
+.roadmap-horizon { float: right; margin-left: 24px; }
+@media (max-width: 860px) {
+  .roadmap-horizon { float: none; margin: 0 0 6px; }
+}
+
 /* A dense table keeps its column widths and scrolls sideways inside its own box, rather than
    compressing a timestamp column to 45px on a phone. The page itself never scrolls horizontally.
 
