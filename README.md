@@ -47,7 +47,7 @@ app/
   lib/monitorApi.ts        ouro-monitor client: useMonitor() poller, the response types, the formatters
   content/site.ts          name, tagline, X handle, chain, `auditPublished`, external links (TODOs)
   content/protocol.ts      protocol contract list (TBD until launch), the Reserve's pools, canonical infra, parameters
-  content/vaults.ts        the six vaults (HOOD10 / INDEX × pays in itself / WETH / USDG): status, terms, addresses
+  content/vaults.ts        the nine vaults (OURO / HOOD10 / INDEX × pays in itself / WETH / USDG): status, terms, addresses; the OURO three are live
   hooks/useClock.ts        the "HH:MM:SS UTC" ticker on the Ledger / crank feed
   styles/tokens/*.css      design tokens, copied verbatim from the export
   styles/site.css          the design's <helmet> rules, hover states, layout + responsive collapse
@@ -165,7 +165,7 @@ There is no countdown to the next payout, on purpose — see `PayoutCadence`'s n
   "the ceiling the hook sets at deploy" rather than a number).
 - `content/site.ts` → fill `links.explorer` and `links.robinhoodChain` (currently `#`), confirm the X handle, flip `auditPublished` when the report is out.
 - `content/protocol.ts` → set the seven protocol contract addresses (they render as "Publishes at launch" while `null`).
-- `content/vaults.ts` → flip each vault's `status` (`in-build` → `awaiting-deploy`) and set its `address` as contracts ship; set `TERMS.appUrl` once the vault app is hosted.
+- `content/vaults.ts` → flip each vault's `status` (`in-build` → `awaiting-deploy` → `live`) and set its `address` and `shareSymbol` as contracts ship; a `live` OURO vault gets a working panel on /vaults (deposit, withdraw, claim through the connected wallet: `components/vaults/VaultsLive.tsx` loaded client-side only, `components/vaults/VaultFrame.tsx` for the prerendered layout, `hooks/useVault.ts`, `lib/vaultChain.ts`).
 - ~~Ledger / crank feed / stats show a dash placeholder~~ — **done 2026-09-04**: `/ledger` reads the chain through
   `ouro-monitor`'s `/v1/reserve`. It is out of the shelf and back in the nav. `/monitor` (INDEX / HOOD10) is still
   shelved in `content/site.ts`.

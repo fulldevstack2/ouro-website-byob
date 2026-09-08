@@ -139,8 +139,12 @@ function poolsLabel(n: number | null): string {
   return n >= 60 ? "60+" : String(n);
 }
 
+/** A vault deposit token that ouro-monitor measures. OURO has vaults too, but the monitor tracks only the index tokens. */
+type MonitoredToken = IndexToken & { key: TokenKey };
+const MONITORED: MonitoredToken[] = TOKENS.filter((t): t is MonitoredToken => t.key === "hood10" || t.key === "index");
+
 /** One index token: the live figures, two daily charts, the recent epochs, and the operator log. */
-function TokenMonitor({ token, data, explorer, nowSec }: { token: IndexToken; data: TokenSummary | null; explorer: string | null; nowSec: number }) {
+function TokenMonitor({ token, data, explorer, nowSec }: { token: MonitoredToken; data: TokenSummary | null; explorer: string | null; nowSec: number }) {
   const key: TokenKey = token.key;
   const daily = useMonitor<{ days: DailyRow[] }>(MONITOR_API ? `/v1/${key}/daily?days=30` : null, 120_000);
   const epochs = useMonitor<{ epochs: EpochOut[] }>(MONITOR_API ? `/v1/${key}/epochs?limit=10` : null, 60_000);
@@ -321,7 +325,7 @@ export default function Monitor() {
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 24, marginTop: 40 }}>
-        {TOKENS.map((t) => (
+        {MONITORED.map((t) => (
           <TokenMonitor key={t.key} token={t} data={summary.data?.tokens[t.key] ?? null} explorer={explorer} nowSec={nowSec} />
         ))}
       </div>

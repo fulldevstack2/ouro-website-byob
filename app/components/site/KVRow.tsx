@@ -28,7 +28,8 @@ export function KVRow({ label, value, py = 12, border = "bottom", inverse = fals
       }}
     >
       <span style={{ fontSize: 13, color: inverse ? "var(--text-inverse-muted)" : "var(--text-muted)", ...labelStyle }}>{label}</span>
-      <span style={{ ...mono, fontSize: 13, color: inverse ? "#FFFFFF" : undefined, ...valueStyle }}>{value}</span>
+      {/* Shrinkable and breakable anywhere, so a figure that fits nowhere wraps inside the row instead of widening it. */}
+      <span style={{ ...mono, fontSize: 13, color: inverse ? "#FFFFFF" : undefined, minWidth: 0, overflowWrap: "anywhere", ...valueStyle }}>{value}</span>
     </div>
   );
 }
