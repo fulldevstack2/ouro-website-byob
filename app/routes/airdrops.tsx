@@ -8,6 +8,7 @@ import { Bars } from "~/components/site/Bars";
 import { COLLECTION_SPLIT_USD, COLLECT_THRESHOLD_USD } from "~/content/protocol";
 import { externalLinkProps, site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
+import { useEthBalance } from "~/hooks/useEthBalance";
 import { pageMeta } from "~/lib/meta";
 import {
   MONITOR_API,
@@ -516,8 +517,17 @@ export default function Airdrops() {
   }, [queue.data, nowSec]);
 
   const claimableEth = pending.data ? Number(pending.data.claimableWei) / 1e18 : null;
+  /**
+   * ETH the airdrop wallet holds back rather than streams out — what underwrites a cycle on a day
+   * the tax leg is thin. Read straight from the chain: it is a balance, not something the indexer
+   * derives. The address comes from the monitor rather than being hardcoded, so it follows the
+   * keeper's `treasury()` if that ever moves.
+   */
+  const reserveWei = useEthBalance(pending.data?.treasury as `0x${string}` | undefined);
+  const reserveEth = reserveWei === null ? null : Number(reserveWei) / 1e18;
   const ethUsd = reserve.data?.positions[0]?.side1.symbol === "WETH" ? reserve.data.positions[0].side1.priceUsd : (reserve.data?.positions.flatMap((p) => [p.side0, p.side1]).find((s) => s.symbol === "WETH")?.priceUsd ?? null);
   const claimableUsd = claimableEth === null || ethUsd === null ? null : claimableEth * ethUsd;
+  const reserveUsd = reserveEth === null || ethUsd === null ? null : reserveEth * ethUsd;
   const uncollected = reserve.data?.totals.uncollectedFeesUsd ?? null;
 
   return (
@@ -594,17 +604,19 @@ export default function Airdrops() {
 
       <SectionHead
         kicker="On its way"
-        title="What is already earned but not yet sent."
+        title="What backs the next cycles, and what has already gone out."
         titleStyle={{ fontSize: 30 }}
-        sub="Three pools feed the airdrop, at three different stages. None of these is a scheduled amount: a cycle runs when it is worth running, and a collection is spread over roughly 48 hours."
+        sub="Two of these fund what is coming: ETH held back so a quiet day still pays, and the assets already collected and waiting to stream. The third is everything sent so far. None of them is a scheduled amount — a cycle runs when it is worth running, and a collection is spread over roughly 48 hours."
         subStyle={{ fontSize: 15 }}
         style={{ marginBottom: 24 }}
       />
       <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md" style={{ marginBottom: 24 }}>
-        <Card label="1 · Still in the hook">
-          <Stat label="Tax claimable" value={claimableUsd === null ? "—" : fmtUsd(claimableUsd)} unit={claimableEth === null ? undefined : `${fmtEth(claimableEth)} ETH`} />
+        <Card label="1 · Held in reserve">
+          <Stat label="Airdrop reserves" value={fmtUsd(reserveUsd)} unit={reserveEth === null ? undefined : `${fmtEth(reserveEth)} ETH`} />
           <div style={{ ...body14, marginTop: 12 }}>
-            Tax the pool has charged and nobody has pulled out yet. Only the pool creator can claim it, and letscash keeps 6% of the gross when they do.
+            ETH the airdrop wallet holds back rather than streams out. The tax leg cools when trading does, and this is what keeps a cycle worth sending on a
+            quiet day. It is also the wallet the keeper pays gas from, so not all of it is spendable. A further{" "}
+            {claimableUsd === null ? "—" : fmtUsd(claimableUsd)} of tax is still sitting unclaimed in the pool's hook.
           </div>
         </Card>
         <Card label="2 · Collected, waiting to stream">
@@ -628,11 +640,16 @@ export default function Airdrops() {
             </button>
           </div>
         </Card>
-        <Card label="3 · Still in the pools">
-          <Stat label="LP fees accrued" value={fmtUsd(uncollected)} footnote={uncollected === null ? `Collected at ${THRESHOLD}` : `of ${THRESHOLD} before a collection`} />
+        <Card label="3 · Already paid">
+          <Stat
+            label="Total airdrops"
+            value={fmtUsd(paidAllTime)}
+            footnote={`Across ${fmtNum(closed.length)} cycle${closed.length === 1 ? "" : "s"}, each valued when it was sent`}
+          />
           <div style={{ ...body14, marginTop: 12 }}>
-            Fees the Reserve's positions have earned and not yet collected. At {THRESHOLD} a collection is taken: {TO_HOLDERS} to the airdrop wallet,{" "}
-            {TO_RESERVE} compounded. <Link to="/ledger/">See the positions →</Link>
+            Every payout Ouro has made, valued on the day it was made rather than today. Each one is listed below, a row per payment. The fees still accruing
+            in the Reserve's own positions — {fmtUsd(uncollected)} of {THRESHOLD} before the next collection, {TO_HOLDERS} of which comes here and{" "}
+            {TO_RESERVE} compounds — are on the <Link to="/ledger/">Ledger</Link>.
           </div>
         </Card>
       </Grid>

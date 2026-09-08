@@ -16,7 +16,12 @@ export const site = {
   description:
     "Ouro is building the fee generating layer of Robinhood Chain: pools the protocol buys and holds. Every $OURO trade pays a 5% tax: 2% is airdropped to holders, 2% buys pools the protocol keeps and 1% covers ops. 80% of the fees those pools earn is airdropped too.",
   xHandle,
-  chain: { name: "Robinhood Chain", id: 4663 },
+  /**
+   * `rpcUrl` is Robinhood Chain's public endpoint: keyless, so it ships in the client bundle by
+   * design. It backs the wallet connection (app/lib/wagmi.ts) and the one figure the site reads
+   * from the chain directly rather than through ouro-monitor (app/hooks/useEthBalance.ts).
+   */
+  chain: { name: "Robinhood Chain", id: 4663, rpcUrl: "https://rpc.mainnet.chain.robinhood.com" },
   /** Set to true once the audit report is published; it swaps the docs §10 callout. */
   auditPublished: false,
   /**
@@ -52,15 +57,17 @@ export interface NavItem {
 export const NAV: NavItem[] = [
   { to: "/", label: "Overview" },
   { to: "buy", label: "Buy $OURO", href: site.links.buy },
-  // Shelved 2026-08-31 until each is ready to show. Routes, pages and URLs are untouched.
-  { to: "/vaults/", label: "Vaults", hidden: true },
+  // Unshelved 2026-09-08. The vaults are not deployed yet, so the page's figures render as Pending
+  // until chains/4663.json is broadcast; the link is live regardless.
+  { to: "/vaults/", label: "Vaults" },
+  // Shelved 2026-08-31 until it is ready to show. Route, page and URL are untouched.
   { to: "/monitor/", label: "Monitor", hidden: true },
   // Unshelved 2026-09-04: the Reserve holds real positions and the Ledger now reads them from the
   // chain through ouro-monitor's /v1/reserve. It needs MONITOR_API_URL set at build time.
   { to: "/ledger/", label: "Ledger" },
   { to: "/airdrops/", label: "Airdrops" },
-  // Held back 2026-09-07 with its route (see app/routes.ts) — mid-build, and a nav link to a 404
-  // is worse than no link.
+  // Held back 2026-09-08 with its route (see app/routes.ts). A nav link to a 404 is worse than no
+  // link at all.
   { to: "/referral/", label: "Referral", hidden: true },
   { to: "/docs/", label: "Docs" },
 ];

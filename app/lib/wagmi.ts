@@ -13,7 +13,7 @@ export const robinhoodChain = defineChain({
   id: site.chain.id,
   name: site.chain.name,
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-  rpcUrls: { default: { http: ["https://rpc.mainnet.chain.robinhood.com"] } },
+  rpcUrls: { default: { http: [site.chain.rpcUrl] } },
   blockExplorers: { default: { name: "Blockscout", url: site.links.explorer } },
   contracts: { multicall3: { address: "0xcA11bde05977b3631167028862bE2a173976CA11" } },
 });
