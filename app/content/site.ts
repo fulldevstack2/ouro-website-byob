@@ -57,9 +57,9 @@ export interface NavItem {
 export const NAV: NavItem[] = [
   { to: "/", label: "Overview" },
   { to: "buy", label: "Buy $OURO", href: site.links.buy },
-  // Unshelved 2026-09-08. The vaults are not deployed yet, so the page's figures render as Pending
-  // until chains/4663.json is broadcast; the link is live regardless.
-  { to: "/vaults/", label: "Vaults" },
+  // Re-shelved 2026-09-08 with its route (see app/routes.ts), which is also unregistered, so this
+  // is belt and braces: a nav link to a 404 is worse than no link.
+  { to: "/vaults/", label: "Vaults", hidden: true },
   // Shelved 2026-08-31 until it is ready to show. Route, page and URL are untouched.
   { to: "/monitor/", label: "Monitor", hidden: true },
   // Unshelved 2026-09-04: the Reserve holds real positions and the Ledger now reads them from the

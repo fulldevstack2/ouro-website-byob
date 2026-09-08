@@ -516,7 +516,6 @@ export default function Airdrops() {
     return queue.data?.days.find((d) => d.day === today) ?? null;
   }, [queue.data, nowSec]);
 
-  const claimableEth = pending.data ? Number(pending.data.claimableWei) / 1e18 : null;
   /**
    * ETH the airdrop wallet holds back rather than streams out — what underwrites a cycle on a day
    * the tax leg is thin. Read straight from the chain: it is a balance, not something the indexer
@@ -526,7 +525,6 @@ export default function Airdrops() {
   const reserveWei = useEthBalance(pending.data?.treasury as `0x${string}` | undefined);
   const reserveEth = reserveWei === null ? null : Number(reserveWei) / 1e18;
   const ethUsd = reserve.data?.positions[0]?.side1.symbol === "WETH" ? reserve.data.positions[0].side1.priceUsd : (reserve.data?.positions.flatMap((p) => [p.side0, p.side1]).find((s) => s.symbol === "WETH")?.priceUsd ?? null);
-  const claimableUsd = claimableEth === null || ethUsd === null ? null : claimableEth * ethUsd;
   const reserveUsd = reserveEth === null || ethUsd === null ? null : reserveEth * ethUsd;
   const uncollected = reserve.data?.totals.uncollectedFeesUsd ?? null;
 
@@ -566,8 +564,9 @@ export default function Airdrops() {
         </Callout>
       )}
 
-      <Grid cols="repeat(4, 1fr)" gap={24} className="grid--2col-md" style={{ margin: "40px 0 48px", padding: "28px 0", borderTop: hairline, borderBottom: hairline }}>
-        <Stat label="Paid to holders · all time" value={fmtUsd(paidAllTime, { compact: true })} footnote={`Across ${fmtNum(closed.length)} cycle${closed.length === 1 ? "" : "s"}, marked at the time of each`} />
+      {/* Three, not four: "Paid to holders · all time" lived here and now closes the reserves row
+          below as "Total airdrops", where it ends an argument rather than opening one. */}
+      <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md" style={{ margin: "40px 0 48px", padding: "28px 0", borderTop: hairline, borderBottom: hairline }}>
         <Stat label="Cycles run" value={fmtNum(closed.length)} footnote={last ? `Last one ${fmtWhen(last.endTs)}` : "None yet"} />
         <Stat label="Wallets paid · last cycle" value={fmtNum(last?.recipients ?? null)} footnote={`${fmtNum(walletsPaid)} wallet-payments in total`} />
         <Stat
@@ -613,11 +612,7 @@ export default function Airdrops() {
       <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md" style={{ marginBottom: 24 }}>
         <Card label="1 · Held in reserve">
           <Stat label="Airdrop reserves" value={fmtUsd(reserveUsd)} unit={reserveEth === null ? undefined : `${fmtEth(reserveEth)} ETH`} />
-          <div style={{ ...body14, marginTop: 12 }}>
-            ETH the airdrop wallet holds back rather than streams out. The tax leg cools when trading does, and this is what keeps a cycle worth sending on a
-            quiet day. It is also the wallet the keeper pays gas from, so not all of it is spendable. A further{" "}
-            {claimableUsd === null ? "—" : fmtUsd(claimableUsd)} of tax is still sitting unclaimed in the pool's hook.
-          </div>
+          <div style={{ ...body14, marginTop: 12 }}>ETH held back in the airdrop wallet. On slower trading days, the airdrop is paid out of this.</div>
         </Card>
         <Card label="2 · Collected, waiting to stream">
           <Stat label="Queued in the airdrop wallet" value={fmtUsd(pending.data?.queuedUsd ?? null)} />
@@ -647,9 +642,7 @@ export default function Airdrops() {
             footnote={`Across ${fmtNum(closed.length)} cycle${closed.length === 1 ? "" : "s"}, each valued when it was sent`}
           />
           <div style={{ ...body14, marginTop: 12 }}>
-            Every payout Ouro has made, valued on the day it was made rather than today. Each one is listed below, a row per payment. The fees still accruing
-            in the Reserve's own positions — {fmtUsd(uncollected)} of {THRESHOLD} before the next collection, {TO_HOLDERS} of which comes here and{" "}
-            {TO_RESERVE} compounds — are on the <Link to="/ledger/">Ledger</Link>.
+            Every payout Ouro has made, valued on the day it was made rather than today. Each one is listed below, a row per payment.
           </div>
         </Card>
       </Grid>
