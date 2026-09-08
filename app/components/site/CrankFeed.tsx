@@ -60,7 +60,7 @@ export function CrankFeed({ footer }: { footer: string }) {
               >
                 <span style={{ fontSize: 14, fontWeight: 600 }}>{fmtWhen(c.endTs ?? c.startTs)}</span>
                 <span style={{ fontSize: 14, color: "var(--text-secondary)" }}>
-                  {" — "}
+                  {" · "}
                   {c.assets.map((a) => `${fmtTokens(a.amountF)} ${a.symbol ?? "?"}`).join(" + ") || "—"} to {fmtNum(c.recipients)} wallets
                   {/* A cycle number the keeper re-used is several payments, not one. Say so rather than
                       publish four payouts as a single line. /airdrops gives each its own row. */}

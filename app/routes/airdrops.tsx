@@ -302,7 +302,7 @@ function AddressCheck({ holders, decimals, lineTokens, y }: { holders: OuroHolde
         {looksLikeAddress && !holders && <div style={{ ...body14, fontStyle: "italic" }}>Reading the holder list…</div>}
         {looksLikeAddress && holders && !hit && (
           <div style={body14}>
-            Not in the indexed holder set as of block {fmtNum(holders.snapshotBlock)}. That means it holds no $OURO, or its balance has never moved — it does not
+            Not in the indexed holder set as of block {fmtNum(holders.snapshotBlock)}. That means it holds no $OURO, or its balance has never moved. It does not
             mean it is excluded.
           </div>
         )}
@@ -340,7 +340,7 @@ function AddressCheck({ holders, decimals, lineTokens, y }: { holders: OuroHolde
                 })()}
                 <div style={{ ...body14, marginTop: 12 }}>
                   A wallet above the line is included in every cycle. If a small balance is owed less than the gas to send it, that cycle holds it and a later
-                  one pays it — the total is the same. The figures above are what recent payouts would pay a holding this size, not a forecast: they move with
+                  one pays it, and the total is the same. The figures above are what recent payouts would pay a holding this size, not a forecast: they move with
                   volume, and this check does not report on any individual cycle.
                 </div>
               </>
@@ -378,7 +378,7 @@ const SERIES: { id: SeriesId; label: string; title: string; note: string; ariaLa
     id: "wallet",
     label: "Airdrop wallet",
     title: "The airdrop wallet, by day",
-    note: "Closing balance each day, at that day's price. It fills when a collection lands and drains as each cycle pays, so a flat or falling line is the wallet doing its job — not a stall.",
+    note: "Closing balance each day, at that day's price. It fills when a collection lands and drains as each cycle pays, so a flat or falling line is the wallet doing its job, not a stall.",
     ariaLabel: "Balance of the airdrop wallet in US dollars, by day",
   },
 ];
@@ -605,7 +605,7 @@ export default function Airdrops() {
         kicker="On its way"
         title="What backs the next cycles, and what has already gone out."
         titleStyle={{ fontSize: 30 }}
-        sub="Two of these fund what is coming: ETH held back so a quiet day still pays, and the assets already collected and waiting to stream. The third is everything sent so far. None of them is a scheduled amount — a cycle runs when it is worth running, and a collection is spread over roughly 48 hours."
+        sub="Two of these fund what is coming: ETH held back so a quiet day still pays, and the assets already collected and waiting to stream. The third is everything sent so far. None of them is a scheduled amount: a cycle runs when it is worth running, and a collection is spread over roughly 48 hours."
         subStyle={{ fontSize: 15 }}
         style={{ marginBottom: 24 }}
       />
@@ -688,7 +688,7 @@ export default function Airdrops() {
             footnote={
               y?.aprPct == null
                 ? (y?.withheld ?? "Needs a payout and a price to measure")
-                : `${y.annualisable ? "Over the last seven days" : `On ${fmtNum(y.historyDays, 1)} days of payouts — subject to change`}. Pays back the cost in ${y.paybackDays == null ? "—" : fmtNum(y.paybackDays, 0)} days at this rate`
+                : `${y.annualisable ? "Over the last seven days" : `On ${fmtNum(y.historyDays, 1)} days of payouts, subject to change`}. Pays back the cost in ${y.paybackDays == null ? "—" : fmtNum(y.paybackDays, 0)} days at this rate`
             }
           />
         </Grid>
@@ -697,17 +697,17 @@ export default function Airdrops() {
           {y?.caveat ?? "The rate is measured over the last seven days of payouts."} An annual figure is the one number here that says anything about the
           future, and it is only as old as the payouts behind it: {fmtNum(y?.cycles ?? 0)} cycles over{" "}
           {y?.historyDays ? fmtNum(y.historyDays, 1) : "—"} days, at launch volume. The same payouts annualise to roughly a fifth of this over a seven-day
-          window, because the divisor picks the answer. Treat it as what recent trading paid, not as a rate anyone is promising — the daily figures beside it
+          window, because the divisor picks the answer. Treat it as what recent trading paid, not as a rate anyone is promising. The daily figures beside it
           are the measurements, and every cycle behind them is listed below.
         </Callout>
 
         <Grid cols="1fr 1fr" gap={48} align="start" style={{ marginTop: 28 }}>
           <div style={{ borderTop: hairline }}>
-            <KVRow label="Eligible supply — what a cycle is divided among" value={y?.eligibleTokens == null ? "—" : `${fmtNum(y.eligibleTokens)} $OURO`} />
+            <KVRow label="Eligible supply: what a cycle is divided among" value={y?.eligibleTokens == null ? "—" : `${fmtNum(y.eligibleTokens)} $OURO`} />
             <KVRow label="Its value at spot" value={fmtUsd(y?.eligibleValueUsd ?? null)} />
             <KVRow label="$OURO price used" value={y?.priceUsd == null ? "—" : `$${y.priceUsd.toPrecision(3)}`} />
             <KVRow
-              label={`Cost of ${fmtNum(y?.lineTokens ?? 100_000)} $OURO — at mid, then with the tax`}
+              label={`Cost of ${fmtNum(y?.lineTokens ?? 100_000)} $OURO: at mid, then with the tax`}
               value={y?.lineCostUsd == null ? "—" : `${fmtUsd(y.lineCostUsd)} → ${fmtUsd(y.lineCostWithTaxUsd)}`}
             />
             <KVRow label="Payout history indexed" value={y?.historyDays == null ? "—" : `${fmtNum(y.historyDays, 1)} days`} border="none" />
@@ -723,7 +723,7 @@ export default function Airdrops() {
             <br />
             <br />
             The cost is a floor too: the quantity at the mid price plus the trade tax a buy pays on top of it. It leaves out what the pool charges in slippage,
-            which at this size is small next to the tax — a line is worth tens of dollars against a pool holding tens of thousands.
+            which at this size is small next to the tax. A line is worth tens of dollars against a pool holding tens of thousands.
           </div>
         </Grid>
       </div>
@@ -733,7 +733,7 @@ export default function Airdrops() {
           kicker="History"
           title="Every airdrop, and what it paid."
           titleStyle={{ fontSize: 30 }}
-          sub="One row per payout, newest first. Value is what the assets were worth when they were sent, not today — an airdrop is worth what it was worth on the day."
+          sub="One row per payout, newest first. Value is what the assets were worth when they were sent, not today. An airdrop is worth what it was worth on the day."
           subStyle={{ fontSize: 15 }}
           style={{ marginBottom: 24 }}
         />
@@ -857,7 +857,7 @@ export default function Airdrops() {
               priced legs, which would read as a complete figure.
             </Method>
             <Method n="03" title="Eligibility">
-              Balances are replayed from the token's own <code style={mono}>Transfer</code> events and compared to the line exactly, in raw units — a float
+              Balances are replayed from the token's own <code style={mono}>Transfer</code> events and compared to the line exactly, in raw units. A float
               comparison drops a wallet sitting precisely on it. Pool contracts, the treasury and vesting are excluded when the list is built.
             </Method>
           </div>
@@ -877,7 +877,7 @@ export default function Airdrops() {
           </div>
         </Grid>
         <Callout style={{ marginTop: 32 }} title="Where the money comes from">
-          Two legs fund every cycle: the tax on each trade, and the fees the protocol's own liquidity earns. The Ledger reports the second one — what the pools
+          Two legs fund every cycle: the tax on each trade, and the fees the protocol's own liquidity earns. The Ledger reports the second one: what the pools
           hold, what they have earned, and whether owning them beats simply holding the tokens. <Link to="/ledger/">Open the Ledger →</Link>
         </Callout>
       </div>

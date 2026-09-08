@@ -324,7 +324,7 @@ function LiveProofSection() {
       <SectionHead
         kicker="Live proof"
         title="Every cycle, narrated."
-        sub="The treasury advances in public cycles. Every amount below is an onchain transaction this feed reads — the three most recent, newest first."
+        sub="The treasury advances in public cycles. Every amount below is an onchain transaction this feed reads: the three most recent, newest first."
       />
       <CrankFeed footer="Every payment links to its transaction on the airdrops page. If a number on this site ever disagrees with the chain, the chain is right." />
     </Container>
@@ -350,8 +350,8 @@ const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] 
       <>
         HOOD10 and INDEX pay their holders in kind, on their own clock, and leave every holder to do something with it. The vaults do it once for everyone:
         deposit the index token and take its dividend compounded back into itself, or paid in WETH or USDG, for 10% of the gain and nothing on the way in or
-        out. They also run the machinery the Reserve needs — a keeper that collects on schedule, sells through the right venue and books it onchain — early,
-        and against someone else's basket.
+        out. They also run the machinery the Reserve needs: a keeper that collects on schedule, sells through the right venue and books it onchain. It runs
+        early, and against someone else's basket.
       </>
     ),
   },
@@ -364,7 +364,7 @@ const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] 
         $OURO trades on letscash's shared hook. That fixes the 5% for the pool's whole life, which is a guarantee worth having, but the rails are not ours:
         0.3% of every trade is theirs, and nothing on them stops a second ETH/OURO pool that pays no tax at all. Leakage like that is what leaves the
         projects in the table above taxing as little as 6% of their own volume. Closing it means moving the token and its liquidity onto rails Ouro
-        controls — a venue of our own, or a partner's on terms we set. On rails like that, sealed venues stop being a design and become something a contract
+        controls: a venue of our own, or a partner's on terms we set. On rails like that, sealed venues stop being a design and become something a contract
         enforces, the 0.3% comes back to the treasury, and the pools the protocol already owns sit on an exchange it has a say in rather than one it rents.
       </>
     ),
@@ -376,7 +376,7 @@ const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] 
     body: (
       <>
         Owning the fee generating layer is not a claim about Robinhood Chain in particular. Every chain has one, and every chain asks the same two things
-        of it: pools deep enough to be worth owning, and a venue that lets one charge a fee. Where both hold, the machine runs unchanged — the Reserve takes
+        of it: pools deep enough to be worth owning, and a venue that lets one charge a fee. Where both hold, the machine runs unchanged. The Reserve takes
         a position in the layer the chain's own trading has to cross, and one holder base is paid out of all of them at once. A chain each, not a token
         each.
       </>
@@ -390,7 +390,7 @@ function RoadmapSection() {
       <SectionHead
         kicker="Roadmap"
         title="Three things, in order."
-        sub="The order the work is being done in, not a schedule — nothing here carries a date. Each one arrives as a transaction you can read rather than an announcement, and this list changes when the work does."
+        sub="The order the work is being done in, not a schedule, and nothing here carries a date. Each one arrives as a transaction you can read rather than an announcement, and this list changes when the work does."
       />
       <div>
         {ROADMAP.map((r, i) => (
