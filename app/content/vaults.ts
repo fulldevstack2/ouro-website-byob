@@ -1,11 +1,12 @@
 /**
  * The vaults: three deposit tokens (OURO, HOOD10, INDEX) × three payout assets (the deposit token, WETH, USDG).
- * The three OURO vaults are live on Robinhood Chain since 2026-09-08; the HOOD10 and INDEX ones are not deployed.
+ * The three OURO vaults are live on Robinhood Chain since 2026-09-08 and the /vaults page is their app (it reads
+ * and writes them with a connected wallet, see app/hooks/useVault.ts); the HOOD10 and INDEX ones are not deployed
+ * and appear only as planned.
  *
  * Sources: ../hood10-vault-contracts (README "Deployments", chains/4663.reward-tokens.json,
- * broadcast/DeployRewardTokenVaults.s.sol/4663), ../hood10-vault-ui src/config/contracts.ts, and
- * ../HOOD10-VS-INDEX.md (chain measurements, 2026-08-27). Flip a vault's `status` and set its `address` as each
- * contract ships; the page reads everything from here.
+ * broadcast/DeployRewardTokenVaults.s.sol/4663) and ../HOOD10-VS-INDEX.md (chain measurements, 2026-08-27). Flip a
+ * vault's `status` and set its `address` as each contract ships; the page reads everything from here.
  */
 export type TokenKey = "ouro" | "hood10" | "index";
 export type PayoutKey = "compound" | "weth" | "usdg";
@@ -27,8 +28,10 @@ export interface IndexToken {
   dividend: string;
   /** How often it is paid. */
   cadence: string;
-  /** Minimum holding to receive dividends. */
+  /** Minimum holding to receive dividends, as shown. */
   threshold: string;
+  /** The same line in whole tokens, for reading a vault's pooled balance against it. */
+  thresholdTokens: number;
   /** The pool hook that charges the tax. */
   hook: { name: string; address: `0x${string}` };
 }
@@ -46,6 +49,7 @@ export const TOKENS: IndexToken[] = [
     dividend: "Ouro's airdrop: the Reserve basket (CASHCAT and PONS today), in kind",
     cadence: "About every two hours, each collection streamed over two days",
     threshold: "100,000 OURO (0.01% of supply)",
+    thresholdTokens: 100_000,
     hook: { name: "OURO pool hook (letscash, shared with HOOD10)", address: "0x75A54357D9C78a2Db19004a5FDc76c50F9242AEC" },
   },
   {
@@ -60,6 +64,7 @@ export const TOKENS: IndexToken[] = [
     dividend: "The ten deepest Robinhood Chain tokens, in kind",
     cadence: "Roughly every three hours",
     threshold: "100,000 HOOD10 (0.01% of supply)",
+    thresholdTokens: 100_000,
     hook: { name: "HOOD10 pool hook", address: "0x75A54357D9C78a2Db19004a5FDc76c50F9242AEC" },
   },
   {
@@ -73,6 +78,7 @@ export const TOKENS: IndexToken[] = [
     dividend: "18 tokenized Robinhood stocks, bought with USDG",
     cadence: "Hourly",
     threshold: "10,000 INDEX",
+    thresholdTokens: 10_000,
     hook: { name: "INDEX fee hook", address: "0x2cd91bd228ff4c537031d6b8204782090c84c0cc" },
   },
 ];
@@ -136,6 +142,46 @@ export const STATUS_LABEL: Record<VaultStatus, string> = { live: "Live", "awaiti
 /** Deposit tokens with at least one live vault, in display order. */
 export const LIVE_TOKENS: IndexToken[] = TOKENS.filter((t) => VAULTS.some((v) => v.token === t.key && v.status === "live"));
 
+/** The tokens the payout vaults pay, for reading balances and formatting amounts. */
+export const PAYOUT_TOKENS = {
+  weth: { symbol: "WETH", address: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73" as `0x${string}`, decimals: 18 },
+  usdg: { symbol: "USDG", address: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" as `0x${string}`, decimals: 6 },
+} as const;
+
+/** Decimals of every deposit token; all three are plain 18-decimal ERC20s. */
+export const TOKEN_DECIMALS: Record<TokenKey, number> = { ouro: 18, hood10: 18, index: 18 };
+
+/** A deployed vault with everything the live panel needs resolved: its kind, and what it pays in. */
+export interface LiveVault {
+  token: IndexToken;
+  payout: Payout;
+  entry: VaultEntry & { address: `0x${string}`; shareSymbol: string };
+  /** `compounding` pays in the deposit token by lifting the share price; `payout` streams a second token to claim. */
+  kind: "compounding" | "payout";
+  payoutSymbol: string;
+  payoutDecimals: number;
+  /** The payout token's address; null for the compounding vault, whose payout is the deposit token. */
+  payoutAddress: `0x${string}` | null;
+}
+
+export const LIVE_VAULTS: LiveVault[] = VAULTS.flatMap((entry): LiveVault[] => {
+  if (entry.status !== "live" || !entry.address || !entry.shareSymbol) return [];
+  const token = TOKENS.find((t) => t.key === entry.token)!;
+  const payout = PAYOUTS.find((p) => p.key === entry.payout)!;
+  const paid = entry.payout === "compound" ? null : PAYOUT_TOKENS[entry.payout];
+  return [
+    {
+      token,
+      payout,
+      entry: entry as LiveVault["entry"],
+      kind: paid ? "payout" : "compounding",
+      payoutSymbol: paid ? paid.symbol : token.symbol,
+      payoutDecimals: paid ? paid.decimals : TOKEN_DECIMALS[token.key],
+      payoutAddress: paid ? paid.address : null,
+    },
+  ];
+});
+
 export function vaultFor(token: TokenKey, payout: PayoutKey): VaultEntry {
   return VAULTS.find((x) => x.token === token && x.payout === payout)!;
 }
@@ -148,6 +194,7 @@ export const TERMS = {
   maxProfitUnlock: "30 days",
   venue: { name: "Uniswap UniversalRouter (Robinhood fork)", address: "0x8876789976dEcBfCbBbe364623C63652db8C0904" as const },
   weth: { name: "WETH", address: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73" as const },
-  /** TODO: URL of the vault app once it is hosted. */
-  appUrl: "#",
+  usdg: { name: "USDG", address: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" as const },
+  /** The vault app is the /vaults page itself: connect a wallet there to deposit, withdraw and claim. */
+  appUrl: "/vaults/",
 };

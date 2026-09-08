@@ -57,9 +57,8 @@ export interface NavItem {
 export const NAV: NavItem[] = [
   { to: "/", label: "Overview" },
   { to: "buy", label: "Buy $OURO", href: site.links.buy },
-  // Re-shelved 2026-09-08 with its route (see app/routes.ts), which is also unregistered, so this
-  // is belt and braces: a nav link to a 404 is worse than no link.
-  { to: "/vaults/", label: "Vaults", hidden: true },
+  // Shipped 2026-09-08 with its route (see app/routes.ts): the OURO vaults are live.
+  { to: "/vaults/", label: "Vaults" },
   // Shelved 2026-08-31 until it is ready to show. Route, page and URL are untouched.
   { to: "/monitor/", label: "Monitor", hidden: true },
   // Unshelved 2026-09-04: the Reserve holds real positions and the Ledger now reads them from the

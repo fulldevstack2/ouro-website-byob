@@ -4,11 +4,10 @@ import { type RouteConfig, index, route } from "@react-router/dev/routes";
 // (/stake was removed on 2026-08-31 when staking was dropped: holders are paid directly.)
 export default [
   index("routes/home.tsx"),
-  // Held back 2026-09-08, the same way as referral below: not going out yet. UNREGISTERED rather
-  // than shelved — `hidden` in NAV only takes a page out of the chrome and leaves the URL live,
-  // pre-rendered and indexable, which for a page whose every figure still reads "Pending" is not
-  // hiding it. Re-add this line, drop `hidden` in NAV and restore the roadmap's link to ship it.
-  // route("vaults", "routes/vaults.tsx"),
+  // Shipped 2026-09-08: the three OURO vaults are live on chain and the page is their app (deposit,
+  // withdraw and claim with a connected wallet). It was held back earlier the same day while every
+  // figure still read "Pending".
+  route("vaults", "routes/vaults.tsx"),
   route("monitor", "routes/monitor.tsx"),
   route("ledger", "routes/ledger.tsx"),
   route("airdrops", "routes/airdrops.tsx"),

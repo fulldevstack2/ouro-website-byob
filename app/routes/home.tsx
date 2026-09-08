@@ -344,13 +344,14 @@ function LiveProofSection() {
 const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] = [
   {
     n: "01",
-    horizon: "Short term",
-    title: "The vault",
+    horizon: "Live",
+    title: "The vaults",
     body: (
       <>
         Deposit any amount of $OURO and earn a share of every airdrop, however small your holding. Today the airdrop pays wallets holding at least
         100,000 $OURO, which is 0.01% of the supply, and that line is fixed in tokens: 0.01% of a billion-dollar market cap is $100,000. It prices out every
-        holder who arrives later. Pooled in a vault, deposits clear the line together and scaling the marketcap is no longer a problem.
+        holder who arrives later. Pooled in a vault, deposits clear the line together and scaling the marketcap is no longer a problem. Three vaults are live,
+        paid in OURO, WETH or USDG: <Link to="/vaults/">open the vaults</Link>.
       </>
     ),
   },
