@@ -363,8 +363,9 @@ const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] 
       <>
         $OURO trades on letscash's shared hook. That fixes the 5% for the pool's whole life, which is a guarantee worth having, but the rails are not ours:
         0.3% of every trade is theirs, and nothing on them stops a second ETH/OURO pool that pays no tax at all. Leakage like that is what leaves the
-        projects in the table above taxing as little as 6% of their own volume. Moving the token and its liquidity onto Ouro's own contracts is what turns
-        sealed venues from a design into something a contract enforces, and returns that 0.3% to the treasury.
+        projects in the table above taxing as little as 6% of their own volume. Closing it means moving the token and its liquidity onto rails Ouro
+        controls — a venue of our own, or a partner's on terms we set. On rails like that, sealed venues stop being a design and become something a contract
+        enforces, the 0.3% comes back to the treasury, and the pools the protocol already owns sit on an exchange it has a say in rather than one it rents.
       </>
     ),
   },
@@ -374,8 +375,10 @@ const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] 
     title: "Multichain expansion",
     body: (
       <>
-        The loop needs two things from a chain: pools deep enough to be worth owning, and a venue that lets one charge a fee. Where both hold, the same
-        machine runs unchanged. The Reserve would then own liquidity on more than one chain and pay the same holders out of all of it.
+        Owning the fee generating layer is not a claim about Robinhood Chain in particular. Every chain has one, and every chain asks the same two things
+        of it: pools deep enough to be worth owning, and a venue that lets one charge a fee. Where both hold, the machine runs unchanged — the Reserve takes
+        a position in the layer the chain's own trading has to cross, and one holder base is paid out of all of them at once. A chain each, not a token
+        each.
       </>
     ),
   },
@@ -385,7 +388,7 @@ function RoadmapSection() {
   return (
     <Container id="roadmap" style={{ paddingTop: 96 }}>
       <SectionHead
-        kicker="What's next"
+        kicker="Roadmap"
         title="Three things, in order."
         sub="The order the work is being done in, not a schedule — nothing here carries a date. Each one arrives as a transaction you can read rather than an announcement, and this list changes when the work does."
       />
