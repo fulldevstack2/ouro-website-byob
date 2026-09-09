@@ -312,3 +312,60 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
   -webkit-backdrop-filter: saturate(1.4) blur(12px); backdrop-filter: saturate(1.4) blur(12px);
 }
 .cmp { background: var(--surface-card); }
+/* 11. Vault accordions (/vaults) ----------------------------------------- */
+/* One row per vault: a header that is always visible over a body that opens under it. The three
+   headers share this column template so TVL and the yield line up down the page, which is what the
+   side-by-side cards needed a subgrid for. Below 720px the two figures drop to their own line under
+   the name and the chevron stays on the first. */
+.vault-head {
+  display: grid; grid-template-columns: minmax(0, 1fr) 150px 120px 18px; align-items: center; gap: 20px;
+  width: 100%; box-sizing: border-box; margin: 0; padding: 16px 24px; text-align: left;
+  appearance: none; background: none; border: 0; border-radius: var(--radius-lg);
+  font: inherit; color: inherit; cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.vault-head:hover { background: var(--surface-tint); }
+/* The global button:focus-visible rule squares the corners off to --radius-xs; keep the row's own,
+   and let the open row (same specificity, declared after) keep its square bottom while focused. */
+.vault-head:focus-visible { border-radius: var(--radius-lg); }
+.vault-head[aria-expanded="true"] { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.vault-head__name { min-width: 0; }
+.vault-head__fig { display: grid; gap: 4px; min-width: 0; }
+.vault-head__chev {
+  display: block; justify-self: end; color: var(--text-muted);
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.vault-head[aria-expanded="true"] .vault-head__chev { transform: rotate(180deg); }
+
+/* Opening and closing. Only the two resting states are here, so the prerendered HTML is a closed row
+   before any script runs; the heights in between are measured and set by useHeightToggle in
+   VaultFrame.tsx, which also explains why this is not the `grid-template-rows: 0fr` trick.
+
+   The padding and the divider sit on __content rather than on the box being animated, since neither
+   collapses to nothing at height 0. __content is also visibility:hidden while closed, which takes the
+   panel out of the tab order, out of the accessibility tree and out of find-in-page: the 0s
+   transition holds that off until the collapse has played, and the open rule drops the delay so the
+   panel is there on the first frame of opening. */
+.vault-body { overflow: hidden; height: 0; transition: height 260ms var(--ease-out); }
+.vault-body__content {
+  border-top: 1px solid var(--border-hairline); padding: 14px 24px 24px;
+  opacity: 0; visibility: hidden;
+  transition: opacity 120ms var(--ease-out), visibility 0s linear 260ms;
+}
+.vault-body[data-open="true"] .vault-body__content {
+  opacity: 1; visibility: visible;
+  transition: opacity 200ms var(--ease-out) 60ms, visibility 0s linear 0s;
+}
+
+@media (max-width: 720px) {
+  .vault-head { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 18px; gap: 14px 16px; padding: 14px 16px; }
+  .vault-head__name { grid-area: 1 / 1 / 2 / 3; }
+  .vault-head__chev { grid-area: 1 / 3 / 2 / 4; align-self: start; margin-top: 4px; }
+  .vault-body__content { padding: 12px 16px 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vault-head__chev,
+  .vault-body,
+  .vault-body__content { transition: none; }
+}

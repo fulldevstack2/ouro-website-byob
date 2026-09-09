@@ -85,8 +85,8 @@ export const TOKENS: IndexToken[] = [
 
 export interface Payout {
   key: PayoutKey;
-  /** Column label, with the token symbol filled in for the compounding vault. */
-  label: (t: IndexToken) => string;
+  /** One line under the vault name in the accordion header: what it does with the yield. */
+  summary: (t: IndexToken) => string;
   asset: (t: IndexToken) => string;
   text: (t: IndexToken) => string;
 }
@@ -94,20 +94,20 @@ export interface Payout {
 export const PAYOUTS: Payout[] = [
   {
     key: "compound",
-    label: (t) => `Pays in ${t.symbol}`,
+    summary: (t) => `Yield is rebought as ${t.symbol} and compounds into your shares`,
     asset: (t) => t.symbol,
     text: (t) =>
       `Dividends are sold for ${t.symbol} and booked into the vault. Your share count stays the same and each share is worth more ${t.symbol} after every harvest. Nothing to claim. Each rebuy routes through the cheapest venue the keeper can quote.`,
   },
   {
     key: "weth",
-    label: () => "Pays in WETH",
+    summary: (t) => `Yield accrues in WETH, your ${t.symbol} stays as deposited`,
     asset: () => "WETH",
     text: (t) => `Dividends are sold for WETH, which accrues to your shares until you claim it. Your ${t.symbol} stays exactly as deposited. The yield arrives in ETH.`,
   },
   {
     key: "usdg",
-    label: () => "Pays in USDG",
+    summary: (t) => `Yield accrues in USDG, your ${t.symbol} stays as deposited`,
     asset: () => "USDG",
     text: (t) =>
       `Dividends are sold for USDG, a dollar stablecoin, which accrues to your shares until you claim it. Your ${t.symbol} stays exactly as deposited. The yield arrives in dollars.`,
@@ -124,8 +124,10 @@ export interface VaultEntry {
 }
 
 export const VAULTS: VaultEntry[] = [
-  // Deployed 2026-09-08 (CREATE2, blocks 57376688 / 57376741 / 57376793). Owner, fee recipient and keeper:
-  // 0x4183988484943ABE0cFD3Fb00925883Eb8Fb150C. Names are the permit domain and never change.
+  // Deployed 2026-09-08 (CREATE2, blocks 57376688 / 57376741 / 57376793) by 0x4183988484943ABE0cFD3Fb00925883Eb8Fb150C.
+  // Fee recipient 0xd8E6c485aC9210A33B434325FAD5743310102405, keeper 0xEA1B87B70852e48FDcA9262Ca91018C44C19001c, and
+  // ownership offered to 0x328A0309D8Eb9CE4a9bF5aB8Acf1E1391dF98586 (two-step, pending its acceptOwnership).
+  // Names are the permit domain and never change.
   { token: "ouro", payout: "compound", status: "live", shareSymbol: "vOURO", address: "0x74ea0A8D3DE28dFbB4744A2b023c096bA532A514" },
   { token: "ouro", payout: "weth", status: "live", shareSymbol: "vOUROweth", address: "0xAc0E041AeDC87E115DA61566F84948afc792386B" },
   { token: "ouro", payout: "usdg", status: "live", shareSymbol: "vOUROusdg", address: "0x8EbF99A1C60bd0C5D00Eeea9ce32FBDAD7b6EA79" },

@@ -3,10 +3,10 @@ import { Link } from "react-router";
 
 import type { Route } from "./+types/vaults";
 import { Badge, Callout, LedgerTable, type LedgerColumn } from "~/components/ds";
-import { AddressCell, Container, Grid, KVRow, MicroLabel, NumberedRow, PageHeader, PendingCell, SectionHead, body14, hairline, mono } from "~/components/site";
+import { AddressCell, Container, Grid, KVRow, MicroLabel, NumberedRow, PageHeader, SectionHead, body14, hairline, mono } from "~/components/site";
 import { VaultsStatic } from "~/components/vaults/VaultFrame";
 import { site } from "~/content/site";
-import { LIVE_VAULTS, PAYOUTS, PAYOUT_TOKENS, STATUS_LABEL, TERMS, TOKENS, VAULTS } from "~/content/vaults";
+import { LIVE_VAULTS, PAYOUT_TOKENS, TERMS, TOKENS } from "~/content/vaults";
 import { pageMeta } from "~/lib/meta";
 
 const OURO = TOKENS.find((t) => t.key === "ouro")!;
@@ -116,19 +116,6 @@ const ADDR_ROWS = [
   { c: PAYOUT_TOKENS.weth.symbol, a: <AddressCell address={PAYOUT_TOKENS.weth.address} /> },
   { c: PAYOUT_TOKENS.usdg.symbol, a: <AddressCell address={PAYOUT_TOKENS.usdg.address} /> },
 ];
-
-const PLANNED_COLS: LedgerColumn[] = [
-  { key: "v", label: "Vault" },
-  { key: "s", label: "Status", align: "right" },
-];
-const PLANNED_ROWS = VAULTS.filter((x) => x.status !== "live").map((x) => {
-  const t = TOKENS.find((k) => k.key === x.token)!;
-  const p = PAYOUTS.find((k) => k.key === x.payout)!;
-  return {
-    v: `${t.symbol} → ${p.asset(t)}${x.shareSymbol ? ` (${x.shareSymbol})` : ""}`,
-    s: x.address ? <AddressCell address={x.address} /> : <PendingCell>{STATUS_LABEL[x.status]}</PendingCell>,
-  };
-});
 
 function RuleList({ items }: { items: string[] }) {
   return (
@@ -292,15 +279,12 @@ export default function Vaults() {
       <div style={{ marginTop: 64 }}>
         <SectionHead
           kicker="Planned"
-          title="The same vaults for HOOD10 and INDEX."
+          title="More vaults/pairs soon."
           titleStyle={{ fontSize: 30 }}
-          sub="The contracts pool any dividend token whose payer excludes only pools and distributors. HOOD10 and INDEX are next; nothing of theirs is deployed, and each address publishes here the moment it exists."
+          sub="Stay tuned."
           subStyle={{ fontSize: 15 }}
-          style={{ marginBottom: 32 }}
+          style={{ marginBottom: 0 }}
         />
-        <Grid cols="1fr 1fr" gap={24} align="start">
-          <LedgerTable compact columns={PLANNED_COLS} rows={PLANNED_ROWS} />
-        </Grid>
       </div>
     </Container>
   );
