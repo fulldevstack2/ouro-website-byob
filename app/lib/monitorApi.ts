@@ -451,15 +451,32 @@ export function useMonitor<T>(path: string | null, intervalMs = 30_000): Poll<T>
 }
 
 // ── formatting ──
-export function fmtUsd(n: number | null | undefined, opts: { compact?: boolean } = {}): string {
+/**
+ * A dollar figure.
+ *
+ * Anything under a cent reads "< $0.01" rather than "$0.000984". These are values, and six leading
+ * zeros tell a reader nothing they were asking: a claim, a deposit or a day's stream worth a
+ * fraction of a cent is, to them, worth nothing yet. Pass `exact` where the small number IS the
+ * point, which on this site means the unit price of a sub-cent token.
+ *
+ * Only positive values are floored. A negative under a cent keeps its digits, so the sign never has
+ * to be glued onto an inequality ("−< $0.01"); `fmtUsdSigned`, which owns the signed rendering,
+ * opts out entirely.
+ */
+export function fmtUsd(n: number | null | undefined, opts: { compact?: boolean; exact?: boolean } = {}): string {
   if (n === null || n === undefined || !Number.isFinite(n)) return "—";
   const abs = Math.abs(n);
-  if (opts.compact && abs >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
-  if (opts.compact && abs >= 10_000) return `$${(n / 1_000).toFixed(1)}k`;
-  if (abs >= 1000) return `$${Math.round(n).toLocaleString("en-US")}`;
-  if (abs >= 1) return `$${n.toFixed(2)}`;
+  // Minus outside the dollar sign, and the site's own glyph: "$-12.50" was the old shape of it.
+  const sign = n < 0 ? "−" : "";
+  if (opts.compact && abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2)}M`;
+  if (opts.compact && abs >= 10_000) return `${sign}$${(abs / 1_000).toFixed(1)}k`;
+  if (abs >= 1000) return `${sign}$${Math.round(abs).toLocaleString("en-US")}`;
+  // Cents, all the way down to one: `toPrecision(3)` used to start here and rendered fifty cents as
+  // "$0.500" and a single cent as "$0.0100".
+  if (abs >= 0.01) return `${sign}$${abs.toFixed(2)}`;
   if (abs === 0) return "$0";
-  return `$${n.toPrecision(3)}`;
+  if (!opts.exact && n > 0) return "< $0.01";
+  return `${sign}$${abs.toPrecision(3)}`;
 }
 export function fmtNum(n: number | null | undefined, digits = 0): string {
   if (n === null || n === undefined || !Number.isFinite(n)) return "—";
@@ -495,7 +512,8 @@ export function shortHash(h: string): string {
 export function fmtUsdSigned(n: number | null | undefined): string {
   if (n === null || n === undefined || !Number.isFinite(n)) return "—";
   if (n === 0) return "$0.00";
-  const body = fmtUsd(Math.abs(n));
+  // `exact`, because this owns the sign: the floored form would come out as "+< $0.01".
+  const body = fmtUsd(Math.abs(n), { exact: true });
   return `${n > 0 ? "+" : "−"}${body}`;
 }
 

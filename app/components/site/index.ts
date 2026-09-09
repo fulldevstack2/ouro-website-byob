@@ -1,6 +1,7 @@
 // Site chrome and layout primitives shared by the routes.
 export { Container } from "./Container";
 export { Grid } from "./Grid";
+export { Disclosure, DisclosureList } from "./Disclosure";
 export { MicroLabel } from "./MicroLabel";
 export { SectionHead } from "./SectionHead";
 export { PageHeader } from "./PageHeader";

@@ -85,8 +85,10 @@ export const TOKENS: IndexToken[] = [
 
 export interface Payout {
   key: PayoutKey;
-  /** Column label, with the token symbol filled in for the compounding vault. */
-  label: (t: IndexToken) => string;
+  /** One line under the vault name in the accordion header: what it does with the yield. */
+  summary: (t: IndexToken) => string;
+  /** The same thing in a few words, for the header on a phone, where `summary` ran to two lines. */
+  short: (t: IndexToken) => string;
   asset: (t: IndexToken) => string;
   text: (t: IndexToken) => string;
 }
@@ -94,20 +96,23 @@ export interface Payout {
 export const PAYOUTS: Payout[] = [
   {
     key: "compound",
-    label: (t) => `Pays in ${t.symbol}`,
+    summary: (t) => `${t.symbol} Yield is rebought as ${t.symbol} and compounds into more ${t.symbol}`,
+    short: (t) => `Compounds into ${t.symbol}`,
     asset: (t) => t.symbol,
     text: (t) =>
       `Dividends are sold for ${t.symbol} and booked into the vault. Your share count stays the same and each share is worth more ${t.symbol} after every harvest. Nothing to claim. Each rebuy routes through the cheapest venue the keeper can quote.`,
   },
   {
     key: "weth",
-    label: () => "Pays in WETH",
+    summary: (t) => `Yield accrues in WETH, your ${t.symbol} stays as deposited`,
+    short: () => "Pays WETH, claimable",
     asset: () => "WETH",
     text: (t) => `Dividends are sold for WETH, which accrues to your shares until you claim it. Your ${t.symbol} stays exactly as deposited. The yield arrives in ETH.`,
   },
   {
     key: "usdg",
-    label: () => "Pays in USDG",
+    summary: (t) => `Yield accrues in USDG, your ${t.symbol} stays as deposited`,
+    short: () => "Pays USDG, claimable",
     asset: () => "USDG",
     text: (t) =>
       `Dividends are sold for USDG, a dollar stablecoin, which accrues to your shares until you claim it. Your ${t.symbol} stays exactly as deposited. The yield arrives in dollars.`,
@@ -124,8 +129,10 @@ export interface VaultEntry {
 }
 
 export const VAULTS: VaultEntry[] = [
-  // Deployed 2026-09-08 (CREATE2, blocks 57376688 / 57376741 / 57376793). Owner, fee recipient and keeper:
-  // 0x4183988484943ABE0cFD3Fb00925883Eb8Fb150C. Names are the permit domain and never change.
+  // Deployed 2026-09-08 (CREATE2, blocks 57376688 / 57376741 / 57376793) by 0x4183988484943ABE0cFD3Fb00925883Eb8Fb150C.
+  // Fee recipient 0xd8E6c485aC9210A33B434325FAD5743310102405, keeper 0xEA1B87B70852e48FDcA9262Ca91018C44C19001c, and
+  // ownership offered to 0x328A0309D8Eb9CE4a9bF5aB8Acf1E1391dF98586 (two-step, pending its acceptOwnership).
+  // Names are the permit domain and never change.
   { token: "ouro", payout: "compound", status: "live", shareSymbol: "vOURO", address: "0x74ea0A8D3DE28dFbB4744A2b023c096bA532A514" },
   { token: "ouro", payout: "weth", status: "live", shareSymbol: "vOUROweth", address: "0xAc0E041AeDC87E115DA61566F84948afc792386B" },
   { token: "ouro", payout: "usdg", status: "live", shareSymbol: "vOUROusdg", address: "0x8EbF99A1C60bd0C5D00Eeea9ce32FBDAD7b6EA79" },
@@ -142,10 +149,10 @@ export const STATUS_LABEL: Record<VaultStatus, string> = { live: "Live", "awaiti
 /** Deposit tokens with at least one live vault, in display order. */
 export const LIVE_TOKENS: IndexToken[] = TOKENS.filter((t) => VAULTS.some((v) => v.token === t.key && v.status === "live"));
 
-/** The tokens the payout vaults pay, for reading balances and formatting amounts. */
+/** The tokens the payout vaults pay, for reading balances, formatting amounts and marking the row. */
 export const PAYOUT_TOKENS = {
-  weth: { symbol: "WETH", address: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73" as `0x${string}`, decimals: 18 },
-  usdg: { symbol: "USDG", address: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" as `0x${string}`, decimals: 6 },
+  weth: { symbol: "WETH", address: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73" as `0x${string}`, decimals: 18, icon: "/tokens/weth.svg" },
+  usdg: { symbol: "USDG", address: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" as `0x${string}`, decimals: 6, icon: "/tokens/usdg.png" },
 } as const;
 
 /** Decimals of every deposit token; all three are plain 18-decimal ERC20s. */
@@ -162,6 +169,9 @@ export interface LiveVault {
   payoutDecimals: number;
   /** The payout token's address; null for the compounding vault, whose payout is the deposit token. */
   payoutAddress: `0x${string}` | null;
+  /** The payout token's mark, for the pair on the row header. Null when it is the deposit token's own,
+      so the header shows one mark rather than the same one twice. */
+  payoutIcon: string | null;
 }
 
 export const LIVE_VAULTS: LiveVault[] = VAULTS.flatMap((entry): LiveVault[] => {
@@ -178,6 +188,7 @@ export const LIVE_VAULTS: LiveVault[] = VAULTS.flatMap((entry): LiveVault[] => {
       payoutSymbol: paid ? paid.symbol : token.symbol,
       payoutDecimals: paid ? paid.decimals : TOKEN_DECIMALS[token.key],
       payoutAddress: paid ? paid.address : null,
+      payoutIcon: paid ? paid.icon : null,
     },
   ];
 });
@@ -190,6 +201,17 @@ export function vaultFor(token: TokenKey, payout: PayoutKey): VaultEntry {
 export const TERMS = {
   performanceFeePct: 10,
   maxPerformanceFeePct: 30,
+  /**
+   * Where the performance fee goes, in points of the harvest gain, so the two add up to
+   * `performanceFeePct`. THE ONLY PLACE THIS SPLIT IS WRITTEN: the copy on /vaults and the home
+   * page reads it from here.
+   *
+   * Operator policy, not a contract rule, and said as such wherever it appears. On chain the vault
+   * pays the whole fee to a single `feeRecipient` (DividendVaultBase.feeRecipient) and has no notion
+   * of a split; this is what that recipient does with it, exactly like the 5% tax's
+   * "2% airdrop / 2% LP / 0.7% ops / 0.3% letscash" row in content/protocol.ts.
+   */
+  feeSplit: { airdrops: 7, ops: 3 },
   profitUnlock: "1 day",
   maxProfitUnlock: "30 days",
   venue: { name: "Uniswap UniversalRouter (Robinhood fork)", address: "0x8876789976dEcBfCbBbe364623C63652db8C0904" as const },
