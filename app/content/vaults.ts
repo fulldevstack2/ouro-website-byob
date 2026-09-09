@@ -96,7 +96,7 @@ export interface Payout {
 export const PAYOUTS: Payout[] = [
   {
     key: "compound",
-    summary: (t) => `Yield is rebought as ${t.symbol} and compounds into your shares`,
+    summary: (t) => `${t.symbol} Yield is rebought as ${t.symbol} and compounds into more ${t.symbol}`,
     short: (t) => `Compounds into ${t.symbol}`,
     asset: (t) => t.symbol,
     text: (t) =>
@@ -149,10 +149,10 @@ export const STATUS_LABEL: Record<VaultStatus, string> = { live: "Live", "awaiti
 /** Deposit tokens with at least one live vault, in display order. */
 export const LIVE_TOKENS: IndexToken[] = TOKENS.filter((t) => VAULTS.some((v) => v.token === t.key && v.status === "live"));
 
-/** The tokens the payout vaults pay, for reading balances and formatting amounts. */
+/** The tokens the payout vaults pay, for reading balances, formatting amounts and marking the row. */
 export const PAYOUT_TOKENS = {
-  weth: { symbol: "WETH", address: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73" as `0x${string}`, decimals: 18 },
-  usdg: { symbol: "USDG", address: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" as `0x${string}`, decimals: 6 },
+  weth: { symbol: "WETH", address: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73" as `0x${string}`, decimals: 18, icon: "/tokens/weth.svg" },
+  usdg: { symbol: "USDG", address: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168" as `0x${string}`, decimals: 6, icon: "/tokens/usdg.png" },
 } as const;
 
 /** Decimals of every deposit token; all three are plain 18-decimal ERC20s. */
@@ -169,6 +169,9 @@ export interface LiveVault {
   payoutDecimals: number;
   /** The payout token's address; null for the compounding vault, whose payout is the deposit token. */
   payoutAddress: `0x${string}` | null;
+  /** The payout token's mark, for the pair on the row header. Null when it is the deposit token's own,
+      so the header shows one mark rather than the same one twice. */
+  payoutIcon: string | null;
 }
 
 export const LIVE_VAULTS: LiveVault[] = VAULTS.flatMap((entry): LiveVault[] => {
@@ -185,6 +188,7 @@ export const LIVE_VAULTS: LiveVault[] = VAULTS.flatMap((entry): LiveVault[] => {
       payoutSymbol: paid ? paid.symbol : token.symbol,
       payoutDecimals: paid ? paid.decimals : TOKEN_DECIMALS[token.key],
       payoutAddress: paid ? paid.address : null,
+      payoutIcon: paid ? paid.icon : null,
     },
   ];
 });

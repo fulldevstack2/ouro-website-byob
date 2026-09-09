@@ -43,26 +43,29 @@ export interface StatBandProps {
 }
 
 /**
- * The band above the rows. Two of the four are live figures with caveats worth reading and two are
- * fixed terms repeated further down the page, so a phone keeps the first pair and drops the second
- * (.stat--wide in site.css) rather than stacking 450px of statistics over the app.
+ * The band above the rows. TVL leads: it is the figure that moves and the one a reader is looking for,
+ * and the vault count is context for it rather than the headline.
+ *
+ * Two of the four are live figures with caveats worth reading and two are fixed terms repeated
+ * further down the page, so a phone keeps the live pair and drops the other (.stat--wide in
+ * site.css) rather than stacking 450px of statistics over the app.
  */
 export function StatBand({ tvl, tvlNote, airdropRate, airdropNote }: StatBandProps) {
   return (
     <Grid cols="repeat(4, 1fr)" gap={24} className="grid--2col-md stat-band">
+      <Stat label="TVL" value={tvl} footnote={tvlNote} />
       <Stat
-        className="stat--wide"
+        className="cell-rule stat--wide"
         label="Vaults"
         value={String(LIVE_VAULTS.length)}
         footnote="All pooling OURO, paid in OURO, WETH or USDG. Each clears the 100,000 OURO airdrop line for everyone in it"
       />
-      <Stat className="cell-rule" label="TVL" value={tvl} footnote={tvlNote} />
       <Stat className="cell-rule" label="Airdrop rate" value={airdropRate} footnote={airdropNote} />
       <Stat
         className="cell-rule stat--wide"
         label="Performance fee"
         value={`${TERMS.performanceFeePct}%`}
-        footnote={`Of harvest gains only, hard cap ${TERMS.maxPerformanceFeePct}%, and no deposit or withdrawal fee. ${TERMS.feeSplit.airdrops}% of the gain funds more airdrops, ${TERMS.feeSplit.ops}% covers ops`}
+        footnote={`Of harvest gains only, and no deposit or withdrawal fee. ${TERMS.feeSplit.airdrops}% of the gain funds more airdrops, ${TERMS.feeSplit.ops}% covers ops`}
       />
     </Grid>
   );
@@ -75,11 +78,21 @@ export const STATIC_BAND: StatBandProps = {
   airdropNote: "What a wallet above the line earns from payouts actually made, annualised, before any vault fee",
 };
 
-/** The connect row. On a phone the button comes first, so the note never sits between it and the rows. */
-export function ConnectBar({ right, note }: { right: ReactNode; note: ReactNode }) {
+/**
+ * The bar over the rows: the app's name on the left, the wallet button on the right.
+ *
+ * It used to carry a note that changed with the wallet state, which meant the row above the rows was
+ * either a paragraph of instructions or empty. A fixed title is steadier and reads as the app's
+ * header, which is what this line is. What a wallet is for is said at the point of need instead, on
+ * the deposit panel's own hint.
+ *
+ * Not a heading element: the page's h1 is already "The vaults.", and a near-duplicate h2 under it
+ * would be a worse outline, not a better one.
+ */
+export function ConnectBar({ right }: { right: ReactNode }) {
   return (
     <div className="connect-bar">
-      <div className="connect-bar__note">{note}</div>
+      <div className="connect-bar__title">Ouro Vaults</div>
       <div className="connect-bar__action">{right}</div>
     </div>
   );
@@ -119,6 +132,26 @@ function Figure({ label, value }: { label: ReactNode; value: ReactNode }) {
   );
 }
 
+/**
+ * The two tokens a row is about: what you put in, and what it pays.
+ *
+ * Side by side rather than overlapped, which is the usual way to draw a pair but wrong for these
+ * marks: all three are a single glyph centred on a disc (see public/tokens), so a front disc laid
+ * over a third of the one behind ate the glyph that identifies it and OURO's "O" came out as a "C".
+ *
+ * One mark, not two, on the compounding vault: it pays the token it holds, so the same disc twice
+ * would look like a rendering bug rather than a fact.
+ */
+function TokenPair({ vault }: { vault: LiveVault }) {
+  const { token, payoutIcon, payoutSymbol } = vault;
+  return (
+    <span className="vault-head__marks">
+      <TokenIcon symbol={token.symbol} src={token.icon} size={22} />
+      {payoutIcon && <TokenIcon symbol={payoutSymbol} src={payoutIcon} size={22} />}
+    </span>
+  );
+}
+
 function Chevron() {
   return (
     <svg className="vault-head__chev" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
@@ -154,7 +187,7 @@ export function Frame({ vault, summary, note, rows, paused = false, open, onTogg
       <button type="button" ref={head} className="vault-head" aria-expanded={open} aria-controls={bodyId} onClick={onToggle}>
         <span className="vault-head__name">
           <span style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <TokenIcon symbol={token.symbol} src={token.icon} size={22} />
+            <TokenPair vault={vault} />
             <span className="vault-head__title">
               {token.symbol} → {vault.payoutSymbol}
             </span>
@@ -223,7 +256,7 @@ export function VaultsStatic() {
   return (
     <>
       <StatBand {...STATIC_BAND} />
-      <ConnectBar note="Reading the vaults needs no wallet, depositing does." right={<Button disabled>Connect wallet</Button>} />
+      <ConnectBar right={<Button disabled>Connect wallet</Button>} />
       <VaultList>
         {LIVE_VAULTS.map((v) => (
           <Frame

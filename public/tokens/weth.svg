@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Wrapped ether. The ether diamond, drawn in the site's ink rather than the usual blue-greys, so
+       the three vault marks read as one set (ouro.svg is the same white disc with an ink glyph). -->
+  <circle cx="32" cy="32" r="32" fill="#FFFFFF"/>
+  <g fill="#1B1710">
+    <path d="M32 9 18.5 31.4 32 39.3Z" opacity=".55"/>
+    <path d="M32 9 45.5 31.4 32 39.3Z" opacity=".85"/>
+    <path d="M32 42 18.5 34.1 32 55Z" opacity=".55"/>
+    <path d="M32 42 45.5 34.1 32 55Z" opacity=".85"/>
+  </g>
+</svg>

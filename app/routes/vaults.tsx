@@ -280,7 +280,6 @@ export default function Vaults() {
           kicker="Planned"
           title="More vaults/pairs soon."
           titleStyle={{ fontSize: 30 }}
-          sub="Stay tuned."
           subStyle={{ fontSize: 15 }}
           style={{ marginBottom: 0 }}
         />

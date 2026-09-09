@@ -4,7 +4,7 @@ import { formatUnits } from "viem";
 import { useAccount, useChainId, useReadContracts, useSwitchChain } from "wagmi";
 
 import { Badge, Button, Input, Tabs } from "~/components/ds";
-import { KVRow, body14, mono } from "~/components/site";
+import { KVRow, MicroLabel, body14, mono } from "~/components/site";
 import { ConnectBar, Frame, STATIC_BAND, StatBand, VaultList, VaultsStatic, useOpenVault, type VaultSummary } from "~/components/vaults/VaultFrame";
 import { WalletProvider } from "~/components/wallet/WalletProvider";
 import { externalLinkProps, site } from "~/content/site";
@@ -48,26 +48,13 @@ function LiveSection() {
     <>
       <StatBand
         tvl={fmtUsd(tvlUsd, { compact: true })}
-        tvlNote={pooled === undefined ? STATIC_BAND.tvlNote : `${fmtAmount(pooled, OURO_DECIMALS, 0)} OURO across the three vaults${prices.ouroUsd === null ? ", awaiting a price" : ` at ${fmtUsd(prices.ouroUsd)} each`}`}
+        // `exact` on the unit price: OURO trades at a fraction of a cent, so "< $0.01 each" would
+        // withhold the one figure this note exists to give.
+        tvlNote={pooled === undefined ? STATIC_BAND.tvlNote : `${fmtAmount(pooled, OURO_DECIMALS, 0)} OURO across the three vaults${prices.ouroUsd === null ? ", awaiting a price" : ` at ${fmtUsd(prices.ouroUsd, { exact: true })} each`}`}
         airdropRate={prices.airdrop ? `${fmtNum(prices.airdrop.aprPct, 0)}%` : "—"}
         airdropNote={prices.airdrop ? `${prices.airdrop.caveat ?? "From payouts actually made, at the rate of the last seven days."} What a wallet above the line earns, before any vault fee.` : STATIC_BAND.airdropNote}
       />
-      <ConnectBar
-        note={
-          isConnected ? (
-            "The figures marked yours are read for the connected wallet. Every action is a transaction you sign; nothing moves without it."
-          ) : (
-            <>
-              Reading the vaults needs no wallet, depositing does.
-              {/* Without a WalletConnect project id there is no QR path, so on a phone the only way in
-                  is a wallet's own browser, where the provider is injected. Say that, rather than
-                  naming the missing env var at the reader. */}
-              {!hasWalletConnect && <> Use a browser extension wallet, or open this page inside your wallet's browser.</>}
-            </>
-          )
-        }
-        right={<ConnectButton showBalance={false} chainStatus="icon" accountStatus="address" />}
-      />
+      <ConnectBar right={<ConnectButton showBalance={false} chainStatus="icon" accountStatus="address" />} />
       <VaultList>
         {LIVE_VAULTS.map((v) => (
           <VaultPanel key={v.entry.address} vault={v} prices={prices} ready={ready} open={isOpen(v.entry.address)} onToggle={() => toggle(v.entry.address)} />
@@ -130,9 +117,9 @@ function VaultPanel({ vault, prices, ready, open, onToggle }: { vault: LiveVault
       summary={summary}
       note={yields.note}
       paused={view.paused === true}
-      rows={<LiveStats vault={vault} view={view} prices={prices} payoutUsd={payoutUsd} nowSec={nowSec} connected={isConnected} ready={ready} actions={actions} />}
+      rows={<LiveStats vault={vault} view={view} prices={prices} payoutUsd={payoutUsd} nowSec={nowSec} connected={isConnected} />}
     >
-      <Actions vault={vault} view={view} actions={actions} ready={ready} />
+      <Actions vault={vault} view={view} actions={actions} ready={ready} payoutUsd={payoutUsd} />
     </Frame>
   );
 }
@@ -204,8 +191,6 @@ function LiveStats({
   payoutUsd,
   nowSec,
   connected,
-  ready,
-  actions,
 }: {
   vault: LiveVault;
   view: VaultView;
@@ -213,27 +198,11 @@ function LiveStats({
   payoutUsd: number | null;
   nowSec: number;
   connected: boolean;
-  ready: boolean;
-  actions: VaultActions;
 }) {
   const dep = vault.token.symbol;
   const compounding = vault.kind === "compounding";
   const perDay = view.rewardRate !== undefined && view.periodFinish !== undefined ? streamPerDay(view.rewardRate, view.periodFinish, nowSec) : undefined;
   const ends = view.periodFinish !== undefined ? timeLeft(view.periodFinish, nowSec) : null;
-
-  const claiming = actions.busy && actions.tx.phase === "claiming";
-  const claimRow = compounding ? (
-    "Compounded into shares"
-  ) : !connected ? (
-    "—"
-  ) : (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-      {withUsd(view.earned, vault.payoutDecimals, vault.payoutSymbol, payoutUsd)}
-      <Button size="sm" variant="secondary" disabled={!ready || actions.busy || !view.earned} onClick={() => void actions.claim()}>
-        {claiming ? "Claiming..." : "Claim"}
-      </Button>
-    </span>
-  );
 
   return (
     <>
@@ -251,9 +220,43 @@ function LiveStats({
           value={perDay === undefined ? "—" : perDay === 0n || !ends ? "No stream running" : `${withUsd(perDay, vault.payoutDecimals, vault.payoutSymbol, payoutUsd)} a day, ${ends} left`}
         />
       )}
-      <KVRow label="Your deposit" value={connected ? withUsd(view.deposited, OURO_DECIMALS, dep, prices.ouroUsd) : "—"} />
-      <KVRow label="Yours to claim" value={claimRow} border="none" />
+      {/* No "yours to claim" row on a payout vault: the figure and its button are the ClaimPanel in
+          the action card above, where a reader looks for something to press. */}
+      <KVRow label="Your deposit" value={connected ? withUsd(view.deposited, OURO_DECIMALS, dep, prices.ouroUsd) : "—"} border={compounding ? "bottom" : "none"} />
+      {compounding && <KVRow label="Yours to claim" value="Compounded into shares" border="none" />}
     </>
+  );
+}
+
+/**
+ * The claim, given its own block at the foot of the action card rather than a small secondary button
+ * squeezed into a figures row, where it read as a footnote to an amount instead of the second thing
+ * this vault is for. A white sub-card inside the tinted panel, the amount at figure size, and a
+ * primary button that names the token it pays.
+ *
+ * Shown whether or not a wallet is connected, so a reader can see the vault has something to claim at
+ * all; the button carries the reason it is not pressable yet.
+ */
+function ClaimPanel({ vault, view, actions, ready, payoutUsd }: { vault: LiveVault; view: VaultView; actions: VaultActions; ready: boolean; payoutUsd: number | null }) {
+  const { isConnected } = useAccount();
+  const claiming = actions.busy && actions.tx.phase === "claiming";
+  const nothing = view.earned === 0n;
+  const armed = !nothing && view.earned !== undefined && ready;
+  const label = !isConnected ? "Connect to claim" : claiming ? "Claiming..." : nothing ? `No ${vault.payoutSymbol} yet` : `Claim ${vault.payoutSymbol}`;
+  return (
+    <div className="vault-claim">
+      {/* Bronze once there is something to take: with the box gone this is what makes the row catch
+          the eye on the way past. */}
+      <MicroLabel tone={armed ? "accent" : "faint"}>Yours to claim</MicroLabel>
+      <div className="vault-claim__row">
+        <span className="vault-claim__amount">{isConnected ? withUsd(view.earned, vault.payoutDecimals, vault.payoutSymbol, payoutUsd) : `— ${vault.payoutSymbol}`}</span>
+        {/* Ink only when it can actually be pressed: a disabled primary is a heavy grey slab, and
+            three of them down the page shout without offering anything. */}
+        <Button size="md" variant={armed ? "primary" : "secondary"} disabled={!armed || actions.busy} onClick={() => void actions.claim()}>
+          {label}
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -270,7 +273,7 @@ function busyLabel(tx: TxState): string {
   return tx.hash ? `Confirming the ${what}...` : `Sign the ${what} in your wallet...`;
 }
 
-function Actions({ vault, view, actions, ready }: { vault: LiveVault; view: VaultView; actions: VaultActions; ready: boolean }) {
+function Actions({ vault, view, actions, ready, payoutUsd }: { vault: LiveVault; view: VaultView; actions: VaultActions; ready: boolean; payoutUsd: number | null }) {
   const { isConnected } = useAccount();
   const { switchChain, isPending: switching } = useSwitchChain();
   const { openConnectModal } = useConnectModal();
@@ -336,7 +339,12 @@ function Actions({ vault, view, actions, ready }: { vault: LiveVault; view: Vaul
 
   // Always one line, so the block keeps its height whatever the wallet state.
   const hint = !isConnected
-    ? "Connect a wallet to deposit or withdraw."
+    ? // Without a WalletConnect project id there is no QR path, so the only way in is an injected
+      // provider: an extension, or a wallet's own in-app browser. Said here, on the line that was
+      // already telling a disconnected reader to connect, rather than as its own paragraph.
+      hasWalletConnect
+      ? "Connect a wallet to deposit or withdraw."
+      : "Connect a browser extension wallet, or open this page in your wallet's browser."
     : !ready
       ? `Switch your wallet to ${site.chain.name}.`
       : tab === "deposit"
@@ -402,6 +410,7 @@ function Actions({ vault, view, actions, ready }: { vault: LiveVault; view: Vaul
         {cta}
       </div>
       <TxLine tx={tx} onDismiss={reset} />
+      {vault.kind === "payout" && <ClaimPanel vault={vault} view={view} actions={actions} ready={ready} payoutUsd={payoutUsd} />}
     </>
   );
 }

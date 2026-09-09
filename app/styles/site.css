@@ -358,6 +358,8 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
 .vault-head:focus-visible { border-radius: var(--radius-lg); }
 .vault-head[aria-expanded="true"] { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
 .vault-head__name { min-width: 0; }
+/* The deposit mark and the payout mark. See TokenPair for why they do not overlap. */
+.vault-head__marks { display: inline-flex; align-items: center; gap: 4px; flex: none; }
 .vault-head__title { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
 .vault-head__sub { display: block; margin-top: 5px; font-size: 13px; line-height: 1.45; color: var(--text-muted); }
 .vault-head__sub--short { display: none; }
@@ -391,6 +393,11 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
     "note  note"
     "about panel"
     "figs  panel";
+  /* The panel spans rows 2 and 3, and a spanning item taller than the two of them distributes its
+     slack across both: that opened a ~110px hole between the prose and the figures. Pinning the
+     first two rows to their content and letting the last one take the remainder sends the slack
+     below the figures, where there is nothing to see. */
+  grid-template-rows: auto auto 1fr;
 }
 .vault-body[data-open="true"] .vault-body__content {
   opacity: 1; visibility: visible;
@@ -408,6 +415,21 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
 .vault-part--figs { grid-area: figs; margin-top: 18px; border-top: 1px solid var(--border-hairline); }
 .vault-part--panel { grid-area: panel; align-self: start; }
 
+/* The claim, at the foot of the action card: a hairline row, the amount and its button side by side.
+   It has been through both extremes. A small secondary button inside a figures row went unnoticed; a
+   white bordered sheet with a full-width ink button was impossible to miss but cost 145px of card
+   height and read as a second form. The button alone is the loud part, since nothing else below the
+   deposit CTA has one, so the box came off and the bronze moved to the label. 64px, and obvious. */
+.vault-claim { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-hairline); }
+.vault-claim__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 5px; }
+/* An auto margin rather than space-between: on a narrow panel a long amount pushes the button onto a
+   line of its own, and space-between would drop it back to the left as if it belonged to nothing. */
+.vault-claim__row .btn { margin-left: auto; }
+.vault-claim__amount {
+  min-width: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+  font-size: 15px; font-weight: 600; color: var(--text-primary); overflow-wrap: anywhere;
+}
+
 /* One column as soon as the second one would squeeze the form (the deposit CTA never wraps, so a
    288px panel overflows it), and in an order that puts the panel FIRST: opening a row is a request to
    deposit or withdraw, and stacked the other way round the form sat six figures and a paragraph below
@@ -416,6 +438,8 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
   .vault-body__content {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "panel" "figs" "note" "about";
+    /* Nothing spans here, so the desktop rule's trailing 1fr has nothing to do but confuse. */
+    grid-template-rows: auto;
   }
   .vault-part--note { margin: 12px 0 0; padding: 0; border-bottom: 0; }
   .vault-part--figs { margin-top: 14px; }
@@ -453,7 +477,13 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
 .stat-band { margin: 40px 0; padding: 28px 0; border-top: 1px solid var(--border-hairline); border-bottom: 1px solid var(--border-hairline); }
 
 .connect-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
-.connect-bar__note { font-size: 14px; line-height: 1.6; color: var(--text-secondary); max-width: 620px; }
+.connect-bar__title {
+  font-family: var(--font-display); font-weight: 600; font-size: 24px;
+  line-height: 1.15; letter-spacing: var(--tracking-display); color: var(--text-primary);
+}
+/* Auto rather than space-between, so the button stays on the right once a connected wallet drops the
+   note and leaves it as the bar's only child. */
+.connect-bar__action { margin-left: auto; }
 
 @media (max-width: 720px) {
   .vault-page { padding-top: 32px; }
@@ -461,9 +491,11 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
      than stacking 450px of statistics between the title and the app. */
   .stat-band { grid-template-columns: repeat(2, 1fr); margin: 28px 0 24px; padding: 20px 0; align-items: start; }
   .stat--wide { display: none; }
-  /* Reversed, so the button sits directly under the title and the note reads as its caption. */
-  .connect-bar { flex-direction: column-reverse; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
-  .connect-bar__note { font-size: 13px; }
+  /* Title over button, in that order: it is a header, so it reads before the control it labels. */
+  .connect-bar { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+  .connect-bar__title { font-size: 21px; }
+  /* In a column the auto margin would push the button to the right edge instead. */
+  .connect-bar__action { margin-left: 0; }
 }
 
 /* The reading matter under the app. One class rather than inline margins, so a phone can close the
