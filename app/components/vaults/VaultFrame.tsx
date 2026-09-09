@@ -188,8 +188,10 @@ export function Frame({ vault, summary, note, rows, paused = false, open, onTogg
         <span className="vault-head__name">
           <span style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <TokenPair vault={vault} />
+            {/* Explicit on purpose: "OURO → USDG" reads like a swap, which is the single most common
+                misreading of this page. Deposit / Earn says what actually happens. */}
             <span className="vault-head__title">
-              {token.symbol} → {vault.payoutSymbol}
+              Deposit {token.symbol} · Earn {vault.payoutSymbol}
             </span>
             {paused ? <Badge tone="caution">Deposits paused</Badge> : (
               <Badge tone="positive" dot>

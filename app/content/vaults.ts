@@ -96,26 +96,26 @@ export interface Payout {
 export const PAYOUTS: Payout[] = [
   {
     key: "compound",
-    summary: (t) => `${t.symbol} Yield is rebought as ${t.symbol} and compounds into more ${t.symbol}`,
-    short: (t) => `Compounds into ${t.symbol}`,
+    summary: (t) => `Deposit ${t.symbol}, earn more ${t.symbol}. The airdrops are sold and bought back as ${t.symbol}, so every share is worth more over time.`,
+    short: (t) => `Earn more ${t.symbol}`,
     asset: (t) => t.symbol,
     text: (t) =>
-      `Dividends are sold for ${t.symbol} and booked into the vault. Your share count stays the same and each share is worth more ${t.symbol} after every harvest. Nothing to claim. Each rebuy routes through the cheapest venue the keeper can quote.`,
+      `The airdropped tokens are sold and turned back into ${t.symbol}, which stays in the vault. Your number of shares never changes \u2014 each one just becomes worth more ${t.symbol}. Nothing to claim, nothing to do. The buy-back goes through Ouro\u0027s own pool, so the 5% tax on it returns to holders instead of going to outside market makers.`,
   },
   {
     key: "weth",
-    summary: (t) => `Yield accrues in WETH, your ${t.symbol} stays as deposited`,
-    short: () => "Pays WETH, claimable",
+    summary: (t) => `Deposit ${t.symbol}, earn ETH. Your ${t.symbol} stays exactly as you left it and the ETH stacks up for you to claim.`,
+    short: () => "Earn ETH, claim any time",
     asset: () => "WETH",
-    text: (t) => `Dividends are sold for WETH, which accrues to your shares until you claim it. Your ${t.symbol} stays exactly as deposited. The yield arrives in ETH.`,
+    text: (t) => `The airdropped tokens are sold for ETH (as WETH, the tradable form of it), which builds up against your shares until you press claim. Your ${t.symbol} is never sold and never moves \u2014 it comes back exactly as you deposited it.`,
   },
   {
     key: "usdg",
-    summary: (t) => `Yield accrues in USDG, your ${t.symbol} stays as deposited`,
-    short: () => "Pays USDG, claimable",
+    summary: (t) => `Deposit ${t.symbol}, earn dollars. Your ${t.symbol} stays exactly as you left it and the USDG stacks up for you to claim.`,
+    short: () => "Earn dollars, claim any time",
     asset: () => "USDG",
     text: (t) =>
-      `Dividends are sold for USDG, a dollar stablecoin, which accrues to your shares until you claim it. Your ${t.symbol} stays exactly as deposited. The yield arrives in dollars.`,
+      `The airdropped tokens are sold for USDG, a dollar stablecoin, which builds up against your shares until you press claim. Your ${t.symbol} is never sold and never moves \u2014 it comes back exactly as you deposited it. Good if you want the yield to hold its value in dollars.`,
   },
 ];
 

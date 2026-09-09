@@ -31,35 +31,38 @@ function VaultsSection() {
 }
 
 const LEDE =
-  "Pool your OURO. The deposits clear the airdrop line together, one keeper sells each airdrop for everyone, and you pick what it pays you in: more OURO, WETH or USDG.";
+  "Deposit OURO, earn OURO. Or deposit OURO and earn dollars, or ETH \u2014 you pick. Ouro only pays its airdrops to wallets holding 100,000 OURO or more; a vault pools everyone's together so the pool qualifies even when you don't, and your share gets sold for you into whichever of the three you chose.";
 
 export function meta({ location }: Route.MetaArgs) {
   return pageMeta({
     title: `OURO vaults · ${site.name}`,
     // Kept under ~155 characters, which is where a search result truncates.
-    description: `Pool your OURO to clear the airdrop line together, paid in OURO, WETH or USDG. The ${TERMS.performanceFeePct}% fee goes back out: ${TERMS.feeSplit.airdrops}% more airdrops, ${TERMS.feeSplit.ops}% ops. On Robinhood Chain.`,
+    description: `Deposit OURO and earn OURO, dollars or ETH. The vault pools deposits so they clear Ouro's 100,000 OURO airdrop minimum together. ${TERMS.performanceFeePct}% fee on profit only.`,
     path: location.pathname,
     image: "/og/vaults.png",
   });
 }
 
 const HOW: { title: string; text: ReactNode }[] = [
-  { title: "Deposit", text: "Deposit any amount of OURO into the vault of your choice and receive ERC4626 shares priced in OURO. There is no minimum and nothing is charged on the way in or out." },
   {
-    title: "Collect",
-    text: "About every two hours Ouro's airdrop pays every wallet above the line, 100,000 OURO, in kind: the Reserve basket, CASHCAT and PONS today. Pooled, a vault clears the line even when no single depositor does, and the basket lands in the vault.",
+    title: "Put your OURO in",
+    text: "Send any amount of OURO to the vault you want and you get back vault tokens that track your slice of the pool: own a hundredth of the pool, earn a hundredth of everything it makes. There is no minimum, and nothing is charged going in or coming out.",
   },
   {
-    title: "Harvest",
-    text: `A keeper sells the basket through the allowlisted venue into what the vault pays: more OURO, WETH or USDG. ${TERMS.performanceFeePct}% of the gain is the vault's fee, and the rest vests to depositors over ${TERMS.profitUnlock}.`,
+    title: "The pool qualifies, so you do",
+    text: "Every couple of hours Ouro pays an airdrop to each wallet holding 100,000 OURO or more, in the actual tokens \u2014 CASHCAT and PONS today. On your own, 20,000 OURO earns nothing at all. Sitting in the vault alongside everyone else's, the pool is comfortably over the line and the airdrop lands in the vault.",
   },
   {
-    title: "The fee goes back out",
-    text: `Most of what the vault charges is recycled into the thing it exists for: of that ${TERMS.performanceFeePct}%, ${TERMS.feeSplit.airdrops}% of the gain funds more airdrops and ${TERMS.feeSplit.ops}% covers ops, gas, infra and the keeper. Operator policy rather than a contract rule: a vault pays its whole fee to one recipient address, which anyone can watch on the explorer.`,
+    title: "A bot sells it for you",
+    text: "On your own you would be sorting out CASHCAT and PONS by hand every two hours. Instead a bot does it \u2014 selling them for whatever your vault pays out in, and buying OURO back through Ouro's own pool so the trade's tax returns to holders instead of leaking to outside market makers. It can only ever sell the airdropped tokens, only on an exchange the owner approved in advance, and never below a price floor it commits to before the trade.",
   },
   {
-    title: "Redeem or claim",
-    text: "In the OURO vault every share is now worth more OURO. In the WETH and USDG vaults the payout accrues to your shares and you claim it whenever you like. Withdraw your deposit any time, including while a vault is paused.",
+    title: "You keep 90% of what it earns",
+    text: `The vault takes ${TERMS.performanceFeePct}% of the profit it makes you, and nothing at all if it makes nothing. Your share of each sale phases in over ${TERMS.profitUnlock} rather than landing at once, so nobody can deposit just before a payout and walk off with it. Of the full ${TERMS.performanceFeePct}%, ${TERMS.feeSplit.airdrops} goes back out as more airdrops to OURO holders and ${TERMS.feeSplit.ops} covers gas, servers and the bot \u2014 our own policy rather than something the contract enforces, so a vault sends its whole fee to one address that anyone can watch on the explorer.`,
+  },
+  {
+    title: "Take it out whenever you want",
+    text: "In the OURO vault there is nothing to claim: each of your vault tokens is simply worth more OURO than it was. In the WETH and USDG vaults the money stacks up beside your deposit and you press claim when you feel like it. Your OURO itself comes back whenever you ask for it, even if the vault has been paused.",
   },
 ];
 
@@ -74,7 +77,7 @@ const BUILT_IN = [
 const RISKS = [
   "The vault contracts are new and have not been audited. Treat this as experimental software.",
   "The keeper is trusted with the basket tokens between airdrop and harvest. A bad route costs yield, not principal.",
-  "Every swap a vault makes pays a pool fee and price impact, and the OURO vault's rebuy pays the 5% pool tax like any other buy. The keeper sells through the deepest pool it can find.",
+  "Every trade a vault makes costs something: the exchange's own fee, plus a little slippage. The OURO vault's buy-back also pays OURO's 5% pool tax, deliberately \u2014 that tax goes to Ouro's treasury and back out to holders, where a cheaper route would hand the same money to outside market makers.",
   "Basket tokens waiting in a vault belong to whoever holds shares at the harvest. Withdrawing before a harvest forfeits your slice.",
   "The yield is Ouro's airdrop and nothing else. When trading in OURO cools, airdrops shrink, and the value of a deposit moves with the OURO price.",
 ];
@@ -193,6 +196,16 @@ export default function Vaults() {
               </div>
 
               <div>
+                {/* The single most useful thing on the page for a first-time reader: one concrete
+                    person, one concrete amount, no vocabulary. Added after "I don't get how this
+                    works lol". Deliberately no yield figure — the live cards carry that, and a
+                    number in prose here would read as a promise and go stale. */}
+                <Callout title="Say you hold 20,000 OURO" style={{ marginBottom: 24 }}>
+                  That is about a fifth of the 100,000 you need to qualify, so today Ouro&rsquo;s airdrops pass you by completely. Deposit it in the
+                  Earn&nbsp;dollars vault and your 20,000 sits with everyone else&rsquo;s. Every couple of hours the pool is paid its airdrop, a bot sells
+                  it for USDG, and your slice is credited to you &mdash; press claim whenever you like. Your 20,000 OURO is still yours the whole time and
+                  comes back whenever you ask.
+                </Callout>
                 <MicroLabel style={{ marginBottom: 6 }}>How the vaults work</MicroLabel>
                 {HOW.map((s, i) => (
                   <NumberedRow key={s.title} n={String(i + 1).padStart(2, "0")} py={16} borderBottom={i === HOW.length - 1}>
