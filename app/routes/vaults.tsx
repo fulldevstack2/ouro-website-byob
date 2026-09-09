@@ -77,7 +77,7 @@ const RISKS = [
   "The vault contracts are new and have not been audited. Treat this as experimental software.",
   "The keeper is trusted with the basket tokens between airdrop and harvest. A bad route costs yield, not principal.",
   "Every trade a vault makes costs something: the exchange's own fee, plus a little slippage. The OURO vault's buy-back also pays OURO's 5% pool tax, deliberately \u2014 that tax goes to Ouro's treasury and back out to holders, where a cheaper route would hand the same money to outside market makers.",
-  "Basket tokens waiting in a vault belong to whoever holds shares at the harvest. Withdrawing before a harvest forfeits your slice.",
+  "Airdropped tokens sitting in a vault belong to whoever is still in the vault when they get sold. Withdraw just before that happens and you give up your slice of it.",
   "The yield is Ouro's airdrop and nothing else. When trading in OURO cools, airdrops shrink, and the value of a deposit moves with the OURO price. Nothing here is a promise of returns.",
 ];
 

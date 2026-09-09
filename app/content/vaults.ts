@@ -100,14 +100,14 @@ export const PAYOUTS: Payout[] = [
     short: (t) => `Earn more ${t.symbol}`,
     asset: (t) => t.symbol,
     text: (t) =>
-      `The airdropped tokens are sold and turned back into ${t.symbol}, which stays in the vault. Your number of shares never changes \u2014 each one just becomes worth more ${t.symbol}. Nothing to claim, nothing to do. The buy-back goes through Ouro\u0027s own pool, so the 5% tax on it returns to holders instead of going to outside market makers.`,
+      `Yes \u2014 it goes straight back in. Every couple of hours the airdrop the vault received is sold and turned into more ${t.symbol}, which stays in the vault. Your balance simply gets bigger. There is nothing to collect and nothing to do, and you can withdraw the whole lot whenever you want. The buy-back goes through Ouro\u0027s own pool, so the 5% tax on it returns to holders instead of going to outside market makers.`,
   },
   {
     key: "weth",
     summary: (t) => `Deposit ${t.symbol}, earn ETH`,
     short: () => "Earn ETH",
     asset: () => "WETH",
-    text: (t) => `The airdropped tokens are sold for ETH (as WETH, the tradable form of it), which builds up against your shares until you press claim. Your ${t.symbol} is never sold and never moves \u2014 it comes back exactly as you deposited it.`,
+    text: (t) => `Your ${t.symbol} is never sold and never moves \u2014 it comes back exactly as you put it in. Every couple of hours the airdrop the vault received is sold for ETH, and that ETH is yours to take out whenever you want.`,
   },
   {
     key: "usdg",
@@ -115,7 +115,7 @@ export const PAYOUTS: Payout[] = [
     short: () => "Earn dollars",
     asset: () => "USDG",
     text: (t) =>
-      `The airdropped tokens are sold for USDG, a dollar stablecoin, which builds up against your shares until you press claim. Your ${t.symbol} is never sold and never moves \u2014 it comes back exactly as you deposited it. Good if you want the yield to hold its value in dollars.`,
+      `Your ${t.symbol} is never sold and never moves \u2014 it comes back exactly as you put it in. Every couple of hours the airdrop the vault received is sold for USDG, a dollar stablecoin, and those dollars are yours to take out whenever you want. Good if you would rather the yield held its value.`,
   },
 ];
 

@@ -244,10 +244,13 @@ export function StaticStats({ vault }: { vault: LiveVault }) {
   return (
     <>
       <KVRow label="Pooled" value={`— ${vault.token.symbol}`} />
-      <KVRow label={compounding ? "Share price" : "Owed to depositors"} value={`— ${compounding ? vault.token.symbol : vault.payoutSymbol}`} />
-      <KVRow label={compounding ? "Vesting to depositors" : "Streaming"} value="—" />
+      <KVRow
+        label={compounding ? `1 ${vault.token.symbol} deposited is now worth` : `${vault.payoutSymbol} earned so far`}
+        value={`— ${compounding ? vault.token.symbol : vault.payoutSymbol}`}
+      />
+      <KVRow label={compounding ? "Arriving over the next day" : "Paid out over the next day"} value="—" />
       <KVRow label="Your deposit" value="—" />
-      <KVRow label="Yours to claim" value={compounding ? "Compounded into shares" : "—"} border="none" />
+      <KVRow label="To collect" value={compounding ? `Nothing \u2014 your ${vault.token.symbol} just grows` : "—"} border="none" />
     </>
   );
 }

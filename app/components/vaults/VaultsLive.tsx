@@ -207,13 +207,15 @@ function LiveStats({
   return (
     <>
       <KVRow label="Pooled" value={`${fmtAmount(view.totalAssets, OURO_DECIMALS, 0)} ${dep}`} />
+      {/* "Share price 1.194913 OURO" made a real reader ask what a share was. Say the thing it
+          actually means instead. */}
       {compounding ? (
-        <KVRow label="Share price" value={`${fmtAmount(view.pricePerShare, OURO_DECIMALS, 6)} ${dep}`} />
+        <KVRow label={`1 ${dep} deposited is now worth`} value={`${fmtAmount(view.pricePerShare, OURO_DECIMALS, 6)} ${dep}`} />
       ) : (
-        <KVRow label="Owed to depositors" value={withUsd(view.accountedPayout, vault.payoutDecimals, vault.payoutSymbol, payoutUsd)} />
+        <KVRow label={`${vault.payoutSymbol} earned so far`} value={withUsd(view.accountedPayout, vault.payoutDecimals, vault.payoutSymbol, payoutUsd)} />
       )}
       {compounding ? (
-        <KVRow label="Vesting to depositors" value={view.lockedProfit === undefined ? "—" : view.lockedProfit === 0n ? "Nothing yet" : withUsd(view.lockedProfit, OURO_DECIMALS, dep, prices.ouroUsd)} />
+        <KVRow label="Arriving over the next day" value={view.lockedProfit === undefined ? "—" : view.lockedProfit === 0n ? "Nothing yet" : withUsd(view.lockedProfit, OURO_DECIMALS, dep, prices.ouroUsd)} />
       ) : (
         <KVRow
           label="Streaming"
@@ -223,7 +225,7 @@ function LiveStats({
       {/* No "yours to claim" row on a payout vault: the figure and its button are the ClaimPanel in
           the action card above, where a reader looks for something to press. */}
       <KVRow label="Your deposit" value={connected ? withUsd(view.deposited, OURO_DECIMALS, dep, prices.ouroUsd) : "—"} border={compounding ? "bottom" : "none"} />
-      {compounding && <KVRow label="Yours to claim" value="Compounded into shares" border="none" />}
+      {compounding && <KVRow label="To collect" value={`Nothing \u2014 your ${dep} just grows`} border="none" />}
     </>
   );
 }
@@ -247,7 +249,7 @@ function ClaimPanel({ vault, view, actions, ready, payoutUsd }: { vault: LiveVau
     <div className="vault-claim">
       {/* Bronze once there is something to take: with the box gone this is what makes the row catch
           the eye on the way past. */}
-      <MicroLabel tone={armed ? "accent" : "faint"}>Yours to claim</MicroLabel>
+      <MicroLabel tone={armed ? "accent" : "faint"}>Yours to collect</MicroLabel>
       <div className="vault-claim__row">
         <span className="vault-claim__amount">{isConnected ? withUsd(view.earned, vault.payoutDecimals, vault.payoutSymbol, payoutUsd) : `— ${vault.payoutSymbol}`}</span>
         {/* Ink only when it can actually be pressed: a disabled primary is a heavy grey slab, and
