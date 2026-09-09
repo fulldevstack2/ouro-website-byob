@@ -27,7 +27,7 @@ export const robinhoodChain = defineChain({
  * working and only the QR / mobile path is missing. That is a much better failure than a page that
  * throws on load because an env var was not set at build time.
  */
-const projectId = typeof __WALLETCONNECT_PROJECT_ID__ === "string" ? __WALLETCONNECT_PROJECT_ID__ : "";
+const projectId = "0031ff4cbef4968b799fc2910156439c";
 
 export const hasWalletConnect = projectId.length > 0;
 
