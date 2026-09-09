@@ -30,8 +30,7 @@ function VaultsSection() {
   );
 }
 
-const LEDE =
-  "Deposit OURO, earn OURO. Or deposit OURO and earn dollars, or ETH \u2014 you pick. Ouro only pays its airdrops to wallets holding 100,000 OURO or more; a vault pools everyone's together so the pool qualifies even when you don't, and your share gets sold for you into whichever of the three you chose.";
+const LEDE = "Deposit OURO. Earn OURO, dollars or ETH \u2014 whichever you pick. The vault does the rest.";
 
 export function meta({ location }: Route.MetaArgs) {
   return pageMeta({
@@ -79,7 +78,7 @@ const RISKS = [
   "The keeper is trusted with the basket tokens between airdrop and harvest. A bad route costs yield, not principal.",
   "Every trade a vault makes costs something: the exchange's own fee, plus a little slippage. The OURO vault's buy-back also pays OURO's 5% pool tax, deliberately \u2014 that tax goes to Ouro's treasury and back out to holders, where a cheaper route would hand the same money to outside market makers.",
   "Basket tokens waiting in a vault belong to whoever holds shares at the harvest. Withdrawing before a harvest forfeits your slice.",
-  "The yield is Ouro's airdrop and nothing else. When trading in OURO cools, airdrops shrink, and the value of a deposit moves with the OURO price.",
+  "The yield is Ouro's airdrop and nothing else. When trading in OURO cools, airdrops shrink, and the value of a deposit moves with the OURO price. Nothing here is a promise of returns.",
 ];
 
 const TRUST: { who: string; can: string; cannot: string }[] = [
@@ -166,35 +165,18 @@ export default function Vaults() {
 
       <VaultsSection />
 
-      <Callout title="Which payout?" style={{ marginTop: 24 }}>
-        The OURO vault keeps you fully in OURO: each rebuy routes through WETH into the OURO pool, paying that pool's fee, the 5% tax and price impact, and the
-        gain shows up as a rising share price. The WETH and USDG vaults skip the rebuy and leave your deposit untouched: the yield accrues to your shares in that
-        token and you claim it, but it stops compounding. The keeper, the venue and the fee are the same in all three.
-      </Callout>
 
       <div className="vault-prose">
-        <SectionHead kicker="Before you deposit" title="The details." titleStyle={{ fontSize: 30 }} style={{ marginBottom: 4 }} />
+        <SectionHead kicker="Questions" title="How it actually works." titleStyle={{ fontSize: 30 }} style={{ marginBottom: 4 }} />
         <DisclosureList>
-          <Disclosure kicker="The terms" title="What you get, and how it works.">
-            <Grid cols="0.95fr 1.05fr" gap={48} align="start">
-              <div>
-                <div style={{ borderTop: hairline }}>
-                  <KVRow label="You deposit" value="OURO" />
-                  <KVRow label="You receive" value="ERC4626 shares, 1:1 at deposit" />
-                  <KVRow label="Minimum deposit" value="None" />
-                  <KVRow label="Deposit and withdrawal fees" value="0" />
-                  <KVRow label="Performance fee" value={`${TERMS.performanceFeePct}% of harvest gains`} />
-                  <KVRow label="Where the fee goes" value={`${TERMS.feeSplit.airdrops}% airdrops / ${TERMS.feeSplit.ops}% ops`} />
-                  <KVRow label="Gains vest over" value={`${TERMS.profitUnlock}, linear`} />
-                  <KVRow label="Withdraw" value="Any time, even while paused" />
-                  <KVRow label="Claim (WETH, USDG vaults)" value="Any time, even while paused" />
-                </div>
-                <Callout tone="caution" title="The yield is the airdrop, nothing else" style={{ marginTop: 24 }}>
-                  Each vault holds OURO and only that. Its growth is whatever the airdrop pays: when trading in OURO cools, airdrops shrink and so does the
-                  vault's yield, and the value of a deposit moves with the OURO price. Nothing here is a promise of returns.
-                </Callout>
-              </div>
-
+          <Disclosure kicker="The basics" title="How does a vault earn me anything?">
+            {/* Was a two-column spread with a spec table of nine KVRows down the left. Removed: it
+                answered questions nobody had yet, in the vocabulary the page is trying to avoid
+                ("ERC4626 shares, 1:1 at deposit"), directly above the plain-language version of the
+                same facts. The numbers it carried are all in the steps below, and the
+                yield-is-the-airdrop caution now lives in "What can go wrong?" where a reader looking
+                for risk will actually find it. */}
+            <div>
               <div>
                 {/* The single most useful thing on the page for a first-time reader: one concrete
                     person, one concrete amount, no vocabulary. Added after "I don't get how this
@@ -217,13 +199,13 @@ export default function Vaults() {
                   How the airdrop itself works, and what has been paid so far, is on the <Link to="/airdrops/">airdrops page</Link>.
                 </div>
               </div>
-            </Grid>
+            </div>
           </Disclosure>
 
           {/* Was two sections, "Why a vault" and "Why Ouro built them", making the same argument
               twice: the line prices out small holders, pooling clears it, and the keeper does the
               chore in public. Merged into the three columns it always wanted to be. */}
-          <Disclosure kicker="Why a vault" title="One line, cleared together.">
+          <Disclosure kicker="Eligibility" title="Do I need 100,000 OURO?">
             <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md">
               <Col label="The line">
                 The airdrop pays only wallets holding at least 0.01% of the supply, 100,000 OURO. That line exists so a payout in many small tokens is not
@@ -244,7 +226,7 @@ export default function Vaults() {
             </Grid>
           </Disclosure>
 
-          <Disclosure kicker="Trust model" title="Who can do what.">
+          <Disclosure kicker="Control" title="Can anyone take my deposit?">
             <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md">
               {TRUST.map((r, i) => (
                 <div key={r.who} className={i ? "cell-rule" : undefined}>
@@ -262,7 +244,7 @@ export default function Vaults() {
             </Grid>
           </Disclosure>
 
-          <Disclosure kicker="Safety and risks" title="Read before depositing." sub="What is built in, and what can still go wrong. The contracts are new and unaudited.">
+          <Disclosure kicker="Risk" title="What can go wrong?" sub="What is built in, and what can still go wrong. The contracts are new and unaudited.">
             <Grid cols="1fr 1fr" gap={48} align="start">
               <div>
                 <MicroLabel style={{ marginBottom: 10 }}>Built in</MicroLabel>

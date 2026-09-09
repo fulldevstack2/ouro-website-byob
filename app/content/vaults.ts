@@ -96,7 +96,7 @@ export interface Payout {
 export const PAYOUTS: Payout[] = [
   {
     key: "compound",
-    summary: (t) => `Deposit ${t.symbol}, earn more ${t.symbol}. The airdrops are sold and bought back as ${t.symbol}, so every share is worth more over time.`,
+    summary: (t) => `Deposit ${t.symbol}, earn more ${t.symbol}`,
     short: (t) => `Earn more ${t.symbol}`,
     asset: (t) => t.symbol,
     text: (t) =>
@@ -104,15 +104,15 @@ export const PAYOUTS: Payout[] = [
   },
   {
     key: "weth",
-    summary: (t) => `Deposit ${t.symbol}, earn ETH. Your ${t.symbol} stays exactly as you left it and the ETH stacks up for you to claim.`,
-    short: () => "Earn ETH, claim any time",
+    summary: (t) => `Deposit ${t.symbol}, earn ETH`,
+    short: () => "Earn ETH",
     asset: () => "WETH",
     text: (t) => `The airdropped tokens are sold for ETH (as WETH, the tradable form of it), which builds up against your shares until you press claim. Your ${t.symbol} is never sold and never moves \u2014 it comes back exactly as you deposited it.`,
   },
   {
     key: "usdg",
-    summary: (t) => `Deposit ${t.symbol}, earn dollars. Your ${t.symbol} stays exactly as you left it and the USDG stacks up for you to claim.`,
-    short: () => "Earn dollars, claim any time",
+    summary: (t) => `Deposit ${t.symbol}, earn dollars`,
+    short: () => "Earn dollars",
     asset: () => "USDG",
     text: (t) =>
       `The airdropped tokens are sold for USDG, a dollar stablecoin, which builds up against your shares until you press claim. Your ${t.symbol} is never sold and never moves \u2014 it comes back exactly as you deposited it. Good if you want the yield to hold its value in dollars.`,
