@@ -467,7 +467,7 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
 }
 
 /* The reading matter under the app. One class rather than inline margins, so a phone can close the
-   gaps up: at 96px apiece the six blocks spent a whole screen on white space alone. */
+   gaps up: at 96px apiece the sections spent a whole screen on white space alone. */
 .vault-prose { margin-top: 96px; }
 .vault-prose--tight { margin-top: 64px; }
 
@@ -476,33 +476,59 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
   .vault-prose--tight { margin-top: 44px; }
 }
 
-/* 13. Folded long-form blocks (/vaults) ---------------------------------- */
-/* A phone sees the top of a block and a button for the rest; above the query neither the height nor
-   the button exists, so the desktop page is untouched. See components/site/Fold.tsx. */
-.fold__more { display: none; }
+/* 13. Long-form sections as rows you open (/vaults) ---------------------- */
+/* Each section's kicker and headline stay visible; its body opens under them. Closed, the five of
+   them read as an index of what the page holds. See components/site/Disclosure.tsx for why, and
+   hooks/useCollapse.ts for the measured-height animation the body shares with the vault rows. */
+.disc-list { border-top: 1px solid var(--border-hairline); }
+.disc { border-bottom: 1px solid var(--border-hairline); }
+.disc__heading { margin: 0; font: inherit; }
+.disc__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  width: 100%; box-sizing: border-box; margin: 0; padding: 18px 0; text-align: left;
+  appearance: none; background: none; border: 0; font: inherit; color: inherit; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.disc__label { min-width: 0; }
+.disc__title {
+  display: block; margin-top: 8px;
+  font-family: var(--font-display); font-weight: 600; font-size: 24px;
+  line-height: 1.15; letter-spacing: var(--tracking-display); color: var(--text-primary);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.disc__sub { display: block; margin-top: 8px; font-size: 14px; line-height: 1.55; color: var(--text-muted); max-width: 620px; }
+@media (hover: hover) {
+  .disc__head:hover .disc__title { color: var(--bronze-800); }
+  .disc__head:hover .disc__chev { color: var(--text-primary); }
+}
+.disc__chev {
+  flex: none; color: var(--text-muted);
+  transition: transform var(--dur-base) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.disc[data-open="true"] .disc__chev { transform: rotate(180deg); }
+/* The padding sits on __content, since a padded box is never really zero-height. Closed content is
+   visibility:hidden, which takes it out of the tab order, the accessibility tree and find-in-page;
+   the 0s transition holds that off until the collapse has played. */
+.disc__body { overflow: hidden; height: 0; transition: height 280ms var(--ease-out); }
+.disc__content {
+  padding-bottom: 32px;
+  opacity: 0; visibility: hidden;
+  transition: opacity 120ms var(--ease-out), visibility 0s linear 280ms;
+}
+.disc[data-open="true"] .disc__content {
+  opacity: 1; visibility: visible;
+  transition: opacity 220ms var(--ease-out) 60ms, visibility 0s linear 0s;
+}
 
 @media (max-width: 720px) {
-  .fold { position: relative; }
-  .fold__body { overflow: hidden; height: var(--peek, 176px); transition: height 300ms var(--ease-out); }
-  .fold[data-open="true"] .fold__body { height: auto; }
-  /* Masked rather than covered by a gradient: these blocks sit on the page ground, on a white card
-     and on a tint, and a mask fades the text out over all three. */
-  .fold[data-open="false"] .fold__body {
-    -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 64px), transparent);
-    mask-image: linear-gradient(to bottom, #000 calc(100% - 64px), transparent);
-  }
-  .fold__more {
-    display: inline-flex; align-items: center; gap: 6px; margin-top: 14px;
-    appearance: none; background: none; border: 0; padding: 8px 0; font: inherit;
-    font-size: 13px; font-weight: 600; color: var(--bronze-700); cursor: pointer;
-    -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-  }
-  .fold__more:active { color: var(--bronze-800); }
-  .fold__chev { transition: transform var(--dur-base) var(--ease-out); }
-  .fold[data-open="true"] .fold__chev { transform: rotate(180deg); }
+  .disc__head { padding: 15px 0; gap: 14px; }
+  .disc__title { font-size: 20px; margin-top: 6px; }
+  .disc__sub { margin-top: 6px; font-size: 13px; }
+  .disc__content { padding-bottom: 24px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fold__body,
-  .fold__chev { transition: none; }
+  .disc__body,
+  .disc__content,
+  .disc__chev { transition: none; }
 }

@@ -148,7 +148,7 @@ export function Frame({ vault, summary, note, rows, paused = false, open, onTogg
   const { token, payout, entry } = vault;
   const bodyId = `vault-${entry.address}`;
   const head = useRef<HTMLButtonElement>(null);
-  const body = useCollapse(open, { onOpened: () => revealRow(head.current) });
+  const body = useCollapse(open, { onOpened: () => revealRow(head.current?.closest("section") ?? null) });
   return (
     <Card padding={0} className="vault-card">
       <button type="button" ref={head} className="vault-head" aria-expanded={open} aria-controls={bodyId} onClick={onToggle}>

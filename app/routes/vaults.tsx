@@ -3,7 +3,7 @@ import { Link } from "react-router";
 
 import type { Route } from "./+types/vaults";
 import { Badge, Callout, LedgerTable, type LedgerColumn } from "~/components/ds";
-import { AddressCell, Container, Fold, Grid, KVRow, MicroLabel, NumberedRow, PageHeader, SectionHead, body14, hairline, mono } from "~/components/site";
+import { AddressCell, Container, Disclosure, DisclosureList, Grid, KVRow, MicroLabel, NumberedRow, PageHeader, SectionHead, body14, hairline, mono } from "~/components/site";
 import { VaultsStatic } from "~/components/vaults/VaultFrame";
 import { site } from "~/content/site";
 import { LIVE_VAULTS, PAYOUT_TOKENS, TERMS, TOKENS } from "~/content/vaults";
@@ -169,135 +169,110 @@ export default function Vaults() {
         token and you claim it, but it stops compounding. The keeper, the venue and the fee are the same in all three.
       </Callout>
 
-      <Fold more="Read the terms and how they work" style={{ marginTop: 64 }}>
-        <Grid cols="0.95fr 1.05fr" gap={48} align="start">
-          <div>
-            <MicroLabel style={{ marginBottom: 6 }}>The terms</MicroLabel>
-            <div style={{ borderTop: hairline }}>
-              <KVRow label="You deposit" value="OURO" />
-              <KVRow label="You receive" value="ERC4626 shares, 1:1 at deposit" />
-              <KVRow label="Minimum deposit" value="None" />
-              <KVRow label="Deposit and withdrawal fees" value="0" />
-              <KVRow label="Performance fee" value={`${TERMS.performanceFeePct}% of harvest gains`} />
-              <KVRow label="Where the fee goes" value={`${TERMS.feeSplit.airdrops}% airdrops / ${TERMS.feeSplit.ops}% ops`} />
-              <KVRow label="Gains vest over" value={`${TERMS.profitUnlock}, linear`} />
-              <KVRow label="Withdraw" value="Any time, even while paused" />
-              <KVRow label="Claim (WETH, USDG vaults)" value="Any time, even while paused" />
-            </div>
-            <Callout tone="caution" title="The yield is the airdrop, nothing else" style={{ marginTop: 24 }}>
-              Each vault holds OURO and only that. Its growth is whatever the airdrop pays: when trading in OURO cools, airdrops shrink and so does the vault's
-              yield, and the value of a deposit moves with the OURO price. Nothing here is a promise of returns.
-            </Callout>
-          </div>
-
-          <div>
-            <MicroLabel style={{ marginBottom: 6 }}>How the vaults work</MicroLabel>
-            {HOW.map((s, i) => (
-              <NumberedRow key={s.title} n={String(i + 1).padStart(2, "0")} py={16} borderBottom={i === HOW.length - 1}>
-                <div style={{ fontSize: 16, fontWeight: 600 }}>{s.title}</div>
-                <div style={{ ...body14, marginTop: 4 }}>{s.text}</div>
-              </NumberedRow>
-            ))}
-            <div style={{ marginTop: 16, fontSize: 13, color: "var(--text-muted)" }}>
-              How the airdrop itself works, and what has been paid so far, is on the <Link to="/airdrops/">airdrops page</Link>.
-            </div>
-          </div>
-        </Grid>
-      </Fold>
-
       <div className="vault-prose">
-        <SectionHead kicker="Why a vault" title="One line, cleared together." />
-        <Fold more="Read why a vault">
-          <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md">
-            <Col label="The line">
-              The airdrop pays only wallets holding at least 0.01% of the supply, 100,000 OURO, and that line is fixed in tokens: as the market cap grows it
-              prices out every holder who arrives later. Pools and the team vest are excluded, ordinary contracts are not, so pooled deposits clear the line
-              together.
-            </Col>
-            <Col label="The chore" rule>
-              The airdrop arrives as other tokens, the Reserve basket, about every two hours. Turning it into one asset by hand, every time, is a job. One
-              keeper does it once, for everyone, into the asset each vault promises.
-            </Col>
-            <Col label="The proof" rule>
-              Every harvest is a transaction: what was sold, where, and how much came back, booked against the vault's real balance. Each vault's history is
-              public from its first block. Every amount on this page is read from the chain; only the dollar prices come from Ouro's own monitor.
-            </Col>
-          </Grid>
-        </Fold>
-      </div>
-
-      <div className="vault-prose">
-        <SectionHead kicker="Why Ouro built them" title="Every holder in, however small." style={{ marginBottom: 20 }} />
-        <Fold more="Read why Ouro built them" peek={140}>
-          <p style={{ margin: 0, fontSize: 16, lineHeight: 1.6, color: "var(--text-secondary)", maxWidth: 620 }}>
-            The airdrop line exists so that a payout in many small tokens is not shredded into dust across thousands of wallets. It also means the smallest
-            holders, the ones the protocol most wants to keep, are the ones it cannot pay. The vaults square that: the line stays where it is, and anyone can
-            stand behind it.
-          </p>
-          <p style={{ margin: "12px 0 0", fontSize: 16, lineHeight: 1.6, color: "var(--text-secondary)", maxWidth: 620 }}>
-            They also run, in public, the machinery the Reserve needs: a keeper that collects on schedule, sells through the right venue, books it onchain and
-            shows its work. Ouro gets a track record anyone can check, and OURO holders get their airdrop in the form they prefer.
-          </p>
-          <p style={{ margin: "12px 0 0", fontSize: 16, lineHeight: 1.6, color: "var(--text-secondary)", maxWidth: 620 }}>
-            And what the vaults charge goes back where it came from. Of the {TERMS.performanceFeePct}% taken on a harvest gain, {TERMS.feeSplit.airdrops}% funds
-            more airdrops and {TERMS.feeSplit.ops}% covers ops, so the fee a depositor pays widens the payout every OURO holder is queueing for rather than
-            leaving the loop.
-          </p>
-        </Fold>
-      </div>
-
-      <div className="vault-prose">
-        <SectionHead kicker="Trust model" title="Who can do what." titleStyle={{ fontSize: 30 }} style={{ marginBottom: 32 }} />
-        <Fold more="Read the trust model">
-          <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md">
-            {TRUST.map((r, i) => (
-              <div key={r.who} className={i ? "cell-rule" : undefined}>
-                <div style={{ fontSize: 16, fontWeight: 600 }}>{r.who}</div>
-                <MicroLabel tone="faint" style={{ marginTop: 14 }}>
-                  Can
-                </MicroLabel>
-                <div style={{ ...body14, marginTop: 6 }}>{r.can}</div>
-                <MicroLabel tone="faint" style={{ marginTop: 14 }}>
-                  Cannot
-                </MicroLabel>
-                <div style={{ ...body14, marginTop: 6 }}>{r.cannot}</div>
+        <SectionHead kicker="Before you deposit" title="The details." titleStyle={{ fontSize: 30 }} style={{ marginBottom: 4 }} />
+        <DisclosureList>
+          <Disclosure kicker="The terms" title="What you get, and how it works.">
+            <Grid cols="0.95fr 1.05fr" gap={48} align="start">
+              <div>
+                <div style={{ borderTop: hairline }}>
+                  <KVRow label="You deposit" value="OURO" />
+                  <KVRow label="You receive" value="ERC4626 shares, 1:1 at deposit" />
+                  <KVRow label="Minimum deposit" value="None" />
+                  <KVRow label="Deposit and withdrawal fees" value="0" />
+                  <KVRow label="Performance fee" value={`${TERMS.performanceFeePct}% of harvest gains`} />
+                  <KVRow label="Where the fee goes" value={`${TERMS.feeSplit.airdrops}% airdrops / ${TERMS.feeSplit.ops}% ops`} />
+                  <KVRow label="Gains vest over" value={`${TERMS.profitUnlock}, linear`} />
+                  <KVRow label="Withdraw" value="Any time, even while paused" />
+                  <KVRow label="Claim (WETH, USDG vaults)" value="Any time, even while paused" />
+                </div>
+                <Callout tone="caution" title="The yield is the airdrop, nothing else" style={{ marginTop: 24 }}>
+                  Each vault holds OURO and only that. Its growth is whatever the airdrop pays: when trading in OURO cools, airdrops shrink and so does the
+                  vault's yield, and the value of a deposit moves with the OURO price. Nothing here is a promise of returns.
+                </Callout>
               </div>
-            ))}
-          </Grid>
-        </Fold>
-      </div>
 
-      <div className="vault-prose vault-prose--tight">
-        <SectionHead kicker="Safety and risks" title="Read before depositing." titleStyle={{ fontSize: 30 }} style={{ marginBottom: 32 }} />
-        <Fold more="Read the safety notes and risks" peek={200}>
-          <Grid cols="1fr 1fr" gap={48} align="start">
-            <div>
-              <MicroLabel style={{ marginBottom: 10 }}>Built in</MicroLabel>
-              <RuleList items={BUILT_IN} />
-            </div>
-            <div>
-              <MicroLabel style={{ marginBottom: 10 }}>The risks</MicroLabel>
-              <RuleList items={RISKS} />
-            </div>
-          </Grid>
-        </Fold>
-      </div>
+              <div>
+                <MicroLabel style={{ marginBottom: 6 }}>How the vaults work</MicroLabel>
+                {HOW.map((s, i) => (
+                  <NumberedRow key={s.title} n={String(i + 1).padStart(2, "0")} py={16} borderBottom={i === HOW.length - 1}>
+                    <div style={{ fontSize: 16, fontWeight: 600 }}>{s.title}</div>
+                    <div style={{ ...body14, marginTop: 4 }}>{s.text}</div>
+                  </NumberedRow>
+                ))}
+                <div style={{ marginTop: 16, fontSize: 13, color: "var(--text-muted)" }}>
+                  How the airdrop itself works, and what has been paid so far, is on the <Link to="/airdrops/">airdrops page</Link>.
+                </div>
+              </div>
+            </Grid>
+          </Disclosure>
 
-      <div className="vault-prose vault-prose--tight">
-        <SectionHead
-          kicker="Parameters and addresses"
-          title="Verify everything."
-          titleStyle={{ fontSize: 30 }}
-          sub="The terms are set at deploy and readable from each contract. All three vaults are verified on the explorer."
-          subStyle={{ fontSize: 15 }}
-          style={{ marginBottom: 32 }}
-        />
-        <Fold more="Show the parameters and addresses" peek={160}>
-          <Grid cols="1fr 1fr" gap={24} align="start">
-            <LedgerTable compact columns={PARAM_COLS} rows={PARAM_ROWS} />
-            <LedgerTable compact columns={ADDR_COLS} rows={ADDR_ROWS} />
-          </Grid>
-        </Fold>
+          {/* Was two sections, "Why a vault" and "Why Ouro built them", making the same argument
+              twice: the line prices out small holders, pooling clears it, and the keeper does the
+              chore in public. Merged into the three columns it always wanted to be. */}
+          <Disclosure kicker="Why a vault" title="One line, cleared together.">
+            <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md">
+              <Col label="The line">
+                The airdrop pays only wallets holding at least 0.01% of the supply, 100,000 OURO. That line exists so a payout in many small tokens is not
+                shredded into dust across thousands of wallets, but it is fixed in tokens: as the market cap grows it prices out every holder who arrives
+                later, and the smallest holders, the ones the protocol most wants to keep, are the ones it cannot pay. Pools and the team vest are excluded,
+                ordinary contracts are not, so pooled deposits clear the line together and the line itself never has to move.
+              </Col>
+              <Col label="The chore" rule>
+                The airdrop arrives as other tokens, the Reserve basket, about every two hours. Turning it into one asset by hand, every time, is a job. One
+                keeper does it once, for everyone, into the asset each vault promises, and the fee that pays for it goes back out: {TERMS.feeSplit.airdrops}% of
+                each harvest gain to more airdrops, {TERMS.feeSplit.ops}% to ops.
+              </Col>
+              <Col label="The proof" rule>
+                Every harvest is a transaction: what was sold, where, and how much came back, booked against the vault's real balance. Each vault's history is
+                public from its first block, so Ouro gets a track record anyone can check. Every amount on this page is read from the chain; only the dollar
+                prices come from Ouro's own monitor.
+              </Col>
+            </Grid>
+          </Disclosure>
+
+          <Disclosure kicker="Trust model" title="Who can do what.">
+            <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md">
+              {TRUST.map((r, i) => (
+                <div key={r.who} className={i ? "cell-rule" : undefined}>
+                  <div style={{ fontSize: 16, fontWeight: 600 }}>{r.who}</div>
+                  <MicroLabel tone="faint" style={{ marginTop: 14 }}>
+                    Can
+                  </MicroLabel>
+                  <div style={{ ...body14, marginTop: 6 }}>{r.can}</div>
+                  <MicroLabel tone="faint" style={{ marginTop: 14 }}>
+                    Cannot
+                  </MicroLabel>
+                  <div style={{ ...body14, marginTop: 6 }}>{r.cannot}</div>
+                </div>
+              ))}
+            </Grid>
+          </Disclosure>
+
+          <Disclosure kicker="Safety and risks" title="Read before depositing." sub="What is built in, and what can still go wrong. The contracts are new and unaudited.">
+            <Grid cols="1fr 1fr" gap={48} align="start">
+              <div>
+                <MicroLabel style={{ marginBottom: 10 }}>Built in</MicroLabel>
+                <RuleList items={BUILT_IN} />
+              </div>
+              <div>
+                <MicroLabel style={{ marginBottom: 10 }}>The risks</MicroLabel>
+                <RuleList items={RISKS} />
+              </div>
+            </Grid>
+          </Disclosure>
+
+          <Disclosure
+            kicker="Parameters and addresses"
+            title="Verify everything."
+            sub="Set at deploy and readable from each contract. All three vaults are verified on the explorer."
+          >
+            <Grid cols="1fr 1fr" gap={24} align="start">
+              <LedgerTable compact columns={PARAM_COLS} rows={PARAM_ROWS} />
+              <LedgerTable compact columns={ADDR_COLS} rows={ADDR_ROWS} />
+            </Grid>
+          </Disclosure>
+        </DisclosureList>
       </div>
 
       <div className="vault-prose vault-prose--tight">

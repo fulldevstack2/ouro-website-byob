@@ -95,15 +95,17 @@ export function useCollapse(open: boolean, { closedHeight = 0, query, onOpened }
 
 /**
  * Bring a just-opened row under the sticky nav, but only when it is not already comfortably in view:
- * on a phone the panel opens well below the fold, and on a desktop where the whole card already fits
+ * on a phone the panel opens well below the fold, and on a desktop where the whole row already fits
  * the page should not move at all. The nav's height is measured rather than hard-coded, since it
  * wraps to two rows on a phone.
+ *
+ * `target` is the whole row, header and panel together, not the header alone: what matters is whether
+ * the thing that just opened fits on screen.
  */
-export function revealRow(head: HTMLElement | null) {
-  if (!head) return;
-  const card = head.closest("section") ?? head;
+export function revealRow(target: HTMLElement | null) {
+  if (!target) return;
   const offset = (document.querySelector<HTMLElement>(".site-nav")?.offsetHeight ?? 0) + 10;
-  const box = card.getBoundingClientRect();
+  const box = target.getBoundingClientRect();
   if (box.top >= offset - 2 && box.bottom <= window.innerHeight) return;
   const top = Math.max(0, window.scrollY + box.top - offset);
   if (Math.abs(top - window.scrollY) < 8) return;
