@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode, type TransitionEvent } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import { Badge, Button, Card, Stat } from "~/components/ds";
 import { AddressCell, Grid, KVRow, TokenIcon, body14, hairline, micro, mono } from "~/components/site";
+import { revealRow, useCollapse } from "~/hooks/useCollapse";
 import { LIVE_VAULTS, TERMS, type LiveVault } from "~/content/vaults";
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -20,11 +21,16 @@ import { LIVE_VAULTS, TERMS, type LiveVault } from "~/content/vaults";
 
    One row is open at a time (useOpenVault). A closed body stays mounted rather than being unmounted, so
    a half-typed amount and a chosen tab survive closing the row; it opens and closes by animating its
-   height (useHeightToggle below, .vault-body in styles/site.css) and is `visibility: hidden` once
-   closed, which takes it out of the tab order and the accessibility tree.
+   height (useCollapse) and is `visibility: hidden` once closed, which takes it out of the tab order
+   and the accessibility tree. Opening also brings the row up under the sticky nav when the card does
+   not already fit on screen, which on a phone is always: without it the panel unfolds below the fold
+   and the tap looks like it did nothing.
 
    The three headers share one column template (.vault-head in styles/site.css), so TVL and the yield
-   line up down the page; below 720px the two figures drop to their own line under the name.
+   line up down the page. On a phone the header drops to two lines, name over figures, and the
+   payout's `short` line stands in for its `summary`; the body reorders so the deposit and withdraw
+   panel comes FIRST, since that is what the tap was for, with the figures and then the prose under it
+   (.vault-body__content's grid areas).
    ──────────────────────────────────────────────────────────────────────────── */
 
 export interface StatBandProps {
@@ -36,13 +42,28 @@ export interface StatBandProps {
   airdropNote: ReactNode;
 }
 
+/**
+ * The band above the rows. Two of the four are live figures with caveats worth reading and two are
+ * fixed terms repeated further down the page, so a phone keeps the first pair and drops the second
+ * (.stat--wide in site.css) rather than stacking 450px of statistics over the app.
+ */
 export function StatBand({ tvl, tvlNote, airdropRate, airdropNote }: StatBandProps) {
   return (
-    <Grid cols="repeat(4, 1fr)" gap={24} className="grid--2col-md" style={{ margin: "40px 0 40px", padding: "28px 0", borderTop: hairline, borderBottom: hairline }}>
-      <Stat label="Vaults" value={String(LIVE_VAULTS.length)} footnote="All pooling OURO, paid in OURO, WETH or USDG. Each clears the 100,000 OURO airdrop line for everyone in it" />
+    <Grid cols="repeat(4, 1fr)" gap={24} className="grid--2col-md stat-band">
+      <Stat
+        className="stat--wide"
+        label="Vaults"
+        value={String(LIVE_VAULTS.length)}
+        footnote="All pooling OURO, paid in OURO, WETH or USDG. Each clears the 100,000 OURO airdrop line for everyone in it"
+      />
       <Stat className="cell-rule" label="TVL" value={tvl} footnote={tvlNote} />
       <Stat className="cell-rule" label="Airdrop rate" value={airdropRate} footnote={airdropNote} />
-      <Stat className="cell-rule" label="Performance fee" value={`${TERMS.performanceFeePct}%`} footnote={`Of harvest gains only. Hard cap ${TERMS.maxPerformanceFeePct}%, and no deposit or withdrawal fee`} />
+      <Stat
+        className="cell-rule stat--wide"
+        label="Performance fee"
+        value={`${TERMS.performanceFeePct}%`}
+        footnote={`Of harvest gains only, hard cap ${TERMS.maxPerformanceFeePct}%, and no deposit or withdrawal fee. ${TERMS.feeSplit.airdrops}% of the gain funds more airdrops, ${TERMS.feeSplit.ops}% covers ops`}
+      />
     </Grid>
   );
 }
@@ -54,18 +75,19 @@ export const STATIC_BAND: StatBandProps = {
   airdropNote: "What a wallet above the line earns from payouts actually made, annualised, before any vault fee",
 };
 
+/** The connect row. On a phone the button comes first, so the note never sits between it and the rows. */
 export function ConnectBar({ right, note }: { right: ReactNode; note: ReactNode }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
-      <div style={{ ...body14, maxWidth: 620 }}>{note}</div>
-      {right}
+    <div className="connect-bar">
+      <div className="connect-bar__note">{note}</div>
+      <div className="connect-bar__action">{right}</div>
     </div>
   );
 }
 
 /** The rows, stacked. */
 export function VaultList({ children }: { children: ReactNode }) {
-  return <div style={{ display: "grid", gap: 12 }}>{children}</div>;
+  return <div className="vault-list">{children}</div>;
 }
 
 /** One row open at a time, keyed by vault address; clicking the open row closes it. */
@@ -89,7 +111,9 @@ export interface VaultSummary {
 function Figure({ label, value }: { label: ReactNode; value: ReactNode }) {
   return (
     <span className="vault-head__fig">
-      <span style={{ ...micro, fontSize: 10, color: "var(--text-muted)" }}>{label}</span>
+      <span className="vault-head__fig-label" style={{ ...micro, fontSize: 10, color: "var(--text-muted)" }}>
+        {label}
+      </span>
       <span style={{ ...mono, fontSize: 15, fontWeight: 600, color: "var(--text-primary)", overflowWrap: "anywhere" }}>{value}</span>
     </span>
   );
@@ -103,63 +127,11 @@ function Chevron() {
   );
 }
 
-/**
- * Open and close by animating the panel's height between 0 and the height its content actually needs,
- * measured at the moment of the toggle. The stylesheet owns only the resting states (closed is
- * `height: 0`), so the prerendered HTML is correct before any of this runs.
- *
- * NOT the `grid-template-rows: 0fr -> 1fr` trick, which reads far better but is wrong here: in Chrome
- * an auto-height grid with a sub-1fr row sizes the CONTAINER to `fr x content` and the item inside it
- * to `fr x fr x content`, so all the way through the animation the card is taller than the content it
- * is revealing and an empty band grows under the panel (measured: at 0.5fr, a 435px panel gives a
- * 218px card holding 109px of content). A max-height transition has no such bug but buys it back as
- * dead time, since the value has to be guessed high. Measured heights have neither.
- */
-function useHeightToggle(open: boolean) {
-  const ref = useRef<HTMLDivElement>(null);
-  const started = useRef(false);
-
-  // Deliberately not useLayoutEffect: this module is in the server bundle for the prerender, and
-  // nothing here can flash, since the height does not change until the effect itself changes it.
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    // The first pass is the resting state the stylesheet already renders, not a transition.
-    if (!started.current) {
-      started.current = true;
-      if (!open) return;
-      el.style.height = "auto";
-      return;
-    }
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      el.style.height = open ? "auto" : "";
-      return;
-    }
-    // Read the height before writing one: mid-transition this is what is on screen, so a toggle that
-    // interrupts another carries on from where it is rather than jumping to an end state first.
-    const from = el.getBoundingClientRect().height;
-    const to = open ? el.scrollHeight : 0;
-    el.style.height = `${from}px`;
-    void el.offsetHeight; // take `from` as the start of the transition, not the value before it
-    el.style.height = `${to}px`;
-  }, [open]);
-
-  const onTransitionEnd = (e: TransitionEvent<HTMLDivElement>) => {
-    const el = ref.current;
-    if (!el || e.target !== el || e.propertyName !== "height") return;
-    // Hand the height back: `auto` while open, so a live figure or a transaction line can change it
-    // underneath us, and nothing at all once closed, which is the stylesheet's own resting state.
-    el.style.height = open ? "auto" : "";
-  };
-
-  return { ref, onTransitionEnd };
-}
-
 export interface FrameProps {
   vault: LiveVault;
   /** What the header carries whether the row is open or closed. */
   summary: VaultSummary;
-  /** Where the yield figure comes from: small print at the top of the open body, under its column. */
+  /** Where the yield figure comes from: small print under the figures. */
   note: ReactNode;
   /** The vault's own figures, as KVRows. */
   rows: ReactNode;
@@ -175,14 +147,15 @@ export interface FrameProps {
 export function Frame({ vault, summary, note, rows, paused = false, open, onToggle, children }: FrameProps) {
   const { token, payout, entry } = vault;
   const bodyId = `vault-${entry.address}`;
-  const body = useHeightToggle(open);
+  const head = useRef<HTMLButtonElement>(null);
+  const body = useCollapse(open, { onOpened: () => revealRow(head.current) });
   return (
-    <Card padding={0}>
-      <button type="button" className="vault-head" aria-expanded={open} aria-controls={bodyId} onClick={onToggle}>
+    <Card padding={0} className="vault-card">
+      <button type="button" ref={head} className="vault-head" aria-expanded={open} aria-controls={bodyId} onClick={onToggle}>
         <span className="vault-head__name">
           <span style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <TokenIcon symbol={token.symbol} src={token.icon} size={22} />
-            <span style={{ fontSize: 17, fontWeight: 600, letterSpacing: "-0.01em" }}>
+            <span className="vault-head__title">
               {token.symbol} → {vault.payoutSymbol}
             </span>
             {paused ? <Badge tone="caution">Deposits paused</Badge> : (
@@ -191,10 +164,14 @@ export function Frame({ vault, summary, note, rows, paused = false, open, onTogg
               </Badge>
             )}
           </span>
-          <span style={{ display: "block", marginTop: 5, fontSize: 13, lineHeight: 1.45, color: "var(--text-muted)" }}>{payout.summary(token)}</span>
+          {/* The same fact at two lengths: the stylesheet shows whichever one fits the viewport. */}
+          <span className="vault-head__sub vault-head__sub--long">{payout.summary(token)}</span>
+          <span className="vault-head__sub vault-head__sub--short">{payout.short(token)}</span>
         </span>
-        <Figure label="TVL" value={summary.tvl} />
-        <Figure label={summary.yieldLabel} value={summary.yieldValue} />
+        <span className="vault-head__figs">
+          <Figure label="TVL" value={summary.tvl} />
+          <Figure label={summary.yieldLabel} value={summary.yieldValue} />
+        </span>
         <Chevron />
       </button>
 
@@ -202,23 +179,24 @@ export function Frame({ vault, summary, note, rows, paused = false, open, onTogg
           __content, because a padded, bordered box is never really zero-height. */}
       <div id={bodyId} className="vault-body" data-open={open ? "true" : "false"} ref={body.ref} onTransitionEnd={body.onTransitionEnd}>
         <div className="vault-body__content">
-          <div style={{ display: "flex", gap: 10, alignItems: "baseline", paddingBottom: 14, borderBottom: hairline, fontSize: 12, lineHeight: 1.5, color: "var(--text-faint)" }}>
+          <Card tone="tint" padding={20} className="vault-part vault-part--panel">
+            {children}
+          </Card>
+
+          <div className="vault-part vault-part--figs">{rows}</div>
+
+          <div className="vault-part vault-part--note">
             <span style={{ ...micro, fontSize: 10, color: "var(--text-muted)", flex: "none" }}>{summary.yieldLabel}</span>
             <span style={{ minWidth: 0 }}>{note}</span>
           </div>
-          <Grid cols="1.1fr 0.9fr" gap={32} align="start" style={{ marginTop: 18 }}>
-            <div>
-              <div style={body14}>{payout.text(token)}</div>
-              <div style={{ marginTop: 10, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", ...mono, fontSize: 12, color: "var(--text-faint)" }}>
-                <span>{entry.shareSymbol}</span>
-                <AddressCell address={entry.address} />
-              </div>
-              <div style={{ marginTop: 18, borderTop: hairline }}>{rows}</div>
+
+          <div className="vault-part vault-part--about">
+            <div style={body14}>{payout.text(token)}</div>
+            <div style={{ marginTop: 10, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", ...mono, fontSize: 12, color: "var(--text-faint)" }}>
+              <span>{entry.shareSymbol}</span>
+              <AddressCell address={entry.address} />
             </div>
-            <Card tone="tint" padding={20}>
-              {children}
-            </Card>
-          </Grid>
+          </div>
         </div>
       </div>
     </Card>
@@ -245,7 +223,7 @@ export function VaultsStatic() {
   return (
     <>
       <StatBand {...STATIC_BAND} />
-      <ConnectBar note="Connect a wallet to deposit, withdraw and claim. Reading the vaults needs no wallet." right={<Button disabled>Connect wallet</Button>} />
+      <ConnectBar note="Reading the vaults needs no wallet, depositing does." right={<Button disabled>Connect wallet</Button>} />
       <VaultList>
         {LIVE_VAULTS.map((v) => (
           <Frame
@@ -258,7 +236,7 @@ export function VaultsStatic() {
             rows={<StaticStats vault={v} />}
           >
             <div style={body14}>Connect a wallet to deposit, withdraw{v.kind === "payout" ? " and claim" : ""}.</div>
-            <div style={{ marginTop: 12 }}>
+            <div className="vault-cta" style={{ marginTop: 12 }}>
               <Button size="lg" disabled>
                 Connect wallet
               </Button>

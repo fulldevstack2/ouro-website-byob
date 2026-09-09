@@ -5,6 +5,7 @@ import type { Route } from "./+types/home";
 import { Badge, Button, Callout, Card, Stat } from "~/components/ds";
 import { AprHeadline, Container, CrankFeed, Grid, HelpTip, HeroRing, KVRow, LoopRing, MicroLabel, NumberedRow, SectionHead, body14, display, hairline, PayoutCadence } from "~/components/site";
 import { site } from "~/content/site";
+import { TERMS } from "~/content/vaults";
 import { pageMeta } from "~/lib/meta";
 
 export function meta({ location }: Route.MetaArgs) {
@@ -350,8 +351,10 @@ const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] 
       <>
         Deposit any amount of $OURO and earn a share of every airdrop, however small your holding. Today the airdrop pays wallets holding at least
         100,000 $OURO, which is 0.01% of the supply, and that line is fixed in tokens: 0.01% of a billion-dollar market cap is $100,000. It prices out every
-        holder who arrives later. Pooled in a vault, deposits clear the line together and scaling the marketcap is no longer a problem. Three vaults are live,
-        paid in OURO, WETH or USDG: <Link to="/vaults/">open the vaults</Link>.
+        holder who arrives later. Pooled in a vault, deposits clear the line together and scaling the marketcap is no longer a problem. A vault takes{" "}
+        {TERMS.performanceFeePct}% of each harvest gain and sends it back out, {TERMS.feeSplit.airdrops}% to more airdrops and {TERMS.feeSplit.ops}% to ops.
+        Three vaults are live, paid in OURO, WETH or USDG:{" "}
+        <Link to="/vaults/">open the vaults</Link>.
       </>
     ),
   },

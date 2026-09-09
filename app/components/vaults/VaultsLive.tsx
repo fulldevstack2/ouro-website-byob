@@ -58,8 +58,11 @@ function LiveSection() {
             "The figures marked yours are read for the connected wallet. Every action is a transaction you sign; nothing moves without it."
           ) : (
             <>
-              Connect a wallet to deposit, withdraw and claim. Reading the vaults needs no wallet.
-              {!hasWalletConnect && <> Browser extension wallets only for now; the mobile and QR path arrives with a WalletConnect project id.</>}
+              Reading the vaults needs no wallet, depositing does.
+              {/* Without a WalletConnect project id there is no QR path, so on a phone the only way in
+                  is a wallet's own browser, where the provider is injected. Say that, rather than
+                  naming the missing env var at the reader. */}
+              {!hasWalletConnect && <> Use a browser extension wallet, or open this page inside your wallet's browser.</>}
             </>
           )
         }
@@ -70,11 +73,12 @@ function LiveSection() {
           <VaultPanel key={v.entry.address} vault={v} prices={prices} ready={ready} open={isOpen(v.entry.address)} onToggle={() => toggle(v.entry.address)} />
         ))}
       </VaultList>
+      {/* The provenance of each yield figure is said precisely inside the vault it belongs to (see
+          yieldFigure's note), so this line says only what is true of all three. */}
       <div style={{ ...body14, fontSize: 13, color: "var(--text-muted)", marginTop: 16 }}>
-        Open a vault for its figures, the deposit and withdraw panel and what it pays. Dollar figures use the OURO and ETH prices from ouro-monitor
-        {prices.fallback ? ", with DexScreener filling in what it could not give" : ""}; USDG counts as one dollar. Each vault's yield is its own latest harvest
-        annualised once it has crossed the 100,000 OURO airdrop line and harvested. Until then it is projected from the airdrop rate above, less the vault's 10%
-        fee, and for the OURO vault the pool tax on rebuys. Neither is a promise of returns.
+        Tap a vault for its figures, the deposit and withdraw panel and what it pays. Dollar figures use the OURO and ETH prices from ouro-monitor
+        {prices.fallback ? ", with DexScreener filling in what it could not give" : ""}, and USDG counts as one dollar. Each vault's yield line says where its own
+        figure comes from. Neither is a promise of returns.
       </div>
     </>
   );
@@ -353,6 +357,10 @@ function Actions({ vault, view, actions, ready }: { vault: LiveVault; view: Vaul
           mono
           inputMode="decimal"
           autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          enterKeyHint="done"
           placeholder="0.0"
           value={raw}
           disabled={!ready || busy}
@@ -366,7 +374,20 @@ function Actions({ vault, view, actions, ready }: { vault: LiveVault; view: Vaul
                 type="button"
                 onClick={setMax}
                 disabled={!ready || busy || max === undefined}
-                style={{ ...mono, appearance: "none", background: "none", border: "none", padding: 0, cursor: ready ? "pointer" : "default", fontSize: 12, fontWeight: 600, color: "var(--bronze-700)" }}
+                /* Padded out and pulled back in, so a finger has something to hit without the row growing. */
+                style={{
+                  ...mono,
+                  appearance: "none",
+                  background: "none",
+                  border: "none",
+                  padding: "8px 6px",
+                  margin: "-8px -6px",
+                  cursor: ready ? "pointer" : "default",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "var(--bronze-700)",
+                  WebkitTapHighlightColor: "transparent",
+                }}
               >
                 Max
               </button>
@@ -377,7 +398,9 @@ function Actions({ vault, view, actions, ready }: { vault: LiveVault; view: Vaul
           error={tooMuch ? (tab === "deposit" ? `More ${dep} than the wallet holds` : "More than you have deposited") : undefined}
         />
       </div>
-      <div style={{ marginTop: 14 }}>{cta}</div>
+      <div className="vault-cta" style={{ marginTop: 14 }}>
+        {cta}
+      </div>
       <TxLine tx={tx} onDismiss={reset} />
     </>
   );

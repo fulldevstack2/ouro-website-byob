@@ -87,6 +87,8 @@ export interface Payout {
   key: PayoutKey;
   /** One line under the vault name in the accordion header: what it does with the yield. */
   summary: (t: IndexToken) => string;
+  /** The same thing in a few words, for the header on a phone, where `summary` ran to two lines. */
+  short: (t: IndexToken) => string;
   asset: (t: IndexToken) => string;
   text: (t: IndexToken) => string;
 }
@@ -95,6 +97,7 @@ export const PAYOUTS: Payout[] = [
   {
     key: "compound",
     summary: (t) => `Yield is rebought as ${t.symbol} and compounds into your shares`,
+    short: (t) => `Compounds into ${t.symbol}`,
     asset: (t) => t.symbol,
     text: (t) =>
       `Dividends are sold for ${t.symbol} and booked into the vault. Your share count stays the same and each share is worth more ${t.symbol} after every harvest. Nothing to claim. Each rebuy routes through the cheapest venue the keeper can quote.`,
@@ -102,12 +105,14 @@ export const PAYOUTS: Payout[] = [
   {
     key: "weth",
     summary: (t) => `Yield accrues in WETH, your ${t.symbol} stays as deposited`,
+    short: () => "Pays WETH, claimable",
     asset: () => "WETH",
     text: (t) => `Dividends are sold for WETH, which accrues to your shares until you claim it. Your ${t.symbol} stays exactly as deposited. The yield arrives in ETH.`,
   },
   {
     key: "usdg",
     summary: (t) => `Yield accrues in USDG, your ${t.symbol} stays as deposited`,
+    short: () => "Pays USDG, claimable",
     asset: () => "USDG",
     text: (t) =>
       `Dividends are sold for USDG, a dollar stablecoin, which accrues to your shares until you claim it. Your ${t.symbol} stays exactly as deposited. The yield arrives in dollars.`,
@@ -192,6 +197,17 @@ export function vaultFor(token: TokenKey, payout: PayoutKey): VaultEntry {
 export const TERMS = {
   performanceFeePct: 10,
   maxPerformanceFeePct: 30,
+  /**
+   * Where the performance fee goes, in points of the harvest gain, so the two add up to
+   * `performanceFeePct`. THE ONLY PLACE THIS SPLIT IS WRITTEN: the copy on /vaults and the home
+   * page reads it from here.
+   *
+   * Operator policy, not a contract rule, and said as such wherever it appears. On chain the vault
+   * pays the whole fee to a single `feeRecipient` (DividendVaultBase.feeRecipient) and has no notion
+   * of a split; this is what that recipient does with it, exactly like the 5% tax's
+   * "2% airdrop / 2% LP / 0.7% ops / 0.3% letscash" row in content/protocol.ts.
+   */
+  feeSplit: { airdrops: 7, ops: 3 },
   profitUnlock: "1 day",
   maxProfitUnlock: "30 days",
   venue: { name: "Uniswap UniversalRouter (Robinhood fork)", address: "0x8876789976dEcBfCbBbe364623C63652db8C0904" as const },

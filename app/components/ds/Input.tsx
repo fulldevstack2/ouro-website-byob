@@ -25,7 +25,10 @@ export function Input({ label, hint, error, prefix, suffix, mono = false, style,
           {label}
         </div>
       )}
+      {/* The field carries a stable class so a stylesheet can size it per breakpoint (a phone wants a
+          taller box than 40px); everything else about it stays inline, like the rest of the DS. */}
       <div
+        className="ds-field"
         style={{
           display: "flex",
           alignItems: "center",
