@@ -115,22 +115,32 @@ export function useOpenVault() {
   };
 }
 
-/** The two figures a closed row shows. */
+/** The figures a closed row shows. */
 export interface VaultSummary {
   /** Deposits in dollars, or the token amount while there is no price. */
   tvl: ReactNode;
   /** "APY" on the compounding vault, "APR" on the payout ones. */
   yieldLabel: string;
   yieldValue: ReactNode;
+  /**
+   * What the reader holds here, with what the vault owes them under it. It goes last, after the
+   * vault's own two figures, so those keep their place whether or not a wallet is connected. Set for
+   * every row or for none: the three headers share one column template, so a column one row had and
+   * another lacked would put TVL in a different place down the page.
+   */
+  mine?: { deposit: ReactNode; claim?: ReactNode };
 }
 
-function Figure({ label, value }: { label: ReactNode; value: ReactNode }) {
+function Figure({ label, value, note }: { label: ReactNode; value: ReactNode; note?: ReactNode }) {
   return (
     <span className="vault-head__fig">
       <span className="vault-head__fig-label" style={{ ...micro, fontSize: 10, color: "var(--text-muted)" }}>
         {label}
       </span>
       <span style={{ ...mono, fontSize: 15, fontWeight: 600, color: "var(--text-primary)", overflowWrap: "anywhere" }}>{value}</span>
+      {/* Bronze, like the claim panel's label: it is the one figure on a closed row that is waiting to
+          be acted on. */}
+      {note && <span className="vault-head__fig-note" style={{ ...mono, fontSize: 11, fontWeight: 600, color: "var(--bronze-700)" }}>{note}</span>}
     </span>
   );
 }
@@ -187,7 +197,15 @@ export function Frame({ vault, summary, note, rows, paused = false, open, onTogg
   const body = useCollapse(open, { onOpened: () => revealRow(head.current?.closest("section") ?? null) });
   return (
     <Card padding={0} className="vault-card">
-      <button type="button" ref={head} className="vault-head" aria-expanded={open} aria-controls={bodyId} onClick={onToggle}>
+      <button
+        type="button"
+        ref={head}
+        className="vault-head"
+        data-mine={summary.mine ? "true" : undefined}
+        aria-expanded={open}
+        aria-controls={bodyId}
+        onClick={onToggle}
+      >
         <span className="vault-head__name">
           <span style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <TokenPair vault={vault} />
@@ -209,6 +227,7 @@ export function Frame({ vault, summary, note, rows, paused = false, open, onTogg
         <span className="vault-head__figs">
           <Figure label="TVL" value={summary.tvl} />
           <Figure label={summary.yieldLabel} value={summary.yieldValue} />
+          {summary.mine && <Figure label="Your deposit" value={summary.mine.deposit} note={summary.mine.claim} />}
         </span>
         <Chevron />
       </button>
