@@ -311,6 +311,22 @@ export interface OuroPending {
   at: number;
 }
 
+/**
+ * Cron for the next OURO airdrop / vault-harvest window (`GET /v1/ouro/next`).
+ * `dueTs` is the next wall-clock multiple of `cadenceSec` (2h in prod).
+ */
+export interface OuroNext {
+  generatedAt: number;
+  cadenceSec: number;
+  lastTs: number | null;
+  lastEpoch: number | null;
+  dueTs: number;
+  overdueSec: number | null;
+  status: Liveness;
+  source: string;
+  caveat: string;
+}
+
 /** One day of the airdrop wallet: what landed, what went out, and what it closed at. */
 export interface OuroQueueDay {
   day: number;

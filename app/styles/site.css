@@ -160,6 +160,13 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
   box-shadow: var(--shadow-pop);
 }
 .qt-tip--above { top: auto; bottom: 22px; }
+.qt-tip--follow {
+  position: fixed;
+  z-index: 1000;
+  opacity: 1;
+  pointer-events: none;
+  margin: 0;
+}
 
 /* 6. Comparison table (home → "The difference") ---------------------- */
 /* Desktop: 4-column grid, rows are display:contents wrappers. */
