@@ -281,10 +281,10 @@ function DifferenceSection() {
 /* -------------------------------------------------------------- The pools */
 
 const RULES: { n: string; lead: string; text: string }[] = [
-  { n: "R1", lead: "Bluechip and liquid.", text: " Deepest high-turnover pools on the chain." },
-  { n: "R2", lead: "Capped.", text: " Max 20–25% of treasury per name." },
-  { n: "R3", lead: "Venue agnostic.", text: " LP where the liquidity is (Uniswap v3 or v4)." },
-  { n: "R4", lead: "Governed in public.", text: " Adds/retires only by onchain governance." },
+  { n: "01", lead: "Bluechip and liquid.", text: " Deepest high-turnover pools on the chain." },
+  { n: "02", lead: "Capped.", text: " Max 20–25% of treasury per name." },
+  { n: "03", lead: "Wherever the liquidity is.", text: " Uniswap v3 or v4, depending on the token." },
+  { n: "04", lead: "Governed in public.", text: " Adds or retires only by onchain governance." },
 ];
 
 function BasketSection() {

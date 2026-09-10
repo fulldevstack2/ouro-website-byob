@@ -2,7 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { hairline, rowIndex } from "./text";
 
 export interface NumberedRowProps {
-  /** "01", "R1"… set in bronze mono. */
+  /** "01", "02"… set in bronze mono. */
   n: ReactNode;
   children: ReactNode;
   /** Right-aligned slot (e.g. an amount). */
