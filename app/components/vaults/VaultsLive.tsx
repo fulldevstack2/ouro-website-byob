@@ -174,7 +174,14 @@ function VaultPanel({ vault, prices, ready, open, onToggle }: { vault: LiveVault
   const tvlUsd = usdValue(view.totalAssets, OURO_DECIMALS, prices.ouroUsd);
   const yields = yieldFigure(vault, view, prices, tvlUsd, payoutUsd, nowSec);
   const summary: VaultSummary = {
-    tvl: tvlUsd === null ? `${fmtAmount(view.totalAssets, OURO_DECIMALS, 0)} ${vault.token.symbol}` : fmtUsd(tvlUsd, { compact: true }),
+    // A dash on its own until the read lands: "— OURO" under a TVL label reads as a broken figure
+    // rather than as one the page is still waiting for.
+    tvl:
+      view.totalAssets === undefined
+        ? "—"
+        : tvlUsd === null
+          ? `${fmtAmount(view.totalAssets, OURO_DECIMALS, 0)} ${vault.token.symbol}`
+          : fmtUsd(tvlUsd, { compact: true }),
     yieldLabel: yields.label,
     yieldValue: yields.value,
     mine: isConnected ? myPosition(vault, view, prices, payoutUsd) : undefined,
@@ -203,6 +210,14 @@ function yieldFigure(vault: LiveVault, view: VaultView, prices: Prices, tvlUsd: 
   const label = compounding ? "APY" : "APR";
   const dep = vault.token.symbol;
 
+  // Nothing is known about this vault until its reads land, and "nothing known" is not the same as
+  // "nothing harvested": with totalAssets undefined the vault reads as below the airdrop line, which
+  // took the projection branch below and printed a figure two to three times the vault's own for a
+  // second or so after every reload, the same figure in all three rows. A dash is the honest state.
+  if (view.totalAssets === undefined) {
+    return { label, value: "—", note: "Reading the vault from the chain." };
+  }
+
   const realised = realisedYield({
     kind: vault.kind,
     profitUnlockPeriod: view.profitUnlockPeriod,
@@ -230,6 +245,15 @@ function yieldFigure(vault: LiveVault, view: VaultView, prices: Prices, tvlUsd: 
       note: `From the harvest ${ago(nowSec - realised.harvestAt)} ago, annualised${compounding ? " with daily compounding" : ""}${capped ? ", shown capped: that harvest was out of proportion to the vault's size" : ""}.`,
     };
   }
+  // A harvest that cannot be priced YET is not the same as no harvest. The OURO price and the ETH
+  // price arrive in two different monitor requests, so in between a payout vault has its own figure on
+  // the chain and nothing to value it with, and the projection below stood in at more than twice the
+  // real rate for half a second after the row had already shown its TVL.
+  const harvested = (view.periodFinish ?? 0n) > 0n;
+  if (!compounding && !realised && harvested && aboveLine && (tvlUsd === null || payoutUsd === null)) {
+    return { label, value: "—", note: "Waiting for the prices this figure rests on." };
+  }
+
   if (prices.airdrop) {
     const projected = fmtYieldPct(projectedYieldPct(vault.kind, prices.airdrop.aprPct));
     const basis = `Projected: the airdrop rate (${fmtNum(prices.airdrop.aprPct, 1)}% over ${fmtAge(prices.airdrop.basisDays)}) less the 10% fee${compounding ? " and the 5% pool tax on rebuys" : ""}.`;
