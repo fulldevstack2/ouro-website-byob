@@ -100,7 +100,7 @@ export const PAYOUTS: Payout[] = [
     short: (t) => `Earn more ${t.symbol}`,
     asset: (t) => t.symbol,
     text: (t) =>
-      `Yes \u2014 it goes straight back in. Every couple of hours the airdrop the vault received is sold and turned into more ${t.symbol}, which stays in the vault. Your balance simply gets bigger. There is nothing to collect and nothing to do, and you can withdraw the whole lot whenever you want. The buy-back goes through Ouro\u0027s own pool, so the 5% tax on it returns to holders instead of going to outside market makers.`,
+      `Every couple of hours the airdrop the vault received is sold and turned into more ${t.symbol}, which stays in the vault. Your balance simply gets bigger. There is nothing to collect and nothing to do, and you can withdraw the whole lot whenever you want.`,
   },
   {
     key: "weth",
