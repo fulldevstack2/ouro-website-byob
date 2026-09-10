@@ -71,6 +71,24 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
 .site-nav__inner { display: flex; align-items: center; gap: 28px; height: 64px; }
 .site-nav__links { display: flex; gap: 24px; margin-left: 24px; }
 .site-nav__right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+/* Above the breakpoint the menu is not a box: its two blocks are flex items of the bar itself. */
+.site-nav__menu { display: contents; }
+
+/* The hamburger, and its bars crossing into an X once the menu is open. Hidden above the breakpoint,
+   where the menu is the bar; the bars are absolutely placed so the two that stay can rotate about
+   the middle of a box that does not move. */
+.nav-toggle { display: none; }
+.nav-toggle__icon { position: relative; display: block; width: 18px; height: 14px; }
+.nav-toggle__icon > span {
+  position: absolute; left: 0; width: 100%; height: 2px; border-radius: 1px; background: currentColor;
+  transition: transform var(--dur-base) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+}
+.nav-toggle__icon > span:nth-child(1) { top: 0; }
+.nav-toggle__icon > span:nth-child(2) { top: 6px; }
+.nav-toggle__icon > span:nth-child(3) { top: 12px; }
+.nav-toggle[aria-expanded="true"] .nav-toggle__icon > span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.nav-toggle[aria-expanded="true"] .nav-toggle__icon > span:nth-child(2) { opacity: 0; }
+.nav-toggle[aria-expanded="true"] .nav-toggle__icon > span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
 .hero-title {
   margin: 0; font-family: var(--font-display); font-weight: 600; font-size: 58px;
@@ -89,6 +107,14 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
 @media (max-width: 960px) {
   .grid--2col-md { grid-template-columns: repeat(2, 1fr); }
   .grid--2col-md > .cell-rule:nth-child(odd) { border-left: 0; padding-left: 0; }
+}
+
+/* The chain line is the first thing out of the bar, and it goes well before the bar is full: with it
+   in place the six links have no room from about 1030px down, and a flex item that cannot fit breaks
+   its own label in half ("Buy / $OURO ↗") rather than overflowing, which is a worse loss than the
+   line. Measured on this stylesheet: one line at 1040px, broken labels at 1020px, so it leaves at
+   1080px with room to spare. The hamburger rule below puts it back inside the menu, which has room. */
+@media (max-width: 1079px) {
   .site-nav__chain { display: none; }
 }
 
@@ -103,20 +129,58 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
 }
 
 /* The nav breaks before the rest of the layout does: six links, the wordmark and the Follow button
-   need about 810px, so from 860px down the links move to a row of their own. One scrollable strip
-   rather than a wrapping block, because wrapped links broke labels mid-item ("Buy / $OURO / ↗" on
-   three lines) and made the nav taller than the page title. `flex: 1 0 100%` takes the whole row; the
-   negative margins let the strip scroll from screen edge to screen edge. */
+   need about 810px of bar, so from 860px down everything but the wordmark moves behind a hamburger.
+
+   The menu hangs off the bar rather than being a second row of it, so the sticky header is 64px
+   whether it is open or shut and the page under it never moves. `top: 100%` lands the panel's own
+   hairline exactly on the header's: closed, the panel is that 1px and nothing else, so there is
+   nothing to see; open, there is one line under the menu rather than two under the bar. It is opaque
+   rather than the bar's tinted blur because it sits over the page, not over the ground. */
 @media (max-width: 860px) {
-  .site-nav__inner { flex-wrap: wrap; height: auto; gap: 8px 16px; padding-top: 12px; padding-bottom: 10px; }
-  .site-nav__links {
-    order: 3; flex: 1 0 100%; width: auto; margin-left: 0; gap: 18px;
-    flex-wrap: nowrap; overflow-x: auto; white-space: nowrap;
-    margin-inline: calc(var(--container-pad) * -1); padding-inline: var(--container-pad);
-    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  .nav-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    /* 44px of tap target, pulled back out by the slack around the bars so they line up with the
+       container edge and the wordmark under them, not a finger's width inside it. */
+    width: 44px; height: 44px; margin-left: auto; margin-right: -13px;
+    appearance: none; padding: 0; background: none; border: 0; border-radius: var(--radius-sm);
+    color: var(--text-primary); cursor: pointer;
   }
-  .site-nav__links::-webkit-scrollbar { display: none; }
-  .site-nav__links > .nav-link { flex: none; }
+  .site-nav__menu {
+    display: block; position: absolute; top: 100%; left: 0; right: 0;
+    height: 0; overflow: hidden;
+    max-height: calc(100vh - 64px); max-height: calc(100dvh - 64px);
+    background: var(--page); border-bottom: 1px solid var(--border-hairline);
+    /* Alpha only, so the shadow fades with the collapse instead of snapping off it. A shut panel is
+       1px tall and would otherwise smudge the page under the bar. */
+    box-shadow: 0 16px 30px -22px rgba(27, 23, 16, 0);
+    transition: height 240ms var(--ease-out), box-shadow 240ms var(--ease-out);
+  }
+  /* Scrollable only while open, for the menu that does not fit a phone held sideways. A scroll
+     container is keyboard-focusable in Chrome, and a shut one is a tab stop with nothing in it. */
+  .site-nav__menu[data-open="true"] {
+    overflow: hidden auto; overscroll-behavior: contain;
+    box-shadow: 0 16px 30px -22px rgba(27, 23, 16, 0.34);
+  }
+  /* The panel clips; the padding sits on the two blocks inside it, since a padded box is never really
+     zero-height. They are visibility:hidden while it is closed, which takes the links out of the tab
+     order and the accessibility tree; the 0s transition holds that off until the collapse has played
+     and the open rule drops the delay, so the menu is there on the first frame of opening. */
+  .site-nav__menu > * { visibility: hidden; transition: visibility 0s linear 240ms; }
+  .site-nav__menu[data-open="true"] > * { visibility: visible; transition: visibility 0s linear 0s; }
+  .site-nav__links { flex-direction: column; gap: 0; margin-left: 0; padding: 6px var(--container-pad) 10px; }
+  .site-nav__links > .nav-link { padding: 11px 0; font-size: 15px; }
+  .site-nav__right {
+    margin-left: 0; justify-content: space-between; flex-wrap: wrap; gap: 12px 16px;
+    padding: 14px var(--container-pad) 18px; border-top: 1px solid var(--border-hairline);
+  }
+  /* Dropped from the bar at 960px for want of room. The panel has the room, until 320px, where the
+     line drops above the button rather than breaking itself in half at the separator. */
+  .site-nav__chain { display: block; white-space: nowrap; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-nav__menu,
+  .nav-toggle__icon > span { transition: none; }
 }
 
 @media (max-width: 640px) {
@@ -376,6 +440,18 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
    phone the wrapper becomes a real box and puts them side by side on their own line. */
 .vault-head__figs { display: contents; }
 .vault-head__fig { display: grid; gap: 4px; min-width: 0; }
+.vault-head__fig-note { line-height: 1.2; }
+/* A connected wallet adds a figure to every row, so the shared template gains a column for it, last,
+   after the vault's own two. It is narrow on purpose: it takes its width from the name, which has the
+   most to give at every size the row is still one line. */
+.vault-head[data-mine="true"] { grid-template-columns: minmax(0, 1fr) 150px 120px 120px 18px; }
+/* The fourth column has to come out of the name, and by 900px the name has no more to give: the title
+   starts breaking in half a word at a time. The figures give the last of it back instead, down to what
+   the longest of them actually needs, which holds the row on one line to about 745px. Under 720 it is
+   two lines anyway and the template goes back to one column. */
+@media (max-width: 900px) {
+  .vault-head[data-mine="true"] { grid-template-columns: minmax(0, 1fr) 104px 92px 116px 18px; gap: 16px; }
+}
 .vault-head__chev {
   display: block; justify-self: end; color: var(--text-muted);
   transition: transform var(--dur-base) var(--ease-out);
@@ -439,6 +515,21 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
   font-size: 15px; font-weight: 600; color: var(--text-primary); overflow-wrap: anywhere;
 }
 
+/* 25 / 50 / 75 on the amount label's own line, which costs the form no height and keeps them with the
+   figure they set rather than with the button under it. They sit inside the field's <label>, where a
+   click on interactive content does not fall through to the input, the same as Max already does. */
+.vault-amount { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.vault-pcts { display: inline-flex; gap: 6px; flex: none; }
+.vault-pct {
+  appearance: none; margin: 0; padding: 3px 8px; cursor: pointer;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0; text-transform: none;
+  color: var(--text-muted); background: none;
+  border: 1px solid var(--border-soft); border-radius: var(--radius-full);
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.vault-pct:hover:not(:disabled) { color: var(--bronze-700); border-color: var(--bronze-600); }
+.vault-pct:disabled { opacity: 0.5; cursor: default; }
+
 /* One column as soon as the second one would squeeze the form (the deposit CTA never wraps, so a
    288px panel overflows it), and in an order that puts the panel FIRST: opening a row is a request to
    deposit or withdraw, and stacked the other way round the form sat six figures and a paragraph below
@@ -468,7 +559,11 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
   .vault-head__title { font-size: 16px; }
   .vault-head__sub--long { display: none; }
   .vault-head__sub--short { display: block; margin-top: 4px; font-size: 12px; }
-  .vault-head__fig { display: flex; align-items: baseline; gap: 7px; }
+  .vault-head__fig { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+  /* Label and figure sit on one line here, so what the vault owes needs a separator rather than the
+     line break it gets on a wide row. */
+  .vault-head__fig-note::before { content: "· "; }
+  .vault-head[data-mine="true"] { grid-template-columns: minmax(0, 1fr) 18px; }
   .vault-body__content { padding: 12px 16px 20px; }
   /* Thumb-sized: a full-width primary action and a taller amount field. */
   .vault-cta .btn { width: 100%; }

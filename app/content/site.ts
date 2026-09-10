@@ -17,11 +17,40 @@ export const site = {
     "Hold 100,000+ $OURO and airdrops land in your wallet. Holding less? Pool with others. Every trade: 5% tax, half to holders, half to LP that pays again.",
   xHandle,
   /**
-   * `rpcUrl` is Robinhood Chain's public endpoint: keyless, so it ships in the client bundle by
-   * design. It backs the wallet connection (app/lib/wagmi.ts) and the one figure the site reads
-   * from the chain directly rather than through ouro-monitor (app/hooks/useEthBalance.ts).
+   * Every public Robinhood Chain endpoint that works, in the order they are tried. All keyless, so
+   * they ship in the client bundle by design; they back the wallet connection (app/lib/wagmi.ts),
+   * every vault read, and the one figure the site takes from the chain rather than from ouro-monitor
+   * (useEthBalance.ts). One failing hands over to the next: see app/lib/rpc.ts.
+   *
+   * Measured here on 2026-09-10, eight rounds of the request a panel load actually makes (a batched
+   * eth_blockNumber plus a multicall3 aggregate3), median round trip and failures out of eight:
+   *
+   *   publicnode       146ms   0
+   *   blockmachine     274ms   0
+   *   ordofi           294ms   0
+   *   bloXroute        668ms   0   (chainlist marks this one as tracking requests)
+   *   POKT             990ms   0
+   *   the chain's own  525ms   3 batched requests rejected, 1 state read came back empty
+   *
+   * which is why the chain's own endpoint goes LAST despite holding the freshest head: it is the one
+   * that fails, and its 2.3s worst case is the delay this list exists to fix. The rest lag it by
+   * 16-45 blocks, under five seconds at a tenth of a second per block, and all six agree on a vault's
+   * `totalAssets`, carry multicall3 and allow this origin. Left out, all tried the same way:
+   * arrowrpc (530), routeme (429, public rate limit), nodeflare (403), thirdweb ("Invalid chain"),
+   * drpc (answers eth_chainId and nothing else without a key).
    */
-  chain: { name: "Robinhood Chain", id: 4663, rpcUrl: "https://rpc.mainnet.chain.robinhood.com" },
+  chain: {
+    name: "Robinhood Chain",
+    id: 4663,
+    rpcUrls: [
+      "https://robinhood-rpc.publicnode.com",
+      "https://rpc-robinhood.blockmachine.io",
+      "https://rpc.ordofi.network",
+      "https://robinhood.rpc.blxrbdn.com",
+      "https://robinhood.api.pocket.network",
+      "https://rpc.mainnet.chain.robinhood.com",
+    ],
+  },
   /** Set to true once the audit report is published; it swaps the docs §10 callout. */
   auditPublished: false,
   /**

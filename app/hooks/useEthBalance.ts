@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { createPublicClient, http, type Address } from "viem";
+import { createPublicClient, type Address } from "viem";
 
-import { site } from "~/content/site";
+import { rpcTransport } from "~/lib/rpc";
 
 /**
  * The native ETH balance of one address, read straight from the chain.
@@ -18,7 +18,7 @@ import { site } from "~/content/site";
  * A failed read keeps the last good value rather than falling back to zero: "we could not reach the
  * chain" and "the wallet is empty" are different claims, and only one of them is ever true here.
  */
-const client = createPublicClient({ transport: http(site.chain.rpcUrl) });
+const client = createPublicClient({ transport: rpcTransport() });
 
 export function useEthBalance(address: Address | undefined, intervalMs = 60_000): bigint | null {
   const [wei, setWei] = useState<bigint | null>(null);

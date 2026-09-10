@@ -87,12 +87,3 @@ export function fmtAmount(value: bigint | undefined | null, decimals: number, ma
   if (intFmt === "0" && fracTrim === "") return `<0.${"0".repeat(Math.max(maxFrac - 1, 0))}1`;
   return fracTrim ? `${intFmt}.${fracTrim}` : intFmt;
 }
-
-/** Hours and minutes left until a unix timestamp, or null once it has passed. */
-export function timeLeft(untilSec: bigint, nowSec: number): string | null {
-  const left = Number(untilSec) - Math.floor(nowSec);
-  if (left <= 0) return null;
-  const h = Math.floor(left / 3600);
-  const m = Math.floor((left % 3600) / 60);
-  return h > 0 ? `${h} h ${m} min` : `${m} min`;
-}

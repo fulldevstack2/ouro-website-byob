@@ -13,7 +13,7 @@ import { useCountdown } from "~/hooks/useCountdown";
 import { usePrices, type Prices } from "~/hooks/usePrices";
 import { useVaultActions, useVaultView, type TxState, type VaultActions, type VaultView } from "~/hooks/useVault";
 import { MONITOR_API, ago, fmtAge, fmtNum, fmtUsd, useMonitor, type OuroNext } from "~/lib/monitorApi";
-import { fmtAmount, parseAmount, streamPerDay, timeLeft, vaultAbi } from "~/lib/vaultChain";
+import { fmtAmount, parseAmount, streamPerDay, vaultAbi } from "~/lib/vaultChain";
 import { YIELD_DISPLAY_CAP_PCT, fmtYieldPct, projectedYieldPct, realisedYield, usdValue } from "~/lib/vaultYield";
 import { hasWalletConnect, robinhoodChain } from "~/lib/wagmi";
 
@@ -143,6 +143,28 @@ function payoutUsdFor(vault: LiveVault, prices: Prices): number | null {
   return vault.payoutSymbol === "USDG" ? 1 : prices.ethUsd;
 }
 
+/**
+ * What a closed row says about the reader's own money: their deposit in dollars, and under it whatever
+ * the vault owes them. A dash where they hold nothing, because the column is there for every row as
+ * soon as a wallet is connected, and an empty cell in two rows of three reads as a fault.
+ */
+function myPosition(vault: LiveVault, view: VaultView, prices: Prices, payoutUsd: number | null): NonNullable<VaultSummary["mine"]> {
+  const depositUsd = usdValue(view.deposited, OURO_DECIMALS, prices.ouroUsd);
+  const earnedUsd = usdValue(view.earned, vault.payoutDecimals, payoutUsd);
+  return {
+    deposit:
+      view.deposited === undefined || view.deposited === 0n
+        ? "—"
+        : depositUsd === null
+          ? `${fmtAmount(view.deposited, OURO_DECIMALS, 0)} ${vault.token.symbol}`
+          : fmtUsd(depositUsd, { compact: true }),
+    claim:
+      view.earned === undefined || view.earned === 0n
+        ? undefined
+        : `${earnedUsd === null ? `${fmtAmount(view.earned, vault.payoutDecimals, 4)} ${vault.payoutSymbol}` : fmtUsd(earnedUsd, { compact: true })} to collect`,
+  };
+}
+
 function VaultPanel({ vault, prices, ready, open, onToggle }: { vault: LiveVault; prices: Prices; ready: boolean; open: boolean; onToggle: () => void }) {
   const { address, isConnected } = useAccount();
   const view = useVaultView(vault, address);
@@ -152,9 +174,17 @@ function VaultPanel({ vault, prices, ready, open, onToggle }: { vault: LiveVault
   const tvlUsd = usdValue(view.totalAssets, OURO_DECIMALS, prices.ouroUsd);
   const yields = yieldFigure(vault, view, prices, tvlUsd, payoutUsd, nowSec);
   const summary: VaultSummary = {
-    tvl: tvlUsd === null ? `${fmtAmount(view.totalAssets, OURO_DECIMALS, 0)} ${vault.token.symbol}` : fmtUsd(tvlUsd, { compact: true }),
+    // A dash on its own until the read lands: "— OURO" under a TVL label reads as a broken figure
+    // rather than as one the page is still waiting for.
+    tvl:
+      view.totalAssets === undefined
+        ? "—"
+        : tvlUsd === null
+          ? `${fmtAmount(view.totalAssets, OURO_DECIMALS, 0)} ${vault.token.symbol}`
+          : fmtUsd(tvlUsd, { compact: true }),
     yieldLabel: yields.label,
     yieldValue: yields.value,
+    mine: isConnected ? myPosition(vault, view, prices, payoutUsd) : undefined,
   };
   return (
     <Frame
@@ -179,6 +209,14 @@ function yieldFigure(vault: LiveVault, view: VaultView, prices: Prices, tvlUsd: 
   const compounding = vault.kind === "compounding";
   const label = compounding ? "APY" : "APR";
   const dep = vault.token.symbol;
+
+  // Nothing is known about this vault until its reads land, and "nothing known" is not the same as
+  // "nothing harvested": with totalAssets undefined the vault reads as below the airdrop line, which
+  // took the projection branch below and printed a figure two to three times the vault's own for a
+  // second or so after every reload, the same figure in all three rows. A dash is the honest state.
+  if (view.totalAssets === undefined) {
+    return { label, value: "—", note: "Reading the vault from the chain." };
+  }
 
   const realised = realisedYield({
     kind: vault.kind,
@@ -207,6 +245,15 @@ function yieldFigure(vault: LiveVault, view: VaultView, prices: Prices, tvlUsd: 
       note: `From the harvest ${ago(nowSec - realised.harvestAt)} ago, annualised${compounding ? " with daily compounding" : ""}${capped ? ", shown capped: that harvest was out of proportion to the vault's size" : ""}.`,
     };
   }
+  // A harvest that cannot be priced YET is not the same as no harvest. The OURO price and the ETH
+  // price arrive in two different monitor requests, so in between a payout vault has its own figure on
+  // the chain and nothing to value it with, and the projection below stood in at more than twice the
+  // real rate for half a second after the row had already shown its TVL.
+  const harvested = (view.periodFinish ?? 0n) > 0n;
+  if (!compounding && !realised && harvested && aboveLine && (tvlUsd === null || payoutUsd === null)) {
+    return { label, value: "—", note: "Waiting for the prices this figure rests on." };
+  }
+
   if (prices.airdrop) {
     const projected = fmtYieldPct(projectedYieldPct(vault.kind, prices.airdrop.aprPct));
     const basis = `Projected: the airdrop rate (${fmtNum(prices.airdrop.aprPct, 1)}% over ${fmtAge(prices.airdrop.basisDays)}) less the 10% fee${compounding ? " and the 5% pool tax on rebuys" : ""}.`;
@@ -249,7 +296,6 @@ function LiveStats({
   const dep = vault.token.symbol;
   const compounding = vault.kind === "compounding";
   const perDay = view.rewardRate !== undefined && view.periodFinish !== undefined ? streamPerDay(view.rewardRate, view.periodFinish, nowSec) : undefined;
-  const ends = view.periodFinish !== undefined ? timeLeft(view.periodFinish, nowSec) : null;
 
   return (
     <>
@@ -261,12 +307,15 @@ function LiveStats({
       ) : (
         <KVRow label={`${vault.payoutSymbol} earned so far`} value={withUsd(view.accountedPayout, vault.payoutDecimals, vault.payoutSymbol, payoutUsd)} />
       )}
+      {/* The payout row gives the rate and no countdown to the end of the stream: that end is the
+          keeper's harvest cadence, not a deadline for the reader, and a clock running down beside an
+          amount reads like one. */}
       {compounding ? (
         <KVRow label="Arriving over the next day" value={view.lockedProfit === undefined ? "—" : view.lockedProfit === 0n ? "Nothing yet" : withUsd(view.lockedProfit, OURO_DECIMALS, dep, prices.ouroUsd)} />
       ) : (
         <KVRow
           label="Streaming"
-          value={perDay === undefined ? "—" : perDay === 0n || !ends ? "No stream running" : `${withUsd(perDay, vault.payoutDecimals, vault.payoutSymbol, payoutUsd)} a day, ${ends} left`}
+          value={perDay === undefined ? "—" : perDay === 0n ? "No stream running" : `${withUsd(perDay, vault.payoutDecimals, vault.payoutSymbol, payoutUsd)} a day`}
         />
       )}
       {/* No "yours to claim" row on a payout vault: the figure and its button are the ClaimPanel in
@@ -317,6 +366,9 @@ const TABS = [
   { id: "withdraw", label: "Withdraw" },
 ];
 
+/** Shares of the balance, beside the amount label. Max is the fourth and lives in the field. */
+const PCTS = [25, 50, 75];
+
 function busyLabel(tx: TxState): string {
   const what = tx.phase === "approving" ? "approval" : tx.phase === "depositing" ? "deposit" : tx.phase === "withdrawing" ? "withdrawal" : "claim";
   return tx.hash ? `Confirming the ${what}...` : `Sign the ${what} in your wallet...`;
@@ -347,6 +399,13 @@ function Actions({ vault, view, actions, ready, payoutUsd }: { vault: LiveVault;
     if (max === undefined) return;
     setRaw(formatUnits(max, OURO_DECIMALS));
     setEverything(tab === "withdraw");
+  };
+  /** A share of the same balance Max takes all of, exact rather than rounded: the deposit is whatever
+      the field says, and a tidier number here would quietly leave the remainder behind. */
+  const setPct = (pct: number) => {
+    if (max === undefined) return;
+    setRaw(formatUnits((max * BigInt(pct)) / 100n, OURO_DECIMALS));
+    setEverything(false);
   };
 
   let cta: ReactNode;
@@ -410,7 +469,20 @@ function Actions({ vault, view, actions, ready, payoutUsd }: { vault: LiveVault;
       <Tabs items={TABS} active={tab} onChange={pick} />
       <div style={{ marginTop: 16 }}>
         <Input
-          label={tab === "deposit" ? `Amount to deposit` : `Amount to withdraw`}
+          label={
+            <span className="vault-amount">
+              <span>{tab === "deposit" ? "Amount to deposit" : "Amount to withdraw"}</span>
+              {/* Outside the field, because the field already carries Max and the unit, and a fourth
+                  control in there is a row of noise over the one number being typed. */}
+              <span className="vault-pcts">
+                {PCTS.map((pct) => (
+                  <button key={pct} type="button" className="vault-pct" disabled={!ready || busy || max === undefined} onClick={() => setPct(pct)}>
+                    {pct}%
+                  </button>
+                ))}
+              </span>
+            </span>
+          }
           mono
           inputMode="decimal"
           autoComplete="off"
