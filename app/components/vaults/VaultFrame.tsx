@@ -37,26 +37,21 @@ export interface StatBandProps {
   /** Deposits across the vaults, in dollars, with the OURO total as the footnote. */
   tvl: ReactNode;
   tvlNote: ReactNode;
-  /** Countdown to the next keeper wake (from `/v1/ouro/next`). */
-  nextHarvest: ReactNode;
-  nextHarvestNote: ReactNode;
   /** Measured airdrop APR (`/v1/ouro/yield`), with its basis caveat. */
   apr: ReactNode;
   aprNote: ReactNode;
 }
 
 /**
- * The band above the rows: TVL, next harvest, airdrop APR, performance fee.
+ * The band above the rows: TVL, airdrop APR, performance fee.
  *
  * Descriptions live in a "?" tip next to each label (mouse-following on desktop, tap on mobile).
- * Phone keeps all four in a 2×2 grid.
  */
-export function StatBand({ tvl, tvlNote, nextHarvest, nextHarvestNote, apr, aprNote }: StatBandProps) {
+export function StatBand({ tvl, tvlNote, apr, aprNote }: StatBandProps) {
   const feeNote = `Of harvest gains only, and no deposit or withdrawal fee. ${TERMS.feeSplit.airdrops}% of the gain funds more airdrops, ${TERMS.feeSplit.ops}% covers ops`;
   return (
-    <Grid cols="repeat(4, 1fr)" gap={24} className="grid--2col-md stat-band">
+    <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md stat-band">
       <Stat label={<StatLabel text="TVL" tip={tvlNote} />} value={tvl} />
-      <Stat className="cell-rule" label={<StatLabel text="Next harvest" tip={nextHarvestNote} />} value={nextHarvest} />
       <Stat className="cell-rule" label={<StatLabel text="Airdrop APR" tip={aprNote} />} value={apr} />
       <Stat className="cell-rule" label={<StatLabel text="Performance fee" tip={feeNote} />} value={`${TERMS.performanceFeePct}%`} />
     </Grid>
@@ -75,8 +70,6 @@ function StatLabel({ text, tip }: { text: string; tip: ReactNode }) {
 export const STATIC_BAND: StatBandProps = {
   tvl: "—",
   tvlNote: "Deposits across the three vaults, priced in dollars from the chain and the monitor",
-  nextHarvest: "—",
-  nextHarvestNote: "When the keeper is due to wake. It starts then; a run can still wait if gas is too high for what is owed.",
   apr: "—",
   aprNote: "What a wallet above the line earns from payouts actually made, annualised, before any vault fee",
 };

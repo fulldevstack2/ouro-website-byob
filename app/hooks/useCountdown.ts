@@ -13,8 +13,7 @@ export interface Countdown {
  * client render agree — the same reason useClock starts empty. A baked-in countdown would
  * ship whatever the build machine's clock said and then jump on hydration.
  *
- * Used for the vaults "Next harvest" window (wall-aligned airdrop cadence from `/v1/ouro/next`)
- * and any other fixed target the UI already treats as a schedule, not a hard promise.
+ * Used for one-off scheduled targets (see PayoutCadence), not as a promise that a cycle will fire.
  */
 export function useCountdown(target: Date): Countdown | null {
   const [c, setC] = useState<Countdown | null>(null);
