@@ -591,7 +591,7 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
 
 @media (max-width: 720px) {
   .vault-page { padding-top: 32px; }
-  /* All four live stats stay visible in a 2×2 grid (tips replace the old footnotes). */
+  /* Three stats in a 2-col grid on phone (fee wraps to the second row). */
   .stat-band { grid-template-columns: repeat(2, 1fr); margin: 28px 0 24px; padding: 20px 0; align-items: start; }
   /* Title over button, in that order: it is a header, so it reads before the control it labels. */
   .connect-bar { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
