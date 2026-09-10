@@ -5,14 +5,12 @@ import { site } from "~/content/site";
 import { mono } from "./text";
 
 /**
- * The airdrop cadence, stated as a target rather than a promise.
+ * The airdrop cadence: every 2 hours, said plainly.
  *
  * This replaced a live countdown to the next payout. The countdown was the wrong shape for the
- * mechanism: it read as a guarantee that a payout lands on a fixed clock, when a cycle actually runs
- * only if it is worth running. Gas can spike, a cycle can be too thin to be worth sending, and a
- * wallet owed less than the gas to pay it waits for a later cycle. Counting down to something that
- * may reasonably not happen sets up a broken promise every time it slips, and there is nothing to
- * gain from it: a cycle that waits loses nobody anything.
+ * mechanism: it read as a guarantee that a payout lands on a fixed clock, to the second. The card
+ * states the cadence instead and leaves what can make a cycle wait to docs §6, which the link at the
+ * foot of the card goes to.
  *
  * It is also static, which is a small bonus. The countdown had to render null until mounted so the
  * prerendered HTML and the first client render agreed. This has no clock, so it prerenders whole.
@@ -88,14 +86,10 @@ export function PayoutCadence({ compact = false }: { compact?: boolean }) {
     >
       <FinalManualAirdrop />
       <span style={{ ...mono, fontSize: 10, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--text-accent)" }}>
-        Airdrop cadence · target
+        Airdrop cadence
       </span>
       <span style={{ ...mono, fontSize: compact ? 18 : 22, lineHeight: 1, color: "var(--text-primary)" }}>Every 2 hours</span>
-      <span style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text-secondary)" }}>
-        Target, not a promise. Streams over about 48 hours. Runs when worth the gas.
-      </span>
-      <span style={{ ...mono, fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>hold ≥ 100,000 $OURO to be paid</span>
-      <Link to="/docs/#d06" style={{ ...mono, fontSize: 11, color: "var(--text-accent)" }}>
+      <Link to="/docs/#d06" style={{ ...mono, fontSize: 11, color: "var(--text-accent)", marginTop: 2 }}>
         What decides whether a cycle runs
       </Link>
     </div>

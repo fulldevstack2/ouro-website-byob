@@ -14,7 +14,7 @@ export const site = {
   ticker: "$OURO",
   tagline: "Hold $OURO. Get paid.",
   description:
-    "Hold 100,000+ $OURO and airdrops land in your wallet. Holding less? Pool with others. Every trade: 5% tax, half to holders, half to LP that pays again.",
+    "Hold 100,000+ $OURO and airdrops land in your wallet. Holding less? Pool with others. Every trade pays a 5% tax: 2% to holders, 2% to LP that pays again, 1% to ops and the launchpad.",
   xHandle,
   /**
    * Every public Robinhood Chain endpoint that works, in the order they are tried. All keyless, so

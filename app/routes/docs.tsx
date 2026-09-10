@@ -72,7 +72,7 @@ const CANT: { lead: string; text: string }[] = [
 const FAQ: { q: string; a: string }[] = [
   {
     q: "How is Ouro different from HOOD10 or The Index?",
-    a: "They hand out every tax point, so payouts stop when volume cools. Ouro hands out half, keeps half as fee-earning LP, and airdrops 80% of those fees.",
+    a: "They hand out every tax point, so payouts stop when volume cools. Ouro airdrops 2% of a trade, keeps another 2% as fee-earning LP, and airdrops 80% of those fees.",
   },
   {
     q: "What do I have to do to get paid?",
@@ -88,15 +88,15 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "What is the Reserve? What is LP?",
-    a: "LP means tokens sitting in a trading pool earning swap fees. The Reserve is that LP owned by the protocol, bought with half the tax. Its fees fund the second airdrop leg.",
+    a: "LP means tokens sitting in a trading pool earning swap fees. The Reserve is that LP owned by the protocol, bought with 2% of every trade. Its fees fund the second airdrop leg.",
   },
   {
     q: "What is a cycle?",
-    a: "One public payout run. Target about every two hours, but only when worth the gas. Fee collections stream out over about 48 hours.",
+    a: "One public payout run, every two hours. Fee collections stream out over about 48 hours.",
   },
   {
     q: "What am I paid in, and when?",
-    a: "Tokens. The tax leg is bought at market; the fee leg arrives as the pools earned it (often basket tokens plus WETH). Target about every two hours.",
+    a: "Tokens. The tax leg is bought at market; the fee leg arrives as the pools earned it (often basket tokens plus WETH). Paid every two hours.",
   },
   {
     q: "Is the basket safe? Are these stocks?",
@@ -165,8 +165,8 @@ export default function Docs() {
         <div>
           <DocSection id="d01" n="01" title="Overview">
             <P>
-              Hold $OURO and get paid from every trade. A 5% tax buys tokens: half is airdropped to holders, half becomes protocol-owned LP (the Reserve). 80% of
-              that LP&apos;s fees are airdropped too.
+              Hold $OURO and get paid from every trade. A 5% tax buys tokens: 2% of the trade is airdropped to holders, 2% becomes protocol-owned LP (the
+              Reserve), and the last 1% covers ops and the launchpad. 80% of that LP&apos;s fees are airdropped too.
             </P>
           </DocSection>
 
@@ -245,10 +245,10 @@ export default function Docs() {
           </DocSection>
 
           <DocSection id="d06" n="06" title="When it arrives">
-            <P>Target: an airdrop about every two hours. That is a target, not a promise. A cycle runs when it is worth the gas.</P>
+            <P>An airdrop every two hours.</P>
             <SplitRows
               rows={[
-                ["Target cadence", "every 2 hours"],
+                ["Airdrop cadence", "every 2 hours"],
                 ["Fees are collected once they reach", `$${COLLECT_THRESHOLD_USD} accrued`],
                 ["A collection then splits", `$${COLLECTION_SPLIT_USD.holders} airdropped / $${COLLECTION_SPLIT_USD.reserve} compounded`],
                 ["A collection is streamed over", "about 48 hours"],

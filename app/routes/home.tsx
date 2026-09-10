@@ -40,7 +40,7 @@ export default function Home() {
 
 /* ------------------------------------------------------------------ Hero */
 
-/** Second beat of the tagline in bronze italic; falls back to plain text if the copy changes. */
+/** Second beat of the tagline on its own line, in bronze italic; falls back to plain text if the copy changes. */
 function Tagline() {
   const em = "Get paid.";
   const i = site.tagline.indexOf(em);
@@ -48,6 +48,7 @@ function Tagline() {
   return (
     <>
       {site.tagline.slice(0, i)}
+      <br />
       <em className="hero-em">{em}</em>
     </>
   );
@@ -69,7 +70,8 @@ function Hero() {
               Hold 100,000+ $OURO and airdrops land in your wallet. No stake. No claim. Holding less? Pool with others so you still get paid.
             </p>
             <p className="hero-in" style={{ margin: "12px 0 0", fontSize: 14, lineHeight: 1.6, color: "var(--text-muted)", maxWidth: 460 }}>
-              Every trade pays a 5% tax. Half goes to holders. Half buys LP the protocol keeps, and those pools pay you again.
+              Every trade pays a 5% tax: 2% airdropped to holders, 2% into LP the protocol keeps so those pools pay you again, 0.7% ops, 0.3% the
+              letscash platform.
             </p>
             <AprHeadline />
             <div className="cta-row hero-in" style={{ display: "flex", gap: 12, marginTop: 28 }}>
@@ -128,7 +130,7 @@ function WhatYouDoSection() {
         </div>
         <div className="cell-rule">
           <MicroLabel>02</MicroLabel>
-          <div style={{ fontSize: 16, fontWeight: 600, marginTop: 8 }}>Hold 100,000+</div>
+          <div style={{ fontSize: 16, fontWeight: 600, marginTop: 8 }}>Hold 100,000+ $OURO</div>
           <div style={{ ...body14, marginTop: 6 }}>
             Or{" "}
             <Link to="/vaults/" style={{ color: "var(--text-accent)" }}>
@@ -169,10 +171,10 @@ function LoopSection() {
             Every ETH/OURO swap pays a 5% tax in ETH into the treasury.
           </Step>
           <Step n="02" title="Buy">
-            That tax buys chain tokens: half airdropped to holders, half kept as LP. A slice covers ops and the launchpad.
+            That tax buys chain tokens: 2% of the trade airdropped to holders, 2% kept as LP. The last 1% covers ops and the launchpad.
           </Step>
           <Step n="03" title="Own">
-            The kept half becomes LP the protocol owns forever (the Reserve). Never handed out.
+            The kept 2% becomes LP the protocol owns forever (the Reserve). Never handed out.
           </Step>
           <Step n="04" title="Yield">
             Those pools earn fees. Each cycle: 80% airdropped to holders, 20% back into the Reserve.
@@ -197,10 +199,10 @@ interface CompareRow {
 const COMPARE_ROWS: CompareRow[] = [
   {
     label: "What the tax buys",
-    tip: "Others hand out every tax point. Ouro hands out half and keeps half as fee-earning LP.",
+    tip: "Others hand out every tax point. Ouro airdrops 2% of a trade and keeps another 2% as fee-earning LP.",
     hood10: "All handed out",
     index: "All handed out",
-    ouro: "Half out, half kept as LP",
+    ouro: "2% out, 2% kept as LP",
   },
   {
     label: "Liquidity the protocol owns",

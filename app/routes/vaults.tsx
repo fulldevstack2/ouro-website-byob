@@ -208,7 +208,7 @@ export default function Vaults() {
                 Airdrops need 100,000 OURO. Pool with others to clear that together without moving the line.
               </Col>
               <Col label="The chore" rule>
-                Airdrops arrive as basket tokens about every two hours. One keeper converts them for everyone. Fee: {TERMS.feeSplit.airdrops}% airdrops /{" "}
+                Airdrops arrive as basket tokens every two hours. One keeper converts them for everyone. Fee: {TERMS.feeSplit.airdrops}% airdrops /{" "}
                 {TERMS.feeSplit.ops}% ops.
               </Col>
               <Col label="The proof" rule>
