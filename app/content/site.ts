@@ -14,7 +14,7 @@ export const site = {
   ticker: "$OURO",
   tagline: "Hold $OURO. Get paid.",
   description:
-    "Hold 100,000+ $OURO → airdrops in your wallet. Less? Deposit with others. Every trade: 5% tax, half to holders, half to LP that pays again.",
+    "Hold 100,000+ $OURO and airdrops land in your wallet. Holding less? Pool with others. Every trade: 5% tax, half to holders, half to LP that pays again.",
   xHandle,
   /**
    * `rpcUrl` is Robinhood Chain's public endpoint: keyless, so it ships in the client bundle by

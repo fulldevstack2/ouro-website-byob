@@ -786,7 +786,7 @@ export default function Airdrops() {
           kicker="Eligibility"
           title="Who gets paid."
           titleStyle={{ fontSize: 30 }}
-          sub="≥ 100,000 $OURO in your wallet. Holding less? Deposit with others on Vaults."
+          sub="≥ 100,000 $OURO in your wallet. Holding less? Pool with others on Vaults."
           subStyle={{ fontSize: 15 }}
           style={{ marginBottom: 24 }}
         />

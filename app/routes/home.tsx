@@ -65,11 +65,11 @@ function Hero() {
             <h1 className="hero-title hero-in" style={{ margin: "20px 0 0" }}>
               <Tagline />
             </h1>
-            <p className="hero-in" style={{ margin: "22px 0 0", fontSize: 17, lineHeight: 1.65, color: "var(--text-secondary)", maxWidth: 440 }}>
-              100,000+ $OURO → airdrops in your wallet. No stake. No claim. Less than that? Deposit with others and still earn.
+            <p className="hero-in" style={{ margin: "22px 0 0", fontSize: 17, lineHeight: 1.65, color: "var(--text-secondary)", maxWidth: 460 }}>
+              Hold 100,000+ $OURO and airdrops land in your wallet. No stake. No claim. Holding less? Pool with others so you still get paid.
             </p>
-            <p className="hero-in" style={{ margin: "12px 0 0", fontSize: 14, lineHeight: 1.6, color: "var(--text-muted)", maxWidth: 440 }}>
-              Every trade: 5% tax. Half to holders. Half to protocol LP that pays again.
+            <p className="hero-in" style={{ margin: "12px 0 0", fontSize: 14, lineHeight: 1.6, color: "var(--text-muted)", maxWidth: 460 }}>
+              Every trade pays a 5% tax. Half goes to holders. Half buys LP the protocol keeps, and those pools pay you again.
             </p>
             <AprHeadline />
             <div className="cta-row hero-in" style={{ display: "flex", gap: 12, marginTop: 28 }}>
@@ -115,7 +115,7 @@ function ProofBand() {
 function WhatYouDoSection() {
   return (
     <Container id="start" style={{ paddingTop: 96 }}>
-      <SectionHead kicker="Start here" title="Three moves." />
+      <SectionHead kicker="Start here" title="Three moves." sub="That is the whole product." />
       <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md">
         <div>
           <MicroLabel>01</MicroLabel>
@@ -132,15 +132,15 @@ function WhatYouDoSection() {
           <div style={{ ...body14, marginTop: 6 }}>
             Or{" "}
             <Link to="/vaults/" style={{ color: "var(--text-accent)" }}>
-              deposit with others
-            </Link>
-            .
+              pool with others
+            </Link>{" "}
+            if you hold less.
           </div>
         </div>
         <div className="cell-rule">
           <MicroLabel>03</MicroLabel>
           <div style={{ fontSize: 16, fontWeight: 600, marginTop: 8 }}>Get paid</div>
-          <div style={{ ...body14, marginTop: 6 }}>Tokens land in your wallet.</div>
+          <div style={{ ...body14, marginTop: 6 }}>Tokens land in your wallet. Nothing to claim.</div>
         </div>
       </Grid>
     </Container>
@@ -166,16 +166,16 @@ function LoopSection() {
         <LoopRing />
         <div>
           <Step n="01" title="Trade">
-            ETH/OURO swap → 5% tax (in ETH) to the treasury.
+            Every ETH/OURO swap pays a 5% tax in ETH into the treasury.
           </Step>
           <Step n="02" title="Buy">
-            Tax buys chain tokens: half airdropped, half kept as LP. Rest covers ops + launchpad.
+            That tax buys chain tokens: half airdropped to holders, half kept as LP. A slice covers ops and the launchpad.
           </Step>
           <Step n="03" title="Own">
-            Kept half = LP the protocol owns (the Reserve). Never handed out.
+            The kept half becomes LP the protocol owns forever (the Reserve). Never handed out.
           </Step>
           <Step n="04" title="Yield">
-            Pool fees: 80% airdropped, 20% back into the Reserve. Repeat.
+            Those pools earn fees. Each cycle: 80% airdropped to holders, 20% back into the Reserve.
           </Step>
         </div>
       </Grid>
@@ -239,7 +239,7 @@ function DifferenceSection() {
       <SectionHead
         kicker="The difference"
         title="They spend the tax. We keep half working."
-        sub="We pay you, then keep equal LP that pays again."
+        sub="We pay you from the tax, then keep equal LP that pays you again."
       />
       {/* Desktop: a 4-column grid. ≤860px: each row becomes a block: the label as a heading, then the
           three values stacked with their column name (from data-col), Ouro's highlighted. See site.css → "Comparison table". */}
@@ -293,7 +293,7 @@ function BasketSection() {
       <SectionHead
         kicker="The pools"
         title="It starts with CASHCAT and PONS."
-        sub="Reserve = protocol-owned LP. Never handed out."
+        sub="The Reserve is protocol-owned LP in deep markets. Never handed out."
       />
       <Grid cols="1.1fr 0.9fr" gap={64} align="start">
         <div>
@@ -308,7 +308,8 @@ function BasketSection() {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Callout title="What these pools earn">
-            Fees → 80% airdropped, 20% compounds. <Link to="/docs/#d07">Compounding</Link>.
+            Swap fees: 80% airdropped to holders, 20% compounds back into LP. That second leg can keep paying when volume cools.{" "}
+            <Link to="/docs/#d07">Compounding</Link>.
           </Callout>
         </div>
       </Grid>
@@ -329,9 +330,9 @@ function YieldSection() {
     <Container id="yield" style={{ paddingTop: 96 }}>
       <SectionHead kicker="Real yield" title="Two paychecks. One wallet." sub="Nothing to stake or claim." />
       <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md">
-        {col("Hold", "≥ 100,000 $OURO in your wallet. Or deposit with others.", false)}
-        {col("Tax leg", "Part of the 5% tax buys tokens for you. Tracks volume.", true)}
-        {col("Pool leg", "80% of protocol LP fees. 20% compounds.", true)}
+        {col("Hold", "≥ 100,000 $OURO in your wallet. Or pool with others if you hold less.", false)}
+        {col("Tax leg", "Part of each trade's 5% tax buys tokens and sends them to you. Tracks volume.", true)}
+        {col("Pool leg", "80% of fees from protocol-owned LP. The other 20% compounds.", true)}
       </Grid>
       <div style={{ marginTop: 28, display: "flex", gap: 24, alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap" }}>
         <Button variant="secondary" arrow to="/docs/#d05">
@@ -347,8 +348,8 @@ function YieldSection() {
 function LiveProofSection() {
   return (
     <Container id="proof" style={{ paddingTop: 96 }}>
-      <SectionHead kicker="Live proof" title="Recent payouts." sub="Onchain. Newest first." />
-      <CrankFeed footer="If the site and the chain disagree, the chain is right." />
+      <SectionHead kicker="Live proof" title="Recent payouts." sub="Onchain. Newest first. If the site and chain disagree, the chain is right." />
+      <CrankFeed footer="Each payment links to its transaction on the airdrops page." />
     </Container>
   );
 }
@@ -370,8 +371,9 @@ const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] 
     title: "The vaults",
     body: (
       <>
-        Under 100,000? Deposit with others. {TERMS.performanceFeePct}% of profit ({TERMS.feeSplit.airdrops}/{TERMS.feeSplit.ops} airdrops/ops).{" "}
-        <Link to="/vaults/">Vaults</Link>.
+        Holding under 100,000 $OURO? Pool with others and still earn. {TERMS.performanceFeePct}% of profit (
+        {TERMS.feeSplit.airdrops}/{TERMS.feeSplit.ops} airdrops/ops). Paid in OURO, WETH, or USDG.{" "}
+        <Link to="/vaults/">Open vaults</Link>.
       </>
     ),
   },
@@ -379,13 +381,17 @@ const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] 
     n: "02",
     horizon: "Medium term",
     title: "Own the trading rails",
-    body: <>Leave letscash so less of each trade leaks. <Link to="/docs/">Docs</Link>.</>,
+    body: (
+      <>
+        Leave letscash so less of each trade leaks to the launchpad or untaxed pools. <Link to="/docs/">Docs</Link>.
+      </>
+    ),
   },
   {
     n: "03",
     horizon: "Long term",
     title: "Multichain",
-    body: <>Same machine on other chains. One holder base.</>,
+    body: <>Same machine on other chains. One holder base, not a new token each time.</>,
   },
 ];
 
@@ -419,7 +425,7 @@ function LockSection() {
             <Badge tone="accent">What the contract fixes</Badge>
             <h2 style={{ margin: "20px 0 0", ...display, fontSize: 34, lineHeight: 1.15, color: "#FFFFFF" }}>Fixed supply. Public rules.</h2>
             <p style={{ margin: "16px 0 0", fontSize: 15, lineHeight: 1.65, color: "var(--text-inverse-muted)", maxWidth: 440 }}>
-              No mint. Tax changes only by governance. Wallet never blockable.
+              No mint function. Tax changes only by public governance. Your wallet can never be blocked.
             </p>
             <div style={{ marginTop: 28 }}>
               <Button variant="inverse" arrow to="/docs/#d08">

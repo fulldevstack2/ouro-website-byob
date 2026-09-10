@@ -426,24 +426,24 @@ export default function Ledger() {
       <Grid cols="1fr 1fr" gap={48} align="start" style={{ marginBottom: 64 }}>
         <div>
           <Method n="01" title="What a position holds">
-            Token amounts in that LP now (from price + range).
+            How many tokens sit in that LP right now (from pool price and range).
           </Method>
           <Method n="02" title="Uncollected fees">
-            Fees earned, not yet swept. Simulated collect as owner.
+            Fees earned but not yet swept out. Simulated collect as the owner.
           </Method>
           <Method n="03" title="Fees the Reserve keeps">
-            After factory cut (e.g. 0.30% pool → 0.25% to Reserve).
+            Share after the factory cut (e.g. a 0.30% pool pays the Reserve 0.25%).
           </Method>
         </div>
         <div>
           <Method n="04" title="Divergence loss">
-            LP mark vs holding the same tokens.
+            How LP compares to simply holding the same tokens at today&apos;s price.
           </Method>
           <Method n="05" title="Fees already collected">
-            Swept fees, valued when collected. Includes the compounded fifth.
+            Fees already swept, valued when collected. Includes the fifth that compounds back into LP.
           </Method>
           <Method n="06" title="What is withheld">
-            Any unpriced Reserve token → USD totals dash.
+            If any Reserve token lacks a trusted price, USD totals show a dash.
           </Method>
         </div>
       </Grid>
@@ -453,7 +453,7 @@ export default function Ledger() {
           kicker="Addresses"
           title="Verify everything."
           titleStyle={{ fontSize: 30 }}
-          sub="Wallet, pools, infra. All onchain."
+          sub="The wallet, the pools, and infrastructure. All onchain."
           subStyle={{ fontSize: 15 }}
           style={{ marginBottom: 32 }}
         />

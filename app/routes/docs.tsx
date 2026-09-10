@@ -72,35 +72,35 @@ const CANT: { lead: string; text: string }[] = [
 const FAQ: { q: string; a: string }[] = [
   {
     q: "How is Ouro different from HOOD10 or The Index?",
-    a: "They hand out all tax. We hand out half, keep half as LP, and airdrop 80% of those fees.",
+    a: "They hand out every tax point, so payouts stop when volume cools. Ouro hands out half, keeps half as fee-earning LP, and airdrops 80% of those fees.",
   },
   {
     q: "What do I have to do to get paid?",
-    a: "Hold ≥ 100,000 $OURO in your wallet. No stake or claim. Exchange/bridge balances do not count.",
+    a: "Hold at least 100,000 $OURO in your own wallet. No stake, lock, or claim. Exchange or bridge balances do not count.",
   },
   {
     q: "I hold less than 100,000 $OURO. What then?",
-    a: "Deposit with others (Vaults). You still earn in OURO, ETH, or dollars.",
+    a: "Pool with others on Vaults. Deposits clear the line together; you earn in OURO, ETH, or dollars.",
   },
   {
     q: "Do I need to stake or claim?",
-    a: "No for wallet holdings. ETH/dollar vaults have a collect step for that payout.",
+    a: "No for wallet holdings. ETH and dollar vaults have a collect step for that payout; your OURO still withdraws anytime.",
   },
   {
     q: "What is the Reserve? What is LP?",
-    a: "LP = tokens in a pool earning fees. The Reserve is protocol-owned LP bought with half the tax.",
+    a: "LP means tokens sitting in a trading pool earning swap fees. The Reserve is that LP owned by the protocol, bought with half the tax. Its fees fund the second airdrop leg.",
   },
   {
     q: "What is a cycle?",
-    a: "One public payout run. Target ~every 2 hours, when worth the gas. Streams over ~48 hours.",
+    a: "One public payout run. Target about every two hours, but only when worth the gas. Fee collections stream out over about 48 hours.",
   },
   {
     q: "What am I paid in, and when?",
-    a: "Tokens. Tax leg bought at market; fee leg as pools earned it. Target every ~2 hours.",
+    a: "Tokens. The tax leg is bought at market; the fee leg arrives as the pools earned it (often basket tokens plus WETH). Target about every two hours.",
   },
   {
     q: "Is the basket safe? Are these stocks?",
-    a: "No. Crypto on Robinhood Chain. Can go to zero.",
+    a: "No. Crypto tokens on Robinhood Chain, including memecoins. They can go to zero.",
   },
 ];
 
@@ -165,13 +165,15 @@ export default function Docs() {
         <div>
           <DocSection id="d01" n="01" title="Overview">
             <P>
-              Hold $OURO → get paid. 5% tax on every trade: half airdropped, half kept as protocol LP (the Reserve). 80% of that LP&apos;s fees airdropped too.
+              Hold $OURO and get paid from every trade. A 5% tax buys tokens: half is airdropped to holders, half becomes protocol-owned LP (the Reserve). 80% of
+              that LP&apos;s fees are airdropped too.
             </P>
           </DocSection>
 
           <DocSection id="d02" n="02" title="The tax">
             <P>
-              5% in ETH on every buy and sell. Fixed in letscash&apos;s hook. Nobody can change it. Rest funds airdrop + Reserve (minus launchpad fee).
+              5% in ETH on every buy and sell. Fixed in letscash&apos;s hook at launch; nobody can change it. After the launchpad fee, the rest funds the airdrop
+              and the Reserve.
             </P>
             <SplitBar
               wedges={[
@@ -194,7 +196,7 @@ export default function Docs() {
           </DocSection>
 
           <DocSection id="d03" n="03" title="The Loop">
-            <P>Each cycle deploys tax on the split above and collects Reserve fees. Those fees split again:</P>
+            <P>Each cycle deploys accumulated tax on the split above and collects fees from Reserve LP. Those fees split again:</P>
             <SplitBar
               wedges={[
                 { label: "Holders", value: "80%", weight: 80 },
@@ -210,20 +212,21 @@ export default function Docs() {
               ]}
             />
             <P style={{ marginTop: 12 }}>
-              Public onchain. Tax legs buy at market. Fee leg passes through as earned (nothing sold).
+              Every cycle is public onchain. Tax legs buy at market. The fee leg passes through as the pools earned it, so nothing is sold for it.
             </P>
           </DocSection>
 
           <DocSection id="d04" n="04" title="The Reserve">
             <P>
-              Protocol-owned LP in liquid RH Chain tokens (starts with <strong>CASHCAT</strong> and <strong>PONS</strong>, toward five). Cap 20–25% each. Fees
-              feed the Loop; tradeoff vs holding is divergence. Changes by public governance. Also holds ETH/OURO LP at the same 80/20 split.
+              Protocol-owned LP in liquid Robinhood Chain tokens. It opens with <strong>CASHCAT</strong> and <strong>PONS</strong>, building toward five. Each
+              name is capped at 20–25% of the treasury. Those pools earn the fees that feed the Loop; the tradeoff vs holding is divergence. Changes are public
+              governance. The treasury also holds ETH/OURO LP on the same 80/20 split.
             </P>
           </DocSection>
 
           <DocSection id="d05" n="05" title="The airdrop">
             <P>
-              Tax leg + pool leg (80% of LP fees). Hold ≥ 100,000 $OURO in your wallet. Nothing to stake or claim.
+              Two legs: the tax leg and 80% of protocol LP fees. Hold at least 100,000 $OURO in your wallet. Nothing to stake, lock, or claim.
             </P>
             <SplitRows
               rows={[
@@ -232,16 +235,17 @@ export default function Docs() {
               ]}
             />
             <P style={{ marginTop: 12 }}>
-              Tax leg bought at market. Fee leg in kind (basket + usually ETH). Collect only after {`$${COLLECT_THRESHOLD_USD}`} accrued;{" "}
-              {`$${COLLECTION_SPLIT_USD.holders}`} of each collect goes to holders. ETH paid as WETH. See <a href="#d06">When it arrives</a>.
+              Tax leg is bought at market. Fee leg arrives in kind (basket tokens plus usually ETH). Fees are collected only after {`$${COLLECT_THRESHOLD_USD}`}
+              has accrued; {`$${COLLECTION_SPLIT_USD.holders}`} of each collect reaches holders. ETH is paid as WETH. See <a href="#d06">When it arrives</a>.
             </P>
             <Callout title="Who is excluded" style={{ marginTop: 14 }}>
-              Pools, treasury, and infra are excluded (operator policy, not contract). Exchange/bridge balances are someone else&apos;s wallet.
+              Pool contracts, treasury, and infrastructure are left out (operator policy, not enforced by the contract). Tokens on an exchange or bridge are in
+              someone else&apos;s wallet and are not paid.
             </Callout>
           </DocSection>
 
           <DocSection id="d06" n="06" title="When it arrives">
-            <P>Target: ~every 2 hours. Not a promise. Runs when worth the gas.</P>
+            <P>Target: an airdrop about every two hours. That is a target, not a promise. A cycle runs when it is worth the gas.</P>
             <SplitRows
               rows={[
                 ["Target cadence", "every 2 hours"],
@@ -252,16 +256,18 @@ export default function Docs() {
               ]}
             />
             <P style={{ marginTop: 12 }}>
-              <strong>Fees wait until {`$${COLLECT_THRESHOLD_USD}`}.</strong> Then 80/20 to airdrop wallet / Reserve. Uncollected fees still earn.
+              <strong>Fees wait until {`$${COLLECT_THRESHOLD_USD}`} has accrued.</strong> Then they split 80/20 to the airdrop wallet and the Reserve.
+              Uncollected fees still earn while they wait.
             </P>
             <P style={{ marginTop: 12 }}>
-              <strong>Streamed ~48 hours</strong> so payouts track recent days, not one spike hour.
+              <strong>Income is streamed over about 48 hours</strong> so payouts track recent trading days, not a single spike hour.
             </P>
             <P style={{ marginTop: 12 }}>
-              <strong>Tiny balances wait</strong> until worth the gas. Same total either way.
+              <strong>Tiny balances wait</strong> until they are worth more than the gas to send. Same total either way.
             </P>
             <Callout title="What makes a cycle wait" style={{ marginTop: 14 }}>
-              Expensive gas, thin cycle, debts below send cost, fees under {`$${COLLECT_THRESHOLD_USD}`}, keeper offline, or no trades. Waiting forfeits nothing.
+              Expensive gas, a thin cycle, debts below the cost to send, fees under {`$${COLLECT_THRESHOLD_USD}`}, keeper offline, or no trades. Waiting forfeits
+              nothing; it rolls into the next cycle.
             </Callout>
             <P style={{ marginTop: 12 }}>
               <strong>Cadence is policy, not code.</strong> Judge it on the public Ledger record.
@@ -270,7 +276,7 @@ export default function Docs() {
 
           <DocSection id="d07" n="07" title="Compounding">
             <P>
-              Tax buys more Reserve LP; 20% of fees compound back in. Fee leg can grow even when volume does not.
+              Two tax points of every trade buy more Reserve LP, and 20% of fees compound back in. The fee leg can grow even when volume does not.
             </P>
           </DocSection>
 
@@ -315,7 +321,7 @@ export default function Docs() {
           <DocSection id="d11" n="11" title="Risks">
             <P>
               Tax leg tracks volume and stops with it. Fee leg needs pool fees. Basket can go to zero. LP can lose to holding. 5% both ways is expensive for
-              short-term trading. One chain. Under 100,000 unpaid unless you deposit with others. Rails are letscash&apos;s. Airdrop cadence is policy, not code.
+              short-term trading. One chain. Under 100,000 unpaid unless you pool with others. Rails are letscash&apos;s. Airdrop cadence is policy, not code.
             </P>
             <Callout tone="caution" title="No promises" style={{ marginTop: 14 }}>
               An airdrop is a share of fees earned. Not a yield promise. Not financial advice. Don&apos;t risk more than you can lose.
