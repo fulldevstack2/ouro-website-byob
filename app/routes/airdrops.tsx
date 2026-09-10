@@ -657,7 +657,7 @@ export default function Airdrops() {
           kicker="Yield"
           title="What a holding earns."
           titleStyle={{ fontSize: 30 }}
-          sub="From payouts actually made, not a forecast. Cycles are split pro-rata by balance, so a holding's share of a cycle is its share of the eligible supply."
+          sub="From payouts actually made. Pro-rata by balance."
           subStyle={{ fontSize: 15 }}
           style={{ marginBottom: 24 }}
         />
@@ -693,11 +693,8 @@ export default function Airdrops() {
         </Grid>
 
         <Callout tone={y && !y.annualisable ? "caution" : "note"} title="Read the annual rate with its basis" style={{ marginTop: 28 }}>
-          {y?.caveat ?? "The rate is measured over the last seven days of payouts."} An annual figure is the one number here that says anything about the
-          future, and it is only as old as the payouts behind it: {fmtNum(y?.cycles ?? 0)} cycles over{" "}
-          {y?.historyDays ? fmtNum(y.historyDays, 1) : "—"} days, at launch volume. The same payouts annualise to roughly a fifth of this over a seven-day
-          window, because the divisor picks the answer. Treat it as what recent trading paid, not as a rate anyone is promising. The daily figures beside it
-          are the measurements, and every cycle behind them is listed below.
+          {y?.caveat ?? "Rate from the last seven days of payouts."} {fmtNum(y?.cycles ?? 0)} cycles over{" "}
+          {y?.historyDays ? fmtNum(y.historyDays, 1) : "—"} days. Not a promise — recent trading only. Daily figures beside it are the measurements.
         </Callout>
 
         <Grid cols="1fr 1fr" gap={48} align="start" style={{ marginTop: 28 }}>
@@ -712,17 +709,13 @@ export default function Airdrops() {
             <KVRow label="Payout history indexed" value={y?.historyDays == null ? "—" : `${fmtNum(y.historyDays, 1)} days`} border="none" />
           </div>
           <div style={body14}>
-            The eligible supply excludes what is never paid: wallets below the {fmtNum(y?.lineTokens ?? 100_000)} line, the pool contract, and the team vest.
-            Counting those would make every holder's share look smaller than it is.
+            Eligible supply excludes wallets under {fmtNum(y?.lineTokens ?? 100_000)}, the pool, and the team vest.
             <br />
             <br />
-            One inexactness in the other direction. The keeper pays the three largest holders 30% less than strict pro-rata and hands the freed amount to
-            everyone else, so a typical wallet receives slightly <em>more</em> than the figures above. They are a floor for most holders rather than an exact
-            number, and erring low is the direction we would rather err in.
+            Top three holders get 30% less than pro-rata; everyone else gets a bit more. Figures above are a floor for most wallets.
             <br />
             <br />
-            The cost is a floor too: the quantity at the mid price plus the trade tax a buy pays on top of it. It leaves out what the pool charges in slippage,
-            which at this size is small next to the tax. A line is worth tens of dollars against a pool holding tens of thousands.
+            Cost = mid price + trade tax (no slippage).
           </div>
         </Grid>
       </div>
@@ -732,7 +725,7 @@ export default function Airdrops() {
           kicker="History"
           title="Every airdrop, and what it paid."
           titleStyle={{ fontSize: 30 }}
-          sub="One row per payout, newest first. Value is what the assets were worth when they were sent, not today. An airdrop is worth what it was worth on the day."
+          sub="Newest first. Valued when sent, not today."
           subStyle={{ fontSize: 15 }}
           style={{ marginBottom: 24 }}
         />
@@ -841,34 +834,31 @@ export default function Airdrops() {
           kicker="Method"
           title="How this is measured."
           titleStyle={{ fontSize: 30 }}
-          sub="Every figure is derived from Robinhood Chain by the Monitor, an open indexer we run. A missing price leaves a dash, never an estimate."
+          sub="Onchain via the Monitor. Missing price → dash, never an estimate."
           subStyle={{ fontSize: 15 }}
           style={{ marginBottom: 24 }}
         />
         <Grid cols="1fr 1fr" gap={48} align="start">
           <div>
             <Method n="01" title="A cycle">
-              One public payout run: the Airdropper pulls each asset out of the airdrop wallet (
-              <code style={mono}>Airdropped</code> events). One cycle may span several transactions; the row keeps every leg.
+              One public payout run (<code style={mono}>Airdropped</code> events). May span several txs.
             </Method>
             <Method n="02" title="What a cycle was worth">
-              Each leg priced when it was sent, not today. If any price is missing, the whole cycle shows a dash rather than a partial sum that looks complete.
+              Priced when sent. Any missing price → whole cycle dashes.
             </Method>
             <Method n="03" title="Eligibility">
-              Balances are replayed from <code style={mono}>Transfer</code> events and compared to the line in raw units. Pool contracts, treasury, and vesting
-              are excluded when the list is built.
+              Balances from <code style={mono}>Transfer</code> events vs the line. Pools/treasury/vest excluded.
             </Method>
           </div>
           <div>
             <Method n="04" title="What is on its way">
-              Claimable tax from the pool hook, the airdrop wallet&apos;s balance of each payable asset, and uncollected fees from Reserve LP. None of these is a
-              promise about the next cycle.
+              Claimable tax, airdrop wallet balances, uncollected Reserve fees. Not a promise for next cycle.
             </Method>
-            <Method n="05" title="Why the next payout has no countdown">
-              A cycle runs when it is worth the gas. Thin cycles wait and arrive larger; small wallet debts wait for a later run. Waiting forfeits nothing.
+            <Method n="05" title="Why no countdown">
+              Runs when worth the gas. Waiting forfeits nothing.
             </Method>
             <Method n="06" title="Wallets, not accounts">
-              Tokens on an exchange or in a bridge sit in someone else&apos;s wallet. Only the address holding the balance is paid.
+              Exchange/bridge balances are someone else&apos;s wallet.
             </Method>
           </div>
         </Grid>

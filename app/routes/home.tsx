@@ -66,10 +66,10 @@ function Hero() {
               <Tagline />
             </h1>
             <p className="hero-in" style={{ margin: "22px 0 0", fontSize: 17, lineHeight: 1.65, color: "var(--text-secondary)", maxWidth: 440 }}>
-              Hold 100,000+ $OURO and airdrops land in your wallet. No stake. No claim. Holding less? Pool with others so you still get paid.
+              100,000+ $OURO → airdrops in your wallet. No stake. No claim. Less than that? Deposit with others and still earn.
             </p>
             <p className="hero-in" style={{ margin: "12px 0 0", fontSize: 14, lineHeight: 1.6, color: "var(--text-muted)", maxWidth: 440 }}>
-              How: every trade pays a 5% tax. Half goes to holders. Half buys LP the protocol keeps, and those pools pay you again.
+              Every trade: 5% tax. Half to holders. Half to protocol LP that pays again.
             </p>
             <AprHeadline />
             <div className="cta-row hero-in" style={{ display: "flex", gap: 12, marginTop: 28 }}>
@@ -100,9 +100,9 @@ function ProofBand() {
     <div style={{ borderTop: hairline, borderBottom: hairline, background: "var(--surface-tint)" }}>
       <Container style={{ paddingTop: 32, paddingBottom: 32 }}>
         <Grid cols="repeat(4, 1fr)" gap={24} className="grid--2col-md">
-          <Stat label="Trade tax" value="5%" footnote="Charged in ETH on every buy and sell" />
-          <Stat className="cell-rule" label="Tax split" value="2 / 2 / 0.7" footnote="Airdrop · LP kept · ops · plus 0.3% launchpad" />
-          <Stat className="cell-rule" label="LP fee split" value="80 / 20" footnote="Airdropped to holders · compounded into LP" />
+          <Stat label="Trade tax" value="5%" footnote="In ETH, every buy and sell" />
+          <Stat className="cell-rule" label="Tax split" value="2 / 2 / 0.7" footnote="Airdrop · LP · ops (+0.3% launchpad)" />
+          <Stat className="cell-rule" label="LP fee split" value="80 / 20" footnote="To holders · back into LP" />
           <Stat className="cell-rule" label="Supply" value="1,000,000,000" unit="OURO" />
         </Grid>
       </Container>
@@ -115,7 +115,7 @@ function ProofBand() {
 function WhatYouDoSection() {
   return (
     <Container id="start" style={{ paddingTop: 96 }}>
-      <SectionHead kicker="Start here" title="Three moves." sub="That is the whole product. Detail is below." />
+      <SectionHead kicker="Start here" title="Three moves." />
       <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md">
         <div>
           <MicroLabel>01</MicroLabel>
@@ -133,14 +133,14 @@ function WhatYouDoSection() {
             Or{" "}
             <Link to="/vaults/" style={{ color: "var(--text-accent)" }}>
               deposit with others
-            </Link>{" "}
-            so small holdings still earn.
+            </Link>
+            .
           </div>
         </div>
         <div className="cell-rule">
           <MicroLabel>03</MicroLabel>
           <div style={{ fontSize: 16, fontWeight: 600, marginTop: 8 }}>Get paid</div>
-          <div style={{ ...body14, marginTop: 6 }}>Tokens land in your wallet. Nothing to claim.</div>
+          <div style={{ ...body14, marginTop: 6 }}>Tokens land in your wallet.</div>
         </div>
       </Grid>
     </Container>
@@ -166,16 +166,16 @@ function LoopSection() {
         <LoopRing />
         <div>
           <Step n="01" title="Trade">
-            Every ETH/OURO swap pays a 5% tax (in ETH) into the treasury.
+            ETH/OURO swap → 5% tax (in ETH) to the treasury.
           </Step>
           <Step n="02" title="Buy">
-            Most of that tax buys strong chain tokens: half for the airdrop, half kept as LP. A slice covers ops and the launchpad.
+            Tax buys chain tokens: half airdropped, half kept as LP. Rest covers ops + launchpad.
           </Step>
           <Step n="03" title="Own">
-            Kept half becomes LP (liquidity in trading pools) the protocol owns forever. That is the Reserve.
+            Kept half = LP the protocol owns (the Reserve). Never handed out.
           </Step>
           <Step n="04" title="Yield">
-            Those pools earn fees. Each cycle: 80% airdropped to holders, 20% back into the Reserve. Loop repeats.
+            Pool fees: 80% airdropped, 20% back into the Reserve. Repeat.
           </Step>
         </div>
       </Grid>
@@ -197,39 +197,39 @@ interface CompareRow {
 const COMPARE_ROWS: CompareRow[] = [
   {
     label: "What the tax buys",
-    tip: "Competitors hand out every tax point the same epoch. Ouro hands out half and keeps half as fee-earning LP it owns.",
-    hood10: "All of it handed out. Nothing kept",
-    index: "All of it handed out. Nothing kept",
-    ouro: "Half handed out, half kept as liquidity",
+    tip: "Others hand out every tax point. Ouro hands out half and keeps half as fee-earning LP.",
+    hood10: "All handed out",
+    index: "All handed out",
+    ouro: "Half out, half kept as LP",
   },
   {
     label: "Liquidity the protocol owns",
-    tip: "LP bought with the tax and held by the treasury. Airdrop-only models build none. Ouro puts two points of every trade into positions it keeps.",
-    hood10: "No treasury liquidity",
-    index: "No treasury liquidity",
-    ouro: "kept forever, generating fees",
+    tip: "LP bought with tax and held by the treasury. Airdrop-only models build none.",
+    hood10: "None",
+    index: "None",
+    ouro: "Kept forever, earns fees",
   },
   {
     label: "Holders are paid from",
-    tip: "Competitors pay only from the tax, so payouts track volume and stop with it. Ouro also pays from fees its own pools earn, which can grow across cycles.",
-    hood10: "The tax itself",
-    index: "The tax itself",
-    ouro: "The tax, plus the fees the pools earn",
+    tip: "Others: tax only. Ouro: tax plus fees from owned pools.",
+    hood10: "The tax",
+    index: "The tax",
+    ouro: "Tax + pool fees",
   },
   {
     label: "Parallel pools",
-    tip: "Volume that never hits the taxed pool. Measured onchain 26–28 Aug 2026: competitors taxed ~6% to ~36% of their own volume. Ouro sealed 16 venues at deploy.",
-    hood10: "Only ~36% of volume taxed",
-    index: "Only ~6% of volume taxed",
-    ouro: "16 venues sealed at deploy",
+    tip: "Untaxed volume. Measured 26–28 Aug 2026. Ouro sealed 16 venues at deploy.",
+    hood10: "~36% volume taxed",
+    index: "~6% volume taxed",
+    ouro: "16 venues sealed",
   },
   {
     label: "When volume cools",
-    tip: "Tax-funded payouts shrink with volume. Ouro's tax leg does too, but pools already owned keep earning fees on past buys. Yield is never guaranteed.",
+    tip: "Tax payouts shrink with volume. Owned pools can keep earning. Yield never guaranteed.",
     tipPlacement: "above",
     hood10: "Payouts stop",
     index: "Payouts stop",
-    ouro: "The pools keep earning",
+    ouro: "Pools keep earning",
   },
 ];
 
@@ -239,7 +239,7 @@ function DifferenceSection() {
       <SectionHead
         kicker="The difference"
         title="They spend the tax. We keep half working."
-        sub="Others hand out every tax point. We pay you, then keep equal LP that pays you again."
+        sub="We pay you, then keep equal LP that pays again."
       />
       {/* Desktop: a 4-column grid. ≤860px: each row becomes a block: the label as a heading, then the
           three values stacked with their column name (from data-col), Ouro's highlighted. See site.css → "Comparison table". */}
@@ -272,8 +272,7 @@ function DifferenceSection() {
         </div>
       </div>
       <div style={{ marginTop: 16, fontSize: 13, color: "var(--text-muted)" }}>
-        Measured on Robinhood Chain from events and state, 26 to 28 Aug 2026, not from the projects&apos; marketing. The Ouro column is the shipped design;
-        method is in the <Link to="/docs/">docs</Link>.
+        Onchain, 26–28 Aug 2026. Method in the <Link to="/docs/">docs</Link>.
       </div>
     </Container>
   );
@@ -282,10 +281,10 @@ function DifferenceSection() {
 /* -------------------------------------------------------------- The pools */
 
 const RULES: { n: string; lead: string; text: string }[] = [
-  { n: "R1", lead: "Bluechip and liquid.", text: " High-turnover tokens with the deepest pool on the chain." },
-  { n: "R2", lead: "Capped.", text: " Each name is at most 20% to 25% of the treasury, and Ouro never becomes an outsized share of any single pool." },
-  { n: "R3", lead: "Venue agnostic.", text: " LP'd where each token's real liquidity is: Uniswap v3 for most, v4 for others." },
-  { n: "R4", lead: "Governed in public.", text: " Add, retire, or reweight only by governance. Every change is an onchain transaction." },
+  { n: "R1", lead: "Bluechip and liquid.", text: " Deepest high-turnover pools on the chain." },
+  { n: "R2", lead: "Capped.", text: " Max 20–25% of treasury per name." },
+  { n: "R3", lead: "Venue agnostic.", text: " LP where the liquidity is (Uniswap v3 or v4)." },
+  { n: "R4", lead: "Governed in public.", text: " Adds/retires only by onchain governance." },
 ];
 
 function BasketSection() {
@@ -294,7 +293,7 @@ function BasketSection() {
       <SectionHead
         kicker="The pools"
         title="It starts with CASHCAT and PONS."
-        sub="The Reserve = protocol-owned LP in deep markets. Never handed out. Rules below."
+        sub="Reserve = protocol-owned LP. Never handed out."
       />
       <Grid cols="1.1fr 0.9fr" gap={64} align="start">
         <div>
@@ -309,8 +308,7 @@ function BasketSection() {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Callout title="What these pools earn">
-            Swap fees → 80% airdropped to holders (in the assets earned), 20% compounds back into LP. That second leg can keep paying when volume cools.{" "}
-            <Link to="/docs/#d07">Compounding</Link>.
+            Fees → 80% airdropped, 20% compounds. <Link to="/docs/#d07">Compounding</Link>.
           </Callout>
         </div>
       </Grid>
@@ -329,11 +327,11 @@ function YieldSection() {
   );
   return (
     <Container id="yield" style={{ paddingTop: 96 }}>
-      <SectionHead kicker="Real yield" title="Two paychecks. One wallet." sub="Nothing to stake, lock, or claim." />
+      <SectionHead kicker="Real yield" title="Two paychecks. One wallet." sub="Nothing to stake or claim." />
       <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md">
-        {col("Hold", "≥ 100,000 $OURO in your own wallet (0.01% of supply). Or use a vault under that line.", false)}
-        {col("Tax leg", "Part of each trade's 5% tax buys tokens and sends them to you. Tracks volume.", true)}
-        {col("Pool leg", "80% of fees from protocol-owned LP, in the tokens those pools earned. 20% compounds.", true)}
+        {col("Hold", "≥ 100,000 $OURO in your wallet. Or deposit with others.", false)}
+        {col("Tax leg", "Part of the 5% tax buys tokens for you. Tracks volume.", true)}
+        {col("Pool leg", "80% of protocol LP fees. 20% compounds.", true)}
       </Grid>
       <div style={{ marginTop: 28, display: "flex", gap: 24, alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap" }}>
         <Button variant="secondary" arrow to="/docs/#d05">
@@ -349,8 +347,8 @@ function YieldSection() {
 function LiveProofSection() {
   return (
     <Container id="proof" style={{ paddingTop: 96 }}>
-      <SectionHead kicker="Live proof" title="Recent payouts." sub="Onchain. Newest first. Chain wins if anything disagrees." />
-      <CrankFeed footer="Every payment links to its transaction on the airdrops page. If a number on this site ever disagrees with the chain, the chain is right." />
+      <SectionHead kicker="Live proof" title="Recent payouts." sub="Onchain. Newest first." />
+      <CrankFeed footer="If the site and the chain disagree, the chain is right." />
     </Container>
   );
 }
@@ -372,9 +370,8 @@ const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] 
     title: "The vaults",
     body: (
       <>
-        Under 100,000 $OURO? Deposit with others and still earn. {TERMS.performanceFeePct}% of harvest gain (
-        {TERMS.feeSplit.airdrops}/{TERMS.feeSplit.ops} airdrops/ops). Paid in OURO, WETH, or USDG.{" "}
-        <Link to="/vaults/">Open vaults</Link>.
+        Under 100,000? Deposit with others. {TERMS.performanceFeePct}% of profit ({TERMS.feeSplit.airdrops}/{TERMS.feeSplit.ops} airdrops/ops).{" "}
+        <Link to="/vaults/">Vaults</Link>.
       </>
     ),
   },
@@ -382,18 +379,13 @@ const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] 
     n: "02",
     horizon: "Medium term",
     title: "Own the trading rails",
-    body: (
-      <>
-        Move off letscash so less of each trade leaks to the launchpad or untaxed parallel pools.{" "}
-        <Link to="/docs/">Docs</Link>.
-      </>
-    ),
+    body: <>Leave letscash so less of each trade leaks. <Link to="/docs/">Docs</Link>.</>,
   },
   {
     n: "03",
     horizon: "Long term",
     title: "Multichain",
-    body: <>Same machine on other chains. One holder base, not a new token each time.</>,
+    body: <>Same machine on other chains. One holder base.</>,
   },
 ];
 
@@ -427,7 +419,7 @@ function LockSection() {
             <Badge tone="accent">What the contract fixes</Badge>
             <h2 style={{ margin: "20px 0 0", ...display, fontSize: 34, lineHeight: 1.15, color: "#FFFFFF" }}>Fixed supply. Public rules.</h2>
             <p style={{ margin: "16px 0 0", fontSize: 15, lineHeight: 1.65, color: "var(--text-inverse-muted)", maxWidth: 440 }}>
-              Fixed supply. No mint. Tax changes only by public governance. Your wallet cannot be blocked.
+              No mint. Tax changes only by governance. Wallet never blockable.
             </p>
             <div style={{ marginTop: 28 }}>
               <Button variant="inverse" arrow to="/docs/#d08">

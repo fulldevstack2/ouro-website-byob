@@ -44,40 +44,40 @@ export function meta({ location }: Route.MetaArgs) {
 const HOW: { title: string; text: ReactNode }[] = [
   {
     title: "Put your OURO in",
-    text: "Any amount. You get vault tokens for your slice of the pool. No deposit or withdrawal fee.",
+    text: "Any amount. No deposit or withdrawal fee.",
   },
   {
     title: "The pool qualifies, so you do",
-    text: "Airdrops need 100,000 OURO. Alone you may be under; in the vault the pool clears the line and the airdrop lands there.",
+    text: "Airdrops need 100,000 OURO. Together, the pool clears that and the airdrop lands in the vault.",
   },
   {
     title: "A bot sells it for you",
-    text: "A keeper turns airdropped tokens into whatever your vault pays (OURO, ETH, or dollars). Strict venue and price-floor rules.",
+    text: "Turns airdropped tokens into OURO, ETH, or dollars (your vault's payout).",
   },
   {
     title: "You keep 90%",
-    text: `${TERMS.performanceFeePct}% of profit only. Of each harvest gain: ${TERMS.feeSplit.airdrops}% more airdrops, ${TERMS.feeSplit.ops}% ops. Gains unlock over ${TERMS.profitUnlock}.`,
+    text: `${TERMS.performanceFeePct}% of profit only (${TERMS.feeSplit.airdrops}% airdrops / ${TERMS.feeSplit.ops}% ops). Unlocks over ${TERMS.profitUnlock}.`,
   },
   {
     title: "Take it out anytime",
-    text: "OURO vault: balance just grows. ETH/dollar vaults: collect payout when you want. Your OURO withdraws even if paused.",
+    text: "OURO vault grows your balance. ETH/dollar vaults: collect when you want. Withdraw anytime.",
   },
 ];
 
 const BUILT_IN = [
-  "Your deposit only ever leaves a vault through your own withdrawal. No role can approve, transfer or rescue it, and the same holds for the payout token.",
-  "The keeper can only sell the basket tokens, only through the venue the owner allowlisted, and never below the floor it commits to.",
-  "Every harvest is booked from the vault's real balance. Tokens sent to a vault cannot move the share price until the keeper accounts for them.",
-  "Pausing stops deposits and harvests. Withdrawals can never be paused.",
-  "Ownership changes take two steps, so a mistyped address cannot take a vault.",
+  "Only you can withdraw your deposit or payout token.",
+  "Keeper can only sell basket tokens on allowlisted venues, above a floor.",
+  "Harvests book from the vault's real balance.",
+  "Pause stops deposits/harvests. Withdrawals never pause.",
+  "Ownership changes take two steps.",
 ];
 
 const RISKS = [
-  "The vault contracts are new and have not been audited. Treat this as experimental software.",
-  "The keeper is trusted with the basket tokens between airdrop and harvest. A bad route costs yield, not principal.",
-  "Every trade a vault makes costs something: the exchange's own fee, plus a little slippage. The OURO vault's buy-back also pays OURO's 5% pool tax, deliberately: that tax goes to Ouro's treasury and back out to holders, where a cheaper route would hand the same money to outside market makers.",
-  "Airdropped tokens sitting in a vault belong to whoever is still in the vault when they get sold. Withdraw just before that happens and you give up your slice of it.",
-  "The yield is Ouro's airdrop and nothing else. When trading in OURO cools, airdrops shrink, and the value of a deposit moves with the OURO price. Nothing here is a promise of returns.",
+  "Contracts are new and unaudited. Experimental.",
+  "Keeper handles basket tokens between airdrop and harvest. A bad route costs yield, not principal.",
+  "Trades cost fees and slippage. OURO buy-backs pay the 5% tax on purpose (funds holders).",
+  "Airdropped tokens go to whoever is still deposited when they are sold.",
+  "Yield is Ouro's airdrop only. It shrinks when trading cools. No promised returns.",
 ];
 
 const TRUST: { who: string; can: string; cannot: string }[] = [
@@ -182,8 +182,7 @@ export default function Vaults() {
                     works lol". Deliberately no yield figure — the live cards carry that, and a
                     number in prose here would read as a promise and go stale. */}
                 <Callout title="Say you hold 20,000 OURO" style={{ marginBottom: 24 }}>
-                  Too small alone for airdrops. In the Earn&nbsp;dollars vault it pools with everyone else, a bot sells the airdrop for USDG, and you claim your
-                  slice. Your 20,000 OURO stays yours.
+                  Too small alone. Deposit with others → airdrop lands in the pool → you get your share in dollars (or ETH/OURO). Your OURO stays yours.
                 </Callout>
                 <MicroLabel style={{ marginBottom: 6 }}>How the vaults work</MicroLabel>
                 {HOW.map((s, i) => (
@@ -205,14 +204,13 @@ export default function Vaults() {
           <Disclosure kicker="Eligibility" title="Do I need 100,000 OURO?">
             <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md">
               <Col label="The line">
-                Airdrops need 100,000 OURO. Fixed in tokens, so it gets harder as market cap rises. Vaults clear it together.
+                Airdrops need 100,000 OURO. Deposit with others to clear it together.
               </Col>
               <Col label="The chore" rule>
-                Airdrops arrive as basket tokens about every two hours. One keeper converts them for everyone. Fee: {TERMS.feeSplit.airdrops}% airdrops /{" "}
-                {TERMS.feeSplit.ops}% ops.
+                Airdrops arrive as basket tokens. One keeper converts them. Fee: {TERMS.feeSplit.airdrops}% / {TERMS.feeSplit.ops}% airdrops/ops.
               </Col>
               <Col label="The proof" rule>
-                Every harvest is a public transaction. Amounts from the chain; dollar prices from the monitor.
+                Every harvest is a public transaction. Amounts from the chain.
               </Col>
             </Grid>
           </Disclosure>
