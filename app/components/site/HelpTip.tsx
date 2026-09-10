@@ -34,6 +34,7 @@ export function HelpTip({
 
 const TIP_WIDTH = 260;
 const TIP_PAD = 14;
+const VIEW_PAD = 8;
 
 function useFinePointer(): boolean {
   const [fine, setFine] = useState(true);
@@ -47,15 +48,19 @@ function useFinePointer(): boolean {
   return fine;
 }
 
-function clampTip(x: number, y: number): { x: number; y: number } {
+function tipWidthForViewport(): number {
+  return Math.min(TIP_WIDTH, Math.max(160, window.innerWidth - VIEW_PAD * 2));
+}
+
+function clampTip(x: number, y: number, width: number): { x: number; y: number } {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   let left = x;
   let top = y;
-  if (left + TIP_WIDTH > vw - 8) left = vw - TIP_WIDTH - 8;
-  if (left < 8) left = 8;
-  if (top + 140 > vh - 8) top = Math.max(8, vh - 148);
-  if (top < 8) top = 8;
+  if (left + width > vw - VIEW_PAD) left = vw - width - VIEW_PAD;
+  if (left < VIEW_PAD) left = VIEW_PAD;
+  if (top + 160 > vh - VIEW_PAD) top = Math.max(VIEW_PAD, vh - 168);
+  if (top < VIEW_PAD) top = VIEW_PAD;
   return { x: left, y: top };
 }
 
@@ -64,16 +69,19 @@ function FollowHelpTip({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [width, setWidth] = useState(TIP_WIDTH);
   const rootRef = useRef<HTMLSpanElement>(null);
+  const tipRef = useRef<HTMLSpanElement>(null);
   const dotRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => setMounted(true), []);
 
-  // Outside tap closes the touch tip.
+  // Outside tap closes the touch tip (tip itself is portaled, so include it).
   useEffect(() => {
     if (!open || fine) return;
     const onPointerDown = (e: PointerEvent) => {
-      if (rootRef.current?.contains(e.target as Node)) return;
+      const t = e.target as Node;
+      if (rootRef.current?.contains(t) || tipRef.current?.contains(t)) return;
       setOpen(false);
     };
     document.addEventListener("pointerdown", onPointerDown);
@@ -85,17 +93,22 @@ function FollowHelpTip({ children }: { children: ReactNode }) {
 
   const onMouseMove = (e: MouseEvent) => {
     if (!fine) return;
-    setPos(clampTip(e.clientX + TIP_PAD, e.clientY + TIP_PAD));
+    const w = tipWidthForViewport();
+    setWidth(w);
+    setPos(clampTip(e.clientX + TIP_PAD, e.clientY + TIP_PAD, w));
   };
 
   const placeFromDot = () => {
     const el = dotRef.current;
     if (!el) return;
+    const w = tipWidthForViewport();
     const r = el.getBoundingClientRect();
-    let x = r.left;
+    // Prefer aligning under the "?", then clamp into the viewport so right-column tips stay on screen.
+    let x = r.left + r.width / 2 - w / 2;
     let y = r.bottom + 8;
-    if (y + 140 > window.innerHeight - 8) y = r.top - 8 - 120;
-    setPos(clampTip(x, y));
+    if (y + 160 > window.innerHeight - VIEW_PAD) y = r.top - 8 - 140;
+    setWidth(w);
+    setPos(clampTip(x, y, w));
   };
 
   const onDotActivate = (e: MouseEvent | KeyboardEvent) => {
@@ -138,7 +151,12 @@ function FollowHelpTip({ children }: { children: ReactNode }) {
       {mounted &&
         open &&
         createPortal(
-          <span className="qt-tip qt-tip--follow" role="tooltip" style={{ left: pos.x, top: pos.y, width: TIP_WIDTH }}>
+          <span
+            ref={tipRef}
+            className="qt-tip qt-tip--follow"
+            role="tooltip"
+            style={{ left: pos.x, top: pos.y, width, maxWidth: `calc(100vw - ${VIEW_PAD * 2}px)` }}
+          >
             {children}
           </span>,
           document.body,

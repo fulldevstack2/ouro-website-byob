@@ -166,6 +166,8 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
   opacity: 1;
   pointer-events: none;
   margin: 0;
+  box-sizing: border-box;
+  max-width: calc(100vw - 16px);
 }
 
 /* 6. Comparison table (home → "The difference") ---------------------- */
@@ -494,10 +496,8 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
 
 @media (max-width: 720px) {
   .vault-page { padding-top: 32px; }
-  /* Two of the four stats are fixed terms restated further down the page; a phone drops them rather
-     than stacking 450px of statistics between the title and the app. */
+  /* All four live stats stay visible in a 2×2 grid (tips replace the old footnotes). */
   .stat-band { grid-template-columns: repeat(2, 1fr); margin: 28px 0 24px; padding: 20px 0; align-items: start; }
-  .stat--wide { display: none; }
   /* Title over button, in that order: it is a header, so it reads before the control it labels. */
   .connect-bar { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
   .connect-bar__title { font-size: 21px; }

@@ -48,8 +48,8 @@ export interface StatBandProps {
 /**
  * The band above the rows: TVL, next harvest, airdrop APR, performance fee.
  *
- * Descriptions live in a "?" tip next to each label (mouse-following), not as permanent footnotes.
- * On a phone the fee is dropped (.stat--wide) so the band stays short.
+ * Descriptions live in a "?" tip next to each label (mouse-following on desktop, tap on mobile).
+ * Phone keeps all four in a 2×2 grid.
  */
 export function StatBand({ tvl, tvlNote, nextHarvest, nextHarvestNote, apr, aprNote }: StatBandProps) {
   const feeNote = `Of harvest gains only, and no deposit or withdrawal fee. ${TERMS.feeSplit.airdrops}% of the gain funds more airdrops, ${TERMS.feeSplit.ops}% covers ops`;
@@ -58,11 +58,7 @@ export function StatBand({ tvl, tvlNote, nextHarvest, nextHarvestNote, apr, aprN
       <Stat label={<StatLabel text="TVL" tip={tvlNote} />} value={tvl} />
       <Stat className="cell-rule" label={<StatLabel text="Next harvest" tip={nextHarvestNote} />} value={nextHarvest} />
       <Stat className="cell-rule" label={<StatLabel text="Airdrop APR" tip={aprNote} />} value={apr} />
-      <Stat
-        className="cell-rule stat--wide"
-        label={<StatLabel text="Performance fee" tip={feeNote} />}
-        value={`${TERMS.performanceFeePct}%`}
-      />
+      <Stat className="cell-rule" label={<StatLabel text="Performance fee" tip={feeNote} />} value={`${TERMS.performanceFeePct}%`} />
     </Grid>
   );
 }
