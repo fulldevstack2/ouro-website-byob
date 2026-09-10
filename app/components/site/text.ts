@@ -11,7 +11,7 @@ export const micro: CSSProperties = { fontSize: 11, fontWeight: 600, letterSpaci
 
 export const display: CSSProperties = { fontFamily: "var(--font-display)", fontWeight: 600, letterSpacing: "var(--tracking-display)" };
 
-/** The bronze "01 / R1" index at the start of a rule row. */
+/** The bronze "01" index at the start of a numbered row. */
 export const rowIndex: CSSProperties = { ...mono, fontSize: 13, fontWeight: 600, color: "var(--bronze-600)", width: 26, flex: "none" };
 
 export const body14: CSSProperties = { fontSize: 14, lineHeight: 1.6, color: "var(--text-secondary)" };

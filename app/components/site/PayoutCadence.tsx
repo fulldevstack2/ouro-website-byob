@@ -92,8 +92,7 @@ export function PayoutCadence({ compact = false }: { compact?: boolean }) {
       </span>
       <span style={{ ...mono, fontSize: compact ? 18 : 22, lineHeight: 1, color: "var(--text-primary)" }}>Every 2 hours</span>
       <span style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text-secondary)" }}>
-        A target, not a promise. Each collection is streamed out over roughly 48 hours, and a cycle runs when what is due is worth more than the gas to send
-        it. A cycle that waits loses nothing and rolls into the next one.
+        Target, not a promise. Streams over about 48 hours. Runs when worth the gas.
       </span>
       <span style={{ ...mono, fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>hold ≥ 100,000 $OURO to be paid</span>
       <Link to="/docs/#d06" style={{ ...mono, fontSize: 11, color: "var(--text-accent)" }}>

@@ -35,8 +35,7 @@ import {
 export function meta({ location }: Route.MetaArgs) {
   return pageMeta({
     title: `The airdrops · every $OURO payout, read from the chain`,
-    description:
-      "Every airdrop Ouro has sent: what each cycle paid, to how many wallets, in which tokens, and what is queued to go out next. Read from Robinhood Chain. Check any address against the line.",
+    description: "Hold ≥ 100,000 $OURO. Airdrops land in your wallet. Every payout onchain, who is eligible, what is queued next.",
     path: location.pathname,
     image: "/og/airdrops.png",
   });
@@ -533,7 +532,7 @@ export default function Airdrops() {
       <PageHeader
         kicker="Live proof"
         title="The airdrops."
-        lede="Every payout Ouro has sent, read from the chain: what each cycle paid, to how many wallets, and in which tokens. Plus what is already collected and waiting to go out. None of it is reported by hand."
+        lede="Hold ≥ 100,000 $OURO. Tokens land in your wallet. Nothing to claim."
         ledeStyle={{ maxWidth: 680 }}
         aside={
           <div style={{ display: "flex", alignItems: "center", gap: 14, paddingBottom: 4 }}>
@@ -603,9 +602,9 @@ export default function Airdrops() {
 
       <SectionHead
         kicker="On its way"
-        title="What backs the next cycles, and what has already gone out."
+        title="What backs the next cycles."
         titleStyle={{ fontSize: 30 }}
-        sub="Two of these fund what is coming: ETH held back so a quiet day still pays, and the assets already collected and waiting to stream. The third is everything sent so far. None of them is a scheduled amount: a cycle runs when it is worth running, and a collection is spread over roughly 48 hours."
+        sub="Reserve ETH, queued assets, and paid so far. Cycles run when worth the gas."
         subStyle={{ fontSize: 15 }}
         style={{ marginBottom: 24 }}
       />
@@ -658,7 +657,7 @@ export default function Airdrops() {
           kicker="Yield"
           title="What a holding earns."
           titleStyle={{ fontSize: 30 }}
-          sub="From payouts actually made, not a forecast. Cycles are split pro-rata by balance, so a holding's share of a cycle is its share of the eligible supply."
+          sub="From payouts actually made. Pro-rata by balance."
           subStyle={{ fontSize: 15 }}
           style={{ marginBottom: 24 }}
         />
@@ -694,11 +693,8 @@ export default function Airdrops() {
         </Grid>
 
         <Callout tone={y && !y.annualisable ? "caution" : "note"} title="Read the annual rate with its basis" style={{ marginTop: 28 }}>
-          {y?.caveat ?? "The rate is measured over the last seven days of payouts."} An annual figure is the one number here that says anything about the
-          future, and it is only as old as the payouts behind it: {fmtNum(y?.cycles ?? 0)} cycles over{" "}
-          {y?.historyDays ? fmtNum(y.historyDays, 1) : "—"} days, at launch volume. The same payouts annualise to roughly a fifth of this over a seven-day
-          window, because the divisor picks the answer. Treat it as what recent trading paid, not as a rate anyone is promising. The daily figures beside it
-          are the measurements, and every cycle behind them is listed below.
+          {y?.caveat ?? "Rate from the last seven days of payouts."} {fmtNum(y?.cycles ?? 0)} cycles over{" "}
+          {y?.historyDays ? fmtNum(y.historyDays, 1) : "—"} days. Not a promise — recent trading only. Daily figures beside it are the measurements.
         </Callout>
 
         <Grid cols="1fr 1fr" gap={48} align="start" style={{ marginTop: 28 }}>
@@ -713,17 +709,13 @@ export default function Airdrops() {
             <KVRow label="Payout history indexed" value={y?.historyDays == null ? "—" : `${fmtNum(y.historyDays, 1)} days`} border="none" />
           </div>
           <div style={body14}>
-            The eligible supply excludes what is never paid: wallets below the {fmtNum(y?.lineTokens ?? 100_000)} line, the pool contract, and the team vest.
-            Counting those would make every holder's share look smaller than it is.
+            Eligible supply excludes wallets under {fmtNum(y?.lineTokens ?? 100_000)}, the pool, and the team vest.
             <br />
             <br />
-            One inexactness in the other direction. The keeper pays the three largest holders 30% less than strict pro-rata and hands the freed amount to
-            everyone else, so a typical wallet receives slightly <em>more</em> than the figures above. They are a floor for most holders rather than an exact
-            number, and erring low is the direction we would rather err in.
+            Top three holders get 30% less than pro-rata; everyone else gets a bit more. Figures above are a floor for most wallets.
             <br />
             <br />
-            The cost is a floor too: the quantity at the mid price plus the trade tax a buy pays on top of it. It leaves out what the pool charges in slippage,
-            which at this size is small next to the tax. A line is worth tens of dollars against a pool holding tens of thousands.
+            Cost = mid price + trade tax (no slippage).
           </div>
         </Grid>
       </div>
@@ -733,7 +725,7 @@ export default function Airdrops() {
           kicker="History"
           title="Every airdrop, and what it paid."
           titleStyle={{ fontSize: 30 }}
-          sub="One row per payout, newest first. Value is what the assets were worth when they were sent, not today. An airdrop is worth what it was worth on the day."
+          sub="Newest first. Valued when sent, not today."
           subStyle={{ fontSize: 15 }}
           style={{ marginBottom: 24 }}
         />
@@ -794,7 +786,7 @@ export default function Airdrops() {
           kicker="Eligibility"
           title="Who gets paid."
           titleStyle={{ fontSize: 30 }}
-          sub="Hold the line in your own wallet and every cycle is sent to you. Nothing to stake, nothing to claim. The balances behind these counts are replayed from the token's own transfers, so this is the same set a payout would actually use."
+          sub="≥ 100,000 $OURO in your wallet. Holding less? Pool with others on Vaults."
           subStyle={{ fontSize: 15 }}
           style={{ marginBottom: 24 }}
         />
@@ -842,43 +834,37 @@ export default function Airdrops() {
           kicker="Method"
           title="How this is measured."
           titleStyle={{ fontSize: 30 }}
-          sub="Every figure is derived from Robinhood Chain by the Monitor, an open indexer we run. A missing price leaves a dash, never an estimate."
+          sub="Onchain via the Monitor. Missing price → dash, never an estimate."
           subStyle={{ fontSize: 15 }}
           style={{ marginBottom: 24 }}
         />
         <Grid cols="1fr 1fr" gap={48} align="start">
           <div>
             <Method n="01" title="A cycle">
-              One <code style={mono}>Airdropped</code> event per asset per cycle from the Airdropper, which pulls each leg out of the airdrop wallet. A cycle may
-              be paid in several transactions; the row keeps the widest window and every leg.
+              One public payout run (<code style={mono}>Airdropped</code> events). May span several txs.
             </Method>
             <Method n="02" title="What a cycle was worth">
-              Each leg priced at the moment it was sent, not today. If any leg's price is unknown the whole cycle shows a dash rather than the value of the
-              priced legs, which would read as a complete figure.
+              Priced when sent. Any missing price → whole cycle dashes.
             </Method>
             <Method n="03" title="Eligibility">
-              Balances are replayed from the token's own <code style={mono}>Transfer</code> events and compared to the line exactly, in raw units. A float
-              comparison drops a wallet sitting precisely on it. Pool contracts, the treasury and vesting are excluded when the list is built.
+              Balances from <code style={mono}>Transfer</code> events vs the line. Pools/treasury/vest excluded.
             </Method>
           </div>
           <div>
             <Method n="04" title="What is on its way">
-              Claimable tax is read from the hook. Queued value is the airdrop wallet's own balance of each payable asset. Uncollected fees come from the
-              positions. None of the three is a promise about the next cycle.
+              Claimable tax, airdrop wallet balances, uncollected Reserve fees. Not a promise for next cycle.
             </Method>
-            <Method n="05" title="Why the next payout has no countdown">
-              A cycle runs when it is worth running: gas can spike, a thin cycle waits and arrives larger, and a wallet owed less than the gas to pay it waits
-              for a later one. Counting down to something that may sensibly not happen would break its word. Nothing is forfeited by waiting.
+            <Method n="05" title="Why no countdown">
+              Runs when worth the gas. Waiting forfeits nothing.
             </Method>
             <Method n="06" title="Wallets, not accounts">
-              Tokens on an exchange or in a bridge are in someone else's wallet. Only the address holding the balance is paid, which is why the check above
-              answers for an address rather than for a person.
+              Exchange/bridge balances are someone else&apos;s wallet.
             </Method>
           </div>
         </Grid>
         <Callout style={{ marginTop: 32 }} title="Where the money comes from">
-          Two legs fund every cycle: the tax on each trade, and the fees the protocol's own liquidity earns. The Ledger reports the second one: what the pools
-          hold, what they have earned, and whether owning them beats simply holding the tokens. <Link to="/ledger/">Open the Ledger →</Link>
+          Tax leg: part of each trade&apos;s 5%. Pool leg: 80% of fees from protocol-owned LP.{" "}
+          <Link to="/ledger/">Ledger →</Link>
         </Callout>
       </div>
     </Container>
