@@ -9,13 +9,12 @@ import { COLLECTION_SPLIT_USD, COLLECT_THRESHOLD_USD, INFRASTRUCTURE, PARAMETERS
 import { site } from "~/content/site";
 import { pageMeta } from "~/lib/meta";
 
-const LEDE =
-  "Ouro is building the fee generating layer of Robinhood Chain. Every trade pays a tax. Half of what it buys is airdropped to holders and half is kept as pools the protocol owns, and the fees those pools earn are airdropped too.";
+const LEDE = "Hold $OURO. Get paid. Everything below is how.";
 
 export function meta({ location }: Route.MetaArgs) {
   return pageMeta({
-    title: `${site.name} docs · How the fee generating layer works`,
-    description: "How Ouro works: the 5% tax, the Loop, the Reserve, the airdrop, compounding, parameters, governance and risks.",
+    title: `${site.name} docs · How Ouro works`,
+    description: "Hold $OURO, get paid from every trade. Tax, Reserve LP, airdrops, compounding, parameters, risks.",
     path: location.pathname,
     image: "/og/docs.png",
     jsonLd: {
@@ -73,17 +72,36 @@ const CANT: { lead: string; text: string }[] = [
 const FAQ: { q: string; a: string }[] = [
   {
     q: "How is Ouro different from HOOD10 or The Index?",
-    a: "They hand out every point of their tax, so when volume cools the payouts stop. Ouro hands out half and keeps the other half as permanent, fee earning liquidity, then airdrops 80% of what those pools earn on top. The first leg behaves like theirs. The second is what keeps paying after the volume goes.",
+    a: "They hand out every tax point; when volume cools, payouts stop. Ouro hands out half, keeps half as fee-earning LP, and airdrops 80% of those fees. That second leg can keep paying.",
   },
   {
     q: "What do I have to do to get paid?",
-    a: "Hold at least 100,000 $OURO, 0.01% of supply, in your own wallet. There is nothing to stake, nothing to lock and nothing to claim: every wallet above the line earns a share of every cycle and it is sent to you. Small balances are held until they are worth more than the gas to send them, so a wallet near the line is paid every few cycles rather than every single one, for the same total. Tokens sitting in a pool contract, a bridge or an exchange's omnibus wallet are not your wallet, and are excluded.",
+    a: "Hold ≥ 100,000 $OURO in your own wallet. No stake, lock, or claim. Tiny amounts wait until they are worth the gas. Exchange/bridge balances do not count.",
   },
   {
-    q: "What am I paid in?",
-    a: "Tokens. The tax leg buys the strongest tokens on the chain at market and hands those to you. The fee leg arrives in whatever the pools actually earned: each position collects fees in both of its tokens, so it is a mix of the basket tokens and whatever they are paired with, usually ETH. Nothing is sold for that second leg.",
+    q: "I hold less than 100,000 $OURO. What then?",
+    a: "Deposit with others (Vaults). The pool clears the 100,000 line together; you earn in OURO, ETH, or dollars.",
   },
-  { q: "Is the basket safe? Are these stocks?", a: "No. The basket holds crypto tokens on Robinhood Chain, bluechip memecoins among them, chosen for liquidity and depth. They can go to zero." },
+  {
+    q: "Do I need to stake or claim?",
+    a: "No for wallet holdings. ETH/dollar vaults have a collect step for that payout; your OURO still withdraws anytime.",
+  },
+  {
+    q: "What is the Reserve? What is LP?",
+    a: "LP = tokens in a trading pool earning swap fees. The Reserve is that LP owned by the protocol (bought with half the tax). Its fees fund the second airdrop leg.",
+  },
+  {
+    q: "What is a cycle?",
+    a: "One public payout run. Target about every two hours; only when worth the gas. Fee collections stream over ~48 hours.",
+  },
+  {
+    q: "What am I paid in, and when?",
+    a: "Tokens. Tax leg: bought at market. Fee leg: whatever Reserve pools earned (often basket + WETH). Target every two hours; see When it arrives.",
+  },
+  {
+    q: "Is the basket safe? Are these stocks?",
+    a: "No. Crypto tokens on Robinhood Chain, including memecoins. They can go to zero.",
+  },
 ];
 
 /* ---------------------------------------------------------------- pieces */
@@ -147,20 +165,16 @@ export default function Docs() {
         <div>
           <DocSection id="d01" n="01" title="Overview">
             <P>
-              $OURO is an ERC20 with a fixed supply of 1,000,000,000 and one trading pool: ETH/OURO on Uniswap v4, with letscash's shared trading hook
-              attached. Every swap pays
-              a tax in ETH. The tax never reaches a person. It flows to the protocol treasury, which buys the strongest tokens on the chain. Half of what it
-              buys is airdropped to holders and half is paired into liquidity the protocol owns and keeps. That liquidity earns fees, and each cycle 80% of
-              those fees is airdropped too while 20% buys more liquidity. So holders are paid twice: once from the tax, which rises and falls with volume, and
-              once from the pools, which go on earning after it. That second leg is the entire point.
+              Hold $OURO → get paid from every trade. Mechanically: fixed-supply ERC20, ETH/OURO pool on Uniswap v4 (letscash hook), 5% tax in ETH. Half of what
+              the tax buys is airdropped; half becomes protocol-owned LP (the Reserve). 80% of that LP&apos;s fees are airdropped too. Tax leg tracks volume; pool
+              leg can keep paying after volume cools.
             </P>
           </DocSection>
 
           <DocSection id="d02" n="02" title="The tax">
             <P>
-              5%, charged in ETH, on every buy and every sell: exact in and exact out, all four shapes. The pool charges no LP fee on top, so 5% is the whole
-              cost of a trade. It is taken by letscash's shared hook and fixed at launch. Nobody, including us, can raise or lower it. A share goes to the
-              launchpad as their platform fee. The rest funds everything below, and the reason the tax has to build something that outlasts it.
+              5% in ETH on every buy and sell. The pool charges no extra LP fee, so 5% is the whole trade cost. The rate is fixed in letscash&apos;s hook at launch;
+              nobody can change it. Part goes to the launchpad as platform fee; the rest funds the airdrop and the Reserve.
             </P>
             <SplitBar
               wedges={[
@@ -184,8 +198,8 @@ export default function Docs() {
 
           <DocSection id="d03" n="03" title="The Loop">
             <P>
-              The treasury advances in cycles. Each cycle collects the fees earned by every position, in kind, and deploys the accumulated tax on the split
-              above: 2% of the trade to the airdrop, 2% into liquidity it keeps, 0.7% to ops. The fees collected this cycle are then split again:
+              The treasury advances in cycles (public payout runs). Each cycle deploys accumulated tax on the split above and collects fees from every Reserve
+              position. Those fees split again:
             </P>
             <SplitBar
               wedges={[
@@ -202,35 +216,28 @@ export default function Docs() {
               ]}
             />
             <P style={{ marginTop: 12 }}>
-              Every cycle is a set of public onchain transactions. The Ledger reads each amount. Every swap the treasury makes is protected by a minimum output
-              set for the trade. The tax legs buy at market, so they carry the usual slippage and price impact. The fee leg is passed straight through in the
-              assets the pools earned, so nothing is sold for it.
+              Every cycle is public onchain; the Ledger reads each amount. Tax legs buy at market (slippage applies). The fee leg passes through in the assets
+              the pools earned, so nothing is sold for it.
             </P>
           </DocSection>
 
           <DocSection id="d04" n="04" title="The Reserve">
             <P>
-              A small set, building toward five, of liquid Robinhood Chain tokens, held as full range liquidity Ouro owns, not as loose tokens and never handed
-              out. It opens with <strong>CASHCAT</strong> and <strong>PONS</strong>, the two deepest and most heavily traded crypto markets on the chain, and
-              widens as the treasury grows: early on the basket leg is a small share of a small volume, and splitting it five ways would buy five positions too
-              small to matter against the cost of taking them. Selection favors mature, high turnover tokens with the deepest pool on the chain, and each
-              constituent is capped at 20% to 25% of the treasury.
-              Constituents are LP'd where their real liquidity is: canonical Uniswap v3 for most names, v4 for others. LP'ing earns the trading fees that
-              feed the Loop. The tradeoff is impermanent loss versus holding. Neither name is a commitment to hold it forever: adding, retiring and reweighting
-              are governance actions, made as public onchain transactions, and a constituent that stops meeting the rules is retired the same way it was added.
+              The Reserve is protocol-owned LP: a small set of liquid Robinhood Chain tokens (building toward five), held in trading pools Ouro owns and never
+              hands out. It opens with <strong>CASHCAT</strong> and <strong>PONS</strong>, the deepest crypto markets on the chain, and widens as the treasury
+              grows. Each name is capped at 20% to 25% of the treasury. LP sits where the token&apos;s real liquidity is (Uniswap v3 or v4). That earns the fees
+              that feed the Loop; the tradeoff vs holding is divergence (impermanent loss). Adds, retires, and reweights are public governance transactions.
             </P>
             <P>
-              Alongside the Reserve the treasury holds one more position: Ouro's own ETH/OURO liquidity, seeded at launch as a full range position and left
-              in place, earning fees into the same split as everything else. Be clear on what backs that. It is held by the treasury multisig and protected by
-              its policy.
+              The treasury also holds ETH/OURO LP seeded at launch, earning into the same 80/20 split. That position sits in the treasury multisig under its
+              policy.
             </P>
           </DocSection>
 
           <DocSection id="d05" n="05" title="The airdrop">
             <P>
-              Holders are paid from two legs. The first is the tax: two of every five tax points buy tokens at market and hand them straight to holders, so
-              the airdrop starts on the first trade and rises and falls with volume. The second is the fees the protocol's own pools earn, of which 80% is
-              airdropped. There is no staking, no lock and no claim: hold $OURO in your own wallet and both legs are sent to you.
+              Two legs pay holders. Tax leg: two of every five tax points buy tokens at market and send them to you from the first trade. Pool leg: 80% of fees
+              from protocol-owned LP. Nothing to stake, lock, or claim: hold $OURO in your wallet and both legs are sent to you.
             </P>
             <SplitRows
               rows={[
@@ -239,17 +246,14 @@ export default function Docs() {
               ]}
             />
             <P style={{ marginTop: 12 }}>
-              The two legs arrive differently. The tax leg is bought at market, so it costs a trade each cycle and carries the slippage and price impact any
-              trade does. The fee leg is passed through in kind: a full range position collects its fees in both of the tokens it holds, so it arrives as a mix
-              of the Reserve's constituents and whatever each is paired with, exactly as the pools earned it. Nothing is sold for that leg, so it costs no slippage and
-              puts no sell pressure on anything the protocol owns. It also arrives in batches rather than continuously: fees are collected only once {`$${COLLECT_THRESHOLD_USD}`} has
-              accrued across the positions, because a smaller collection would spend too much of itself on gas, and {`$${COLLECTION_SPLIT_USD.holders}`} of
-              each {`$${COLLECT_THRESHOLD_USD}`} collection is what reaches holders. See <a href="#d06">06 · When it arrives</a>.
+              The tax leg is bought at market each cycle (slippage applies). The fee leg is in kind: LP collects fees in both tokens it holds, so you get basket
+              tokens plus whatever they are paired with, usually ETH. Nothing is sold for that leg. Fees are collected only once {`$${COLLECT_THRESHOLD_USD}`} has
+              accrued (gas otherwise eats the collect); of each collection, {`$${COLLECTION_SPLIT_USD.holders}`} reaches holders. See{" "}
+              <a href="#d06">06 · When it arrives</a>.
             </P>
             <P style={{ marginTop: 12 }}>
-              The ETH share is paid as <strong>WETH</strong>, wrapped one for one. That is a practical choice, not an economic one: a native ETH transfer emits
-              no event, so wallets have nothing to index and it shows up at best as an internal transaction on a separate explorer tab. You would see the tokens
-              land and the ETH apparently missing. WETH emits an ordinary transfer, so every asset in a payout appears in your history together.
+              ETH in payouts is sent as <strong>WETH</strong> (1:1 wrapped) so wallets can index an ordinary transfer. Native ETH would not show cleanly next to
+              the tokens.
             </P>
             <Callout title="Who is excluded" style={{ marginTop: 14 }}>
               Pool contracts, the treasury's own addresses and the protocol's infrastructure are left out of the recipient list, so income is not paid to Ouro
@@ -262,9 +266,7 @@ export default function Docs() {
 
           <DocSection id="d06" n="06" title="When it arrives">
             <P>
-              The target is an airdrop every two hours. That is a target and not a promise: a cycle runs when it is worth running. This section is the
-              honest account of when it does, because the alternative is a clock on the home page that breaks its word the first time a cycle sensibly
-              waits.
+              Target: an airdrop about every two hours. That is a target, not a promise. A cycle runs when it is worth the gas.
             </P>
             <SplitRows
               rows={[
@@ -276,25 +278,18 @@ export default function Docs() {
               ]}
             />
             <P style={{ marginTop: 12 }}>
-              <strong>Fees are not collected the moment they are earned.</strong> A collect is a transaction, and so is moving what it returns to the wallet the
-              airdrop pays from. Sweeping four dollars of fees costs a real fraction of four dollars, and that cost would come out of the airdrop. So fees are
-              left where they are earned until <strong>{`$${COLLECT_THRESHOLD_USD}`} has accrued across all of the positions</strong>. Only then is a collection
-              taken, and it divides on the same 80 / 20 as everything else: {`$${COLLECTION_SPLIT_USD.holders}`} to the wallet the airdrop pays from and{" "}
-              {`$${COLLECTION_SPLIT_USD.reserve}`} compounded straight back into the positions, so the next collection is earned on slightly more liquidity.
-              Waiting costs holders nothing: uncollected fees sit in the position still earning, they are yours the whole time, and the Ledger publishes the
-              running figure and the threshold side by side, so you can see exactly how close the next collection is.
+              <strong>Fees are not collected the moment they are earned.</strong> Collecting costs gas. Fees stay in positions until{" "}
+              <strong>{`$${COLLECT_THRESHOLD_USD}`} has accrued</strong>, then split 80 / 20: {`$${COLLECTION_SPLIT_USD.holders}`} to the airdrop wallet and{" "}
+              {`$${COLLECTION_SPLIT_USD.reserve}`} back into the positions. Waiting costs holders nothing; uncollected fees still earn and the Ledger shows them
+              next to the threshold.
             </P>
             <P style={{ marginTop: 12 }}>
-              <strong>Income is not paid out the moment it arrives.</strong> Volume is uneven. On its first day of trading the busiest hour earned
-              roughly five hundred times what the quietest one did, and paying each cycle exactly what the previous two hours brought in would mean one
-              cycle worth several hundred dollars and the next worth almost nothing. So every collection is spread across roughly 48 hours, and each
-              cycle pays a slice of everything still spreading. What arrives tracks the last two days of trading rather than the last two hours of it.
+              <strong>Income is streamed, not dumped in one shot.</strong> Volume is uneven, so each collection is spread across roughly 48 hours. What you receive
+              tracks about the last two days of trading, not the last two hours.
             </P>
             <P style={{ marginTop: 12 }}>
-              <strong>Small balances wait until they are worth sending.</strong> If what your wallet is owed is worth less than a few times the gas
-              needed to send it, it stays credited to you and arrives in a later cycle instead. A wallet near the 100,000 line is paid every few cycles
-              rather than every single one, and receives exactly the same total either way. Sending someone two cents of tokens in a transfer that costs
-              three cents helps nobody, and the cost would come out of the airdrop itself.
+              <strong>Small balances wait until they are worth sending.</strong> If what you are owed is less than a few times the gas to send it, it stays
+              credited and arrives in a later cycle. Same total either way.
             </P>
             <Callout title="What makes a cycle wait" style={{ marginTop: 14 }}>
               Gas is expensive, so the cycle waits for a cheaper one. The cycle is thin, and the gas to send it would eat too much of it, so it waits and
@@ -312,10 +307,8 @@ export default function Docs() {
 
           <DocSection id="d07" n="07" title="Compounding">
             <P>
-              Two things grow the Reserve. Two points of every trade buy into it and stay there, and the 20% of each cycle's fees that is not airdropped is
-              added straight back into the same positions. Nothing is sold and nothing is distributed for either: the treasury's own income buys it a slightly
-              larger share of the pools it already owns, so the next cycle earns a little more than this one. That is why the fee leg of the airdrop can grow
-              even when volume, and with it the tax leg, does not.
+              Two things grow the Reserve: two tax points of every trade buy into it and stay, and 20% of each cycle&apos;s fees go back into the same
+              positions. Nothing is sold for either. Larger LP means the fee leg can grow even when volume (and the tax leg) does not.
             </P>
           </DocSection>
 
@@ -329,15 +322,13 @@ export default function Docs() {
 
           <DocSection id="d09" n="09" title="Governance & security">
             <P>
-              $OURO trades on letscash's shared launchpad rails, and that is where the trust model now sits. The token itself is a standard ERC20: no owner,
-              no transfer tax, no blocklist, so nothing about your holding can be changed by anyone. The 5% trade tax and its split are fixed in the shared hook
-              at launch and cannot be tuned afterwards. What is discretionary is what the team does with the fee stream it receives, meaning the basket, the
-              airdrop cadence and the splits below, and that is operator policy, visible onchain but not enforced by code. The limits that hold regardless are listed in{" "}
+              $OURO is a standard ERC20: no owner, no transfer tax, no blocklist. The 5% tax and its split are fixed in letscash&apos;s shared hook at launch.
+              What the team does with the fee stream it receives (basket, cadence, splits below) is operator policy: visible onchain, not enforced by code. Hard
+              limits are in{" "}
               <Link to="#d10" onClick={smoothScrollNextNavigation}>
-                what Ouro can't do
+                what Ouro can&apos;t do
               </Link>
-              . Everything else is operator policy carried out by a multisig, public onchain but not locked by code: the treasury, the basket, the splits and
-              the airdrop cadence.
+              . Everything else is multisig policy in public.
             </P>
             {site.auditPublished ? (
               <Callout title="Audit status" style={{ marginTop: 14 }}>
@@ -363,14 +354,11 @@ export default function Docs() {
 
           <DocSection id="d11" n="11" title="Risks">
             <P>
-              Plainly: the airdrop depends on volume. Its tax leg tracks volume one for one and stops when trading does, exactly as a competitor's payout
-              would. Its fee leg is funded by the fees the pools earn, and quiet markets earn little. The basket is
-              volatile crypto tokens, memecoins among them, that can fall sharply or to zero, and full range LP sells a winner into its rally, and being paid in
-              those same tokens means your airdrop falls with them too. A 5% tax on both sides is a heavy round trip, so short term trading in $OURO is
-              expensive by design. Everything lives on one chain (4663). Large cycles move prices, and minimum output protection bounds, but does not eliminate,
-              bad fills. The Loop advances only when the protocol runs a cycle. Wallets below the 100,000 line are not paid at all. The trading rails are
-              letscash's shared hook, not ours, so its behaviour is outside our control and 0.3% of every trade is theirs, not the treasury's. The airdrop is run by the team from the fee
-              stream, which makes it a promise about conduct rather than something code enforces.
+              The airdrop depends on volume: the tax leg tracks it and stops when trading does. The fee leg depends on fees the pools earn; quiet markets earn
+              little. The basket is volatile crypto (including memecoins) that can fall sharply or to zero, and LP underperforms holding when prices move hard.
+              A 5% tax both ways makes short-term trading expensive by design. One chain (4663). Large cycles move prices. Cycles run only when the protocol runs
+              them. Wallets below 100,000 are unpaid unless they use a vault. Rails are letscash&apos;s, not ours (0.3% of every trade is theirs). Airdrop
+              conduct is a team promise about the fee stream, not something code enforces.
             </P>
             <Callout tone="caution" title="No promises" style={{ marginTop: 14 }}>
               An airdrop is a share of fees the pools happened to earn. It is not a yield, not a rate, and not a promise of profit. Nothing here is financial

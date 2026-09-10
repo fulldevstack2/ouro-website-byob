@@ -107,7 +107,8 @@ export const PAYOUTS: Payout[] = [
     summary: (t) => `Deposit ${t.symbol}, earn ETH`,
     short: () => "Earn ETH",
     asset: () => "WETH",
-    text: (t) => `Your ${t.symbol} is never sold and never moves \u2014 it comes back exactly as you put it in. Every couple of hours the airdrop the vault received is sold for ETH, and that ETH is yours to take out whenever you want.`,
+    text: (t) =>
+      `Your ${t.symbol} is never sold and never moves; it comes back exactly as you put it in. Every couple of hours the airdrop the vault received is sold for ETH, and that ETH is yours to take out whenever you want.`,
   },
   {
     key: "usdg",
@@ -115,7 +116,7 @@ export const PAYOUTS: Payout[] = [
     short: () => "Earn dollars",
     asset: () => "USDG",
     text: (t) =>
-      `Your ${t.symbol} is never sold and never moves \u2014 it comes back exactly as you put it in. Every couple of hours the airdrop the vault received is sold for USDG, a dollar stablecoin, and those dollars are yours to take out whenever you want. Good if you would rather the yield held its value.`,
+      `Your ${t.symbol} is never sold and never moves; it comes back exactly as you put it in. Every couple of hours the airdrop the vault received is sold for USDG, a dollar stablecoin, and those dollars are yours to take out whenever you want. Good if you would rather the yield held its value.`,
   },
 ];
 

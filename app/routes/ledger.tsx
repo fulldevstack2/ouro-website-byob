@@ -32,8 +32,7 @@ import {
 export function meta({ location }: Route.MetaArgs) {
   return pageMeta({
     title: `The Ledger · ${site.name} treasury, read from the chain`,
-    description:
-      "Every position the Ouro treasury owns, read from Robinhood Chain: what the pools hold, the fees they have earned, and what the same tokens would have been worth simply held. None of it is reported by hand.",
+    description: "Protocol-owned LP: what the Reserve holds, fees earned, net vs holding. Read from Robinhood Chain.",
     path: location.pathname,
     image: "/og/ledger.png",
   });
@@ -242,7 +241,7 @@ export default function Ledger() {
       <PageHeader
         kicker="Live proof"
         title="The Ledger."
-        lede="Every position the treasury owns, read from the chain: what the pools hold, what they have earned, and what the same tokens would have been worth simply held. None of it is reported by hand."
+        lede="What the treasury owns in LP, what those pools earned, and whether that beats simply holding the tokens."
         ledeStyle={{ maxWidth: 680 }}
         aside={
           <div style={{ display: "flex", alignItems: "center", gap: 14, paddingBottom: 4 }}>
@@ -319,10 +318,10 @@ export default function Ledger() {
       </Grid>
 
       <Callout title="Why this page leads with the net, not the fees" style={{ marginBottom: 48 }}>
-        A pool that earns fees can still lose to simply holding the tokens: as the price moves it sells the winner and buys the loser, and that divergence is a
-        real cost. Fees earned alone would read {t ? fmtPctSigned(t.hodlUsd && t.hodlUsd > 0 && t.feesTotalUsd !== null ? t.feesTotalUsd / t.hodlUsd : null) : "—"} here.
-        The honest figure is the net: {fmtUsdSigned(t?.netVsHoldingUsd)}, {t ? fmtPctSigned(t.netVsHoldingPct) : "—"} on {fmtUsd(t?.hodlUsd)} of deposits. Both are
-        published above, and either can be checked against the chain from the addresses at the bottom of this page.
+        LP can earn fees and still underperform simply holding the tokens: as price moves, the pool sells the winner and buys the loser (divergence loss). Fees
+        alone would read {t ? fmtPctSigned(t.hodlUsd && t.hodlUsd > 0 && t.feesTotalUsd !== null ? t.feesTotalUsd / t.hodlUsd : null) : "—"} here. The honest
+        figure is the net: {fmtUsdSigned(t?.netVsHoldingUsd)}, {t ? fmtPctSigned(t.netVsHoldingPct) : "—"} on {fmtUsd(t?.hodlUsd)} of deposits. Both are above;
+        check them onchain from the addresses at the bottom.
       </Callout>
 
       <Grid cols="1.1fr 0.9fr" gap={48} align="start" style={{ marginBottom: 64 }}>
@@ -347,9 +346,8 @@ export default function Ledger() {
             />
           </div>
           <div style={{ marginTop: 14, fontSize: 13, color: "var(--text-muted)" }}>
-            Fees stay in the positions, earning, until {THRESHOLD} has accrued across all of them. Only then is a collection taken, and it splits on the usual
-            80 / 20: {TO_HOLDERS} to the airdrop wallet, {TO_RESERVE} compounded straight back into the positions. A collect costs gas, and that cost would come
-            out of the airdrop, so a small one is not worth taking. Nothing is sold to fund an airdrop, so what holders receive is what the pools earned.{" "}
+            Fees stay in the positions until {THRESHOLD} has accrued. Then a collection splits 80 / 20: {TO_HOLDERS} to the airdrop wallet, {TO_RESERVE} back into
+            the positions. Small collects are skipped because gas would eat them. Holders receive what the pools earned; nothing is sold to fund the airdrop.{" "}
             <Link to="/airdrops/">Every payout is on the airdrops page →</Link>
           </div>
         </div>
@@ -359,7 +357,7 @@ export default function Ledger() {
         kicker="Positions"
         title="What the treasury owns."
         titleStyle={{ fontSize: 30 }}
-        sub="One card per protocol-owned position, read from the Uniswap v3 position manager and the pool itself. A position that leaves the treasury keeps its history here."
+        sub="One card per Reserve LP position. Positions that leave the treasury keep their history here."
         subStyle={{ fontSize: 15 }}
         style={{ marginBottom: 24 }}
       />
@@ -430,32 +428,29 @@ export default function Ledger() {
       <Grid cols="1fr 1fr" gap={48} align="start" style={{ marginBottom: 64 }}>
         <div>
           <Method n="01" title="What a position holds">
-            A v3 position stores liquidity, not balances, so the token amounts are derived from the pool's current price and the position's range. That is the same
-            arithmetic <code style={mono}>LiquidityAmounts.sol</code> does, checked against a simulated full withdrawal to the wei.
+            Means: how many tokens sit in that LP right now. A v3 position stores liquidity, not balances; amounts are derived from pool price and range (same
+            math as <code style={mono}>LiquidityAmounts.sol</code>), checked against a simulated full withdrawal.
           </Method>
           <Method n="02" title="Uncollected fees">
-            A <code style={mono}>collect</code> call simulated as the owner, for the maximum. The position manager's stored{" "}
-            <code style={mono}>tokensOwed</code> is only refreshed when the position is poked, so it is stale and is not used.
+            Means: fees earned but not yet swept out. Simulated <code style={mono}>collect</code> as the owner for the maximum. Stored{" "}
+            <code style={mono}>tokensOwed</code> is stale unless the position is poked, so it is not used.
           </Method>
           <Method n="03" title="Fees the Reserve keeps">
-            Both pools skim 1/6 of each side's fee for the v3 factory owner, who is not us, so a 0.30% pool pays the Reserve 0.25%. Each position card shows the
-            tier and the share, and nothing here estimates fees from volume.
+            Means: the share that lands in Ouro&apos;s LP after the factory cut. Pools skim 1/6 for the v3 factory owner (not us), so a 0.30% pool pays the Reserve
+            0.25%. Cards show tier and share; fees are never estimated from volume.
           </Method>
         </div>
         <div>
           <Method n="04" title="Divergence loss">
-            Marked value minus what the deposited tokens would be worth held, at today's price. Deposits are net of withdrawals, taken from the position's own
-            event log rather than a wallet snapshot.
+            Means: how much worse (or better) LP is vs holding the same tokens. Marked value minus hold-value at today&apos;s price. Deposits net of withdrawals
+            from the position&apos;s event log.
           </Method>
           <Method n="05" title="Fees already collected">
-            Valued at the price when they were collected, not today's. A collect in the same transaction as a withdrawal reports principal and fees together, so
-            the principal is netted back out. Collections are taken only once {THRESHOLD} of fees has accrued across the positions, so this figure stays at zero between
-            collections, while the uncollected figure keeps rising. It counts the whole collection, including the fifth of it that compounds rather
-            than being airdropped.
+            Means: fees already swept, valued when collected. Collects only after {THRESHOLD} accrued, so this stays flat between collections while uncollected
+            rises. Includes the fifth that compounds back into LP, not only the airdropped share.
           </Method>
           <Method n="06" title="What is withheld">
-            If any token in the Reserve has no price the monitor trusts, every USD total shows a dash rather than a partial sum. Token amounts, ranges and the
-            in-range flag never depend on a price.
+            Means: USD totals are hidden if any Reserve token lacks a trusted price. Token amounts and in-range flags never depend on a price.
           </Method>
         </div>
       </Grid>

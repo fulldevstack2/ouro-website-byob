@@ -12,9 +12,9 @@ export const site = {
   url: __SITE_URL__,
   name: "Ouro",
   ticker: "$OURO",
-  tagline: "Own the fee generating layer of Robinhood Chain.",
+  tagline: "Hold $OURO. Get paid.",
   description:
-    "Ouro is building the fee generating layer of Robinhood Chain: pools the protocol buys and holds. Every $OURO trade pays a 5% tax: 2% is airdropped to holders, 2% buys pools the protocol keeps and 1% covers ops. 80% of the fees those pools earn is airdropped too.",
+    "Hold $OURO and airdrops land in your wallet. No stake, no claim. Need 100,000+; holding less, deposit with others to still earn.",
   xHandle,
   /**
    * `rpcUrl` is Robinhood Chain's public endpoint: keyless, so it ships in the client bundle by
