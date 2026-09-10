@@ -10,10 +10,10 @@ import { mono } from "./text";
 /* ────────────────────────────────────────────────────────────────────────────
    The site header, and on a phone the menu behind the hamburger.
 
-   ONE set of links, laid out two ways. Above 860px .site-nav__menu is `display: contents`, so the
+   ONE set of links, laid out two ways. Above 960px .site-nav__menu is `display: contents`, so the
    link row and the right-hand block are flex items of the bar itself and the header is the one this
    site has always had. Below it the menu becomes a panel under the bar and takes the Follow button
-   and the chain line down with it, because six links, the wordmark and that button need about 810px
+   and the chain line down with it, because seven links, the wordmark and that button need about 860px
    of bar. The links used to wrap into a scrolling strip instead, which fitted but hid whatever ran
    past the right edge (Airdrops and Docs on a 390px phone) behind a gesture nothing announced.
 
@@ -23,7 +23,7 @@ import { mono } from "./text";
    ──────────────────────────────────────────────────────────────────────────── */
 
 /** Must match the breakpoint the menu's rules live under in styles/site.css. */
-const MENU_QUERY = "(max-width: 860px)";
+const MENU_QUERY = "(max-width: 960px)";
 
 export function SiteNav() {
   const [open, setOpen] = useState(false);

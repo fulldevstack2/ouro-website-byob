@@ -1,7 +1,7 @@
 import { useRef, useState, type ReactNode } from "react";
 
 import { Badge, Button, Card, Stat } from "~/components/ds";
-import { AddressCell, Grid, HelpTip, KVRow, TokenIcon, body14, hairline, micro, mono } from "~/components/site";
+import { AddressCell, ConnectBar, Grid, HelpTip, KVRow, TokenIcon, body14, hairline, micro, mono } from "~/components/site";
 import { revealRow, useCollapse } from "~/hooks/useCollapse";
 import { LIVE_VAULTS, TERMS, type LiveVault } from "~/content/vaults";
 
@@ -80,26 +80,6 @@ export const STATIC_BAND: StatBandProps = {
   apr: "—",
   aprNote: "What a wallet above the line earns from payouts actually made, annualised, before any vault fee",
 };
-
-/**
- * The bar over the rows: the app's name on the left, the wallet button on the right.
- *
- * It used to carry a note that changed with the wallet state, which meant the row above the rows was
- * either a paragraph of instructions or empty. A fixed title is steadier and reads as the app's
- * header, which is what this line is. What a wallet is for is said at the point of need instead, on
- * the deposit panel's own hint.
- *
- * Not a heading element: the page's h1 is already "The vaults.", and a near-duplicate h2 under it
- * would be a worse outline, not a better one.
- */
-export function ConnectBar({ right }: { right: ReactNode }) {
-  return (
-    <div className="connect-bar">
-      <div className="connect-bar__title">Ouro Vaults</div>
-      <div className="connect-bar__action">{right}</div>
-    </div>
-  );
-}
 
 /** The rows, stacked. */
 export function VaultList({ children }: { children: ReactNode }) {
@@ -283,7 +263,7 @@ export function VaultsStatic() {
   return (
     <>
       <StatBand {...STATIC_BAND} />
-      <ConnectBar right={<Button disabled>Connect wallet</Button>} />
+      <ConnectBar title="Ouro Vaults" right={<Button disabled>Connect wallet</Button>} />
       <VaultList>
         {LIVE_VAULTS.map((v) => (
           <Frame

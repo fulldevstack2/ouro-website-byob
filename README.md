@@ -34,10 +34,14 @@ pnpm preview      # serve build/client on http://localhost:4173
 ```
 app/
   root.tsx                 document shell: fonts, <SiteNav/> + <main/> + <SiteFooter/>, 404/error boundary
-  routes.ts                /  /vaults  /monitor  /ledger  /docs   (the design's views + the vaults + the monitors)
+  routes.ts                /  /vaults  /monitor  /ledger  /airdrops  /portfolio  /docs
   routes/{home,vaults,monitor,ledger,docs}.tsx   /monitor and /ledger read ../ouro-monitor over HTTP
                            (app/lib/monitorApi.ts, MONITOR_API_URL at build): /monitor = the upstream dividend
                            tokens the vaults farm (/v1/summary), /ledger = Ouro's own liquidity (/v1/reserve)
+  routes/portfolio.tsx     the connected wallet's view (?address=0x… for another, unadvertised; see "The portfolio" below):
+                           components/portfolio/ (PortfolioFrame = the layout the prerender writes, PortfolioLive =
+                           the client-only wallet half), hooks/useAirdropHistory.ts (eth_getLogs for the wallet's
+                           payouts), usePortfolioChain.ts (its balances and vault positions), useBasketPrices.ts
   components/ds/           the Ouro design system: Badge, Button, Callout, Card, Stat, LedgerTable,
                            TokenChip, Input, Select, Tabs (ported from _ds_bundle.js, typed)
   components/site/         chrome + layout primitives: SiteNav, SiteFooter, Container, Grid, SectionHead,
@@ -155,6 +159,36 @@ says nothing about any particular one — and for an address it has never seen i
 not "not eligible", because only one of those is a fact about the wallet.
 
 There is no countdown to the next payout, on purpose — see `PayoutCadence`'s note and docs §06.
+
+## The portfolio (`/portfolio`)
+
+The connected wallet's view of the same data the airdrops page shows for everyone, added 2026-09-10 after
+theindex.finance's `#/portfolio`: its $OURO and what that is worth, its share of every cycle, every
+airdrop it has received with the transaction that paid it, what it holds now, and what it has in the
+three vaults. The page is always the connected wallet's. `/portfolio/?address=0x…` shows another
+wallet instead, and that is **deliberately unadvertised**: no lookup field, no link to it anywhere on
+the site (a lookup card was built and removed the same day at the owner's request), so it is a URL for
+people who know it. The address in the link wins over the connected wallet, so everyone who opens such
+a link sees the same page, and the one visible trace is a line under the connect bar saying whose wallet
+is on screen, because a page headed "Your portfolio" must not print someone else's figures unlabelled.
+The query string is read on the client only, in `PortfolioLive`, because the route is prerendered and
+has no query string at build; an address that is not one is ignored.
+
+**Where each figure comes from.** Balances and vault positions are one wagmi multicall through the
+site's public transport (no wallet needed to read). The history is the chain's own logs: every payout
+is one transaction from the airdrop wallet through the distributor with one ERC20 `Transfer` per token
+per recipient, so "every transfer from the airdrop wallet to this address on the payout tokens" is a
+single `eth_getLogs` with all three topics pinned. ouro-monitor indexes payouts per cycle and exposes
+nothing per address, and Blockscout's API sits behind a browser challenge, so the chain is asked
+directly. Of the six public endpoints only the chain's own answers that query over the whole history
+(0.55 s for six million blocks on 2026-09-10; ordofi manages two million in 6.6 s, the rest refuse), so
+`site.chain.logRpcUrls` lists those two, in that order, and `lib/rpc.ts` → `logsTransport()` uses them.
+Each payment is then matched by transaction hash to the monitor's cycle data (`/v1/ouro/epochs`) for
+its cycle number, its time and **the price the cycle paid that token out at**, which is how "Airdrops
+received" is valued when sent rather than at today's price. A payment the monitor has not indexed keeps
+its amounts, takes its time from the block, and shows a dash for value. Prices for what the wallet holds
+now come from `/v1/reserve` (the Reserve's own pools are CASHCAT/WETH and PONS/WETH) with the airdrop
+queue's valuations as a fallback. Nothing about the reader, or the wallet they look at, is written anywhere.
 
 ## Before launch
 

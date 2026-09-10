@@ -5,8 +5,10 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = new URL("..", import.meta.url).pathname;
+// fileURLToPath, not .pathname: on Windows the pathname is "/D:/WORK%20CODE/…", which join() turns into "D:D:…".
+const root = fileURLToPath(new URL("..", import.meta.url));
 const chrome = process.env.CHROME_PATH || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const template = `file://${join(root, "scripts", "og", "card.html")}`;
 const out = join(root, "public", "og");
@@ -18,6 +20,7 @@ const CARDS = {
   vaults: { k: "For HOOD10 and INDEX holders", t: "The vaults.", s: "Pool HOOD10 or INDEX, clear the dividend line together, and take the yield in your token, WETH or USDG." },
   ledger: { k: "Live proof", t: "The Ledger.", s: "Every position the treasury owns, what the pools have earned, and what the same tokens would have been worth simply held." },
   airdrops: { k: "Live proof", t: "The airdrops.", s: "Every payout Ouro has sent: what each cycle paid, to how many wallets, and what is already collected and waiting to go out." },
+  portfolio: { k: "Your wallet", t: "Your portfolio.", s: "Your $OURO, every airdrop it has received with the transaction that paid it, what it holds now and your vault deposits." },
   docs: { k: "Documentation", t: "How Ouro works.", s: "The tax, the Loop, the Reserve, the airdrop, compounding, the Seal, governance and risks." },
 };
 

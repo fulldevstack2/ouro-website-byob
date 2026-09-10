@@ -25,6 +25,13 @@ export const COLLECTION_SPLIT_USD = {
   reserve: (COLLECT_THRESHOLD_USD * (100 - FEE_SPLIT_HOLDERS_PCT)) / 100,
 };
 
+/**
+ * The wallet collections land in and every airdrop leaves from: the `from` of every payout transfer,
+ * which is what a wallet's airdrop history (/portfolio) is filtered on. The monitor publishes the same
+ * address as `treasury` on /v1/ouro/pending; this is the fallback while that has not loaded.
+ */
+export const AIRDROP_WALLET: `0x${string}` = "0xEA1B87B70852e48FDcA9262Ca91018C44C19001c";
+
 /** Deployed protocol contracts, `null` until launch (rendered as "Publishes at launch"). */
 export interface AddressEntry {
   name: string;
@@ -40,7 +47,7 @@ export const PROTOCOL_CONTRACTS: AddressEntry[] = [
   { name: "OURO token", address: "0x8Ea0eB3505f5B3Bd2BbEa0fEBae0cE850cC73ecc" },
   { name: "ETH/OURO pool (Uniswap v4)", address: "0x4abc526118181921d76bf184896938ae7c8fc0921abce79ebef3d36a622968a5", poolId: true },
   { name: "Tax claimer (pulls the tax out of the hook)", address: "0xd8E6c485aC9210A33B434325FAD5743310102405" },
-  { name: "Airdrop wallet (collections land here, and payouts leave from it)", address: "0xEA1B87B70852e48FDcA9262Ca91018C44C19001c" },
+  { name: "Airdrop wallet (collections land here, and payouts leave from it)", address: AIRDROP_WALLET },
   { name: "Airdrop distributor", address: "0x0bd09D209292c3359885adDBF9CF94A7AEcC369F" },
   { name: "Team vest (Sablier Lockup, stream 156)", address: "0x548129a58bC230549DF7F9e33f27E77F6779ff0f" },
   { name: "Reserve (holds the protocol-owned liquidity)", address: "0xa2d45d2454B4029be1a0c33ae9f5cb1b5dc6C84D" },
@@ -58,6 +65,37 @@ export const RESERVE_POOLS: AddressEntry[] = [
   { name: "CASHCAT / WETH · 0.30% (Uniswap v3)", address: "0xd42A491087a15E5afd51FEb3606066Cc152d2b09" },
   { name: "PONS / WETH · 0.30% (Uniswap v3)", address: "0xEd50bDeeA8aDC232f159486192a4157281D722ff" },
 ];
+
+/**
+ * A token the airdrop pays in, for reading a wallet's holdings and its history on /portfolio.
+ *
+ * The basket is CASHCAT and PONS today. WETH is listed because the fee leg arrives as the pools
+ * earned it (docs §05: "often basket tokens plus WETH") and the airdrop wallet's queue already
+ * carries a WETH line. The portfolio page also picks up any token a cycle actually paid, from the
+ * monitor's epoch data, so a new constituent shows up in a wallet's history before it is added
+ * here; this list is what the page knows before that data arrives, and where each token's mark lives.
+ */
+export interface BasketToken {
+  symbol: string;
+  name: string;
+  address: `0x${string}`;
+  decimals: number;
+  /** Self-hosted mark in public/tokens; absent, the design system's ink tile stands in. */
+  icon?: string;
+}
+
+export const BASKET_TOKENS: BasketToken[] = [
+  { symbol: "CASHCAT", name: "Cash Cat", address: "0x020bfC650A365f8BB26819deAAbF3E21291018b4", decimals: 18, icon: "/tokens/cashcat.jpg" },
+  { symbol: "PONS", name: "Pons", address: "0x39dBED3a2bd333467115dE45665cC57F813C4571", decimals: 18, icon: "/tokens/pons.png" },
+  { symbol: "WETH", name: "Wrapped Ether", address: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73", decimals: 18, icon: "/tokens/weth.svg" },
+];
+
+/**
+ * Where a wallet's airdrop history starts: just before cycle 1, which paid in block 53,140,053 on
+ * 2026-09-03 at 04:35 UTC. A log scan from here to the head is one request on the chain's own
+ * endpoint; from block zero it would walk fifty million empty blocks first.
+ */
+export const AIRDROPS_FROM_BLOCK = 53_140_000n;
 
 /** The launchpad rails $OURO trades on. Not ours — letscash's, shared by every token they launch. */
 export const VENUE: AddressEntry[] = [

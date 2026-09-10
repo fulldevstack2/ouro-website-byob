@@ -50,6 +50,23 @@ export const site = {
       "https://robinhood.api.pocket.network",
       "https://rpc.mainnet.chain.robinhood.com",
     ],
+    /**
+     * Endpoints for reading a wallet's airdrop history (/portfolio): one `eth_getLogs` over every
+     * block since the first cycle, about six million on 2026-09-10, with the sender, the recipient and
+     * the payout tokens all pinned. A small answer to a wide question, and the endpoints above split
+     * on it. Tried the same day, with exactly that filter:
+     *
+     *   the chain's own   the whole span in 0.55s
+     *   ordofi            2M blocks in 6.6s; the whole span timed out
+     *   publicnode        refused, "archive requests require a personal token"
+     *   blockmachine      refused, caps a span at 10,000 blocks
+     *   POKT              refused, "historical state is not available"
+     *   bloXroute         answered with an HTML page
+     *
+     * So this list is the other one reversed: the chain's own endpoint first, the one that fails
+     * batched calls but is the only one that reads its own history whole, and ordofi behind it.
+     */
+    logRpcUrls: ["https://rpc.mainnet.chain.robinhood.com", "https://rpc.ordofi.network"],
   },
   /** Set to true once the audit report is published; it swaps the docs §10 callout. */
   auditPublished: false,
@@ -94,6 +111,9 @@ export const NAV: NavItem[] = [
   // chain through ouro-monitor's /v1/reserve. It needs MONITOR_API_URL set at build time.
   { to: "/ledger/", label: "Ledger" },
   { to: "/airdrops/", label: "Airdrops" },
+  // Added 2026-09-10: the connected wallet's view of the same data. Its $OURO, every airdrop it
+  // received, its vault deposits. (?address=0x… shows another wallet, on purpose unadvertised.)
+  { to: "/portfolio/", label: "Portfolio" },
   // Held back 2026-09-08 with its route (see app/routes.ts). A nav link to a 404 is worse than no
   // link at all.
   { to: "/referral/", label: "Referral", hidden: true },

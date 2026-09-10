@@ -4,8 +4,8 @@ import { formatUnits } from "viem";
 import { useAccount, useChainId, useReadContracts, useSwitchChain } from "wagmi";
 
 import { Badge, Button, Input, Tabs } from "~/components/ds";
-import { KVRow, MicroLabel, body14, mono } from "~/components/site";
-import { ConnectBar, Frame, STATIC_BAND, StatBand, VaultList, VaultsStatic, useOpenVault, type VaultSummary } from "~/components/vaults/VaultFrame";
+import { ConnectBar, KVRow, MicroLabel, body14, mono } from "~/components/site";
+import { Frame, STATIC_BAND, StatBand, VaultList, VaultsStatic, useOpenVault, type VaultSummary } from "~/components/vaults/VaultFrame";
 import { WalletProvider } from "~/components/wallet/WalletProvider";
 import { externalLinkProps, site } from "~/content/site";
 import { LIVE_VAULTS, TOKEN_DECIMALS, type LiveVault } from "~/content/vaults";
@@ -59,7 +59,7 @@ function LiveSection() {
         apr={prices.airdrop ? `${fmtNum(prices.airdrop.aprPct, 0)}%` : "—"}
         aprNote={prices.airdrop ? `${prices.airdrop.caveat ?? "From payouts actually made, at the rate of the last seven days."} What a wallet above the line earns, before any vault fee.` : STATIC_BAND.aprNote}
       />
-      <ConnectBar right={<ConnectButton showBalance={false} chainStatus="icon" accountStatus="address" />} />
+      <ConnectBar title="Ouro Vaults" right={<ConnectButton showBalance={false} chainStatus="icon" accountStatus="address" />} />
       <VaultList>
         {LIVE_VAULTS.map((v) => (
           <VaultPanel key={v.entry.address} vault={v} prices={prices} ready={ready} open={isOpen(v.entry.address)} onToggle={() => toggle(v.entry.address)} />

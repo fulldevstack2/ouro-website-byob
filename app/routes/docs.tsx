@@ -102,6 +102,10 @@ const FAQ: { q: string; a: string }[] = [
     q: "Is the basket safe? Are these stocks?",
     a: "No. Crypto tokens on Robinhood Chain, including memecoins. They can go to zero.",
   },
+  {
+    q: "Where can I see what my wallet has been paid?",
+    a: "On the portfolio page. Connect a wallet to see its $OURO, every airdrop it received with the transaction that paid it, what it holds now and its vault deposits.",
+  },
 ];
 
 /* ---------------------------------------------------------------- pieces */
