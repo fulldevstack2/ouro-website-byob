@@ -237,7 +237,10 @@ function buildView(i: Inputs): PortfolioView {
       : excluded
         ? { tone: "negative", label: "Excluded by policy" }
         : p.eligible
-          ? { tone: "positive", label: "Above the line · paid every cycle" }
+          // Short on purpose: the metric cards sit two-up from 641–960px, and the longer
+          // "Above the line · paid every cycle" overflowed the card (Badge is nowrap). The note
+          // under the figure still says every cycle pays.
+          ? { tone: "positive", label: "Above the line" }
           : { tone: "caution", label: "Below the line" };
 
   const metrics: PortfolioView["metrics"] = {
@@ -257,7 +260,9 @@ function buildView(i: Inputs): PortfolioView {
     },
     share: {
       value: !p ? DASH : p.shareOfEligible !== null ? fmtPct(p.shareOfEligible, 4) : paid ? DASH : "0%",
-      footnote: p?.eligibleSupplyTokens != null ? `of the ${fmtNum(p.eligibleSupplyTokens)} $OURO a cycle is divided among` : S.metrics.share.footnote,
+      // Complete on its own (not a lead-in to the badge). Reads under the % as
+      // "3.5% of N $OURO above the line".
+      footnote: p?.eligibleSupplyTokens != null ? `of ${fmtNum(p.eligibleSupplyTokens)} $OURO above the line` : S.metrics.share.footnote,
       badge: standing,
       note: !p
         ? S.metrics.share.note

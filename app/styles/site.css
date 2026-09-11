@@ -210,7 +210,9 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
    out instead of scrolling. On /airdrops that dragged the mobile viewport from 375px to 536px — the
    page did not scroll horizontally, it just stopped being 375px wide. */
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; min-width: 0; }
-.table-scroll > table { min-width: 520px; }
+/* Floor so a sparse first paint (headers only) still scrolls rather than crushing caps labels;
+   LedgerTable's width:max-content raises this further once rows arrive. */
+.table-scroll > table { min-width: 560px; }
 
 /* 5. Help tooltips (the design's .qt) ------------------------------- */
 .qt { position: relative; display: inline-flex; }
@@ -675,11 +677,11 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
 /* 14. Portfolio (/portfolio) --------------------------------------------- */
 /* One wallet's page: the connect bar (shared with /vaults), four metric cards, then the history table
    beside a stack of three smaller cards. The stack goes under the table from 960px down, where a
-   300px side column left the table too narrow for a timestamp, a cycle, two token amounts, a value
+   narrow side column left the table too tight for a timestamp, a cycle, two token amounts, a value
    and a hash. */
 .pf-page { padding-top: 64px; }
 
-.pf-body { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); gap: 24px; align-items: start; margin-top: 24px; }
+.pf-body { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr); gap: 24px; align-items: start; margin-top: 24px; }
 .pf-side { display: grid; gap: 24px; min-width: 0; }
 
 /* A token the wallet holds: mark, symbol and name on the left, amount over value on the right. */

@@ -53,8 +53,14 @@ function Row({ row, columns, compact, last }: { row: LedgerRow; columns: LedgerC
 
 /** The live-proof ledger: hairline rows, mono figures, caps header. */
 export function LedgerTable({ columns, rows, compact = false, style, className }: LedgerTableProps) {
+  // max-content + minWidth 100%: fill the card when there is room, but never compress columns so
+  // nowrap caps headers ("Cycle", "Value when sent") spill into their neighbours. Inside
+  // `.table-scroll` the extra width becomes a horizontal scroll instead of a crushed header row.
   return (
-    <table className={className} style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-body)", ...style }}>
+    <table
+      className={className}
+      style={{ width: "max-content", minWidth: "100%", borderCollapse: "collapse", fontFamily: "var(--font-body)", ...style }}
+    >
       <thead>
         <tr>
           {columns.map((c, i) => (

@@ -8,7 +8,7 @@ import { BASKET_TOKENS } from "~/content/protocol";
 import { externalLinkProps, site } from "~/content/site";
 import { LIVE_VAULTS, TOKENS } from "~/content/vaults";
 import { useCountdown, type Countdown } from "~/hooks/useCountdown";
-import { fmtNum, shortHash } from "~/lib/monitorApi";
+import { fmtNum } from "~/lib/monitorApi";
 
 /* ────────────────────────────────────────────────────────────────────────────
    The portfolio page's layout, with no wallet code in it.
@@ -125,8 +125,8 @@ function Metric({ n, label, m }: { n: string; label: string; m: MetricView }) {
     <Card label={`${n} · ${label}`}>
       <Stat value={m.value} unit={m.unit} footnote={m.footnote} />
       {m.badge && (
-        <div style={{ marginTop: 12 }}>
-          <Badge tone={m.badge.tone} dot>
+        <div style={{ marginTop: 12, minWidth: 0, maxWidth: "100%" }}>
+          <Badge tone={m.badge.tone} dot style={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis" }}>
             {m.badge.label}
           </Badge>
         </div>
@@ -151,10 +151,12 @@ export function MetricCards({ m }: { m: PortfolioView["metrics"] }) {
 
 const HISTORY_COLS: LedgerColumn[] = [
   { key: "when", label: "Received", nowrap: true },
-  { key: "cycle", label: "Cycle", numeric: true, nowrap: true },
+  // width keeps the caps header from being crushed into "Tokens" when the history card is the
+  // narrow column of pf-body; LedgerTable still sizes from content when there is room.
+  { key: "cycle", label: "Cycle", numeric: true, nowrap: true, width: 72 },
   { key: "tokens", label: "Tokens" },
-  { key: "value", label: "Value when sent", align: "right", numeric: true, nowrap: true },
-  { key: "tx", label: "Tx", align: "right", nowrap: true },
+  { key: "value", label: "Value when sent", align: "right", numeric: true, nowrap: true, width: 130 },
+  { key: "tx", label: "Tx", align: "right", nowrap: true, width: 110 },
 ];
 
 /** Rows per page: one day of payouts at the two-hourly cadence, the same as the airdrops page. */
@@ -163,9 +165,12 @@ export const HISTORY_PAGE_SIZE = 12;
 function TxLink({ tx }: { tx: Hex | null }) {
   if (!tx) return <span style={{ ...mono, fontSize: 12, color: "var(--text-faint)" }}>{DASH}</span>;
   const href = `${site.links.explorer}/tx/${tx}`;
+  // Shorter than the shared shortHash: the history card shares the row with the side stack, and the
+  // full 10+6 form was what pushed the Tx header past the card edge by a few pixels.
+  const label = `${tx.slice(0, 8)}…${tx.slice(-4)}`;
   return (
     <a href={href} {...externalLinkProps(href)} style={{ color: "var(--text-secondary)" }}>
-      <span style={{ ...mono, fontSize: 12 }}>{shortHash(tx)}</span>
+      <span style={{ ...mono, fontSize: 12 }}>{label}</span>
     </a>
   );
 }
@@ -337,7 +342,7 @@ export function VaultsCard({ v }: { v: PortfolioView["vaults"] }) {
           />
         ))}
       </div>
-      <KVRow label="Deposits and what is claimable, at today's prices" value={v.total} border="none" py={12} />
+      <KVRow label="Total at today's prices" value={v.total} border="none" py={12} />
       <div style={{ fontSize: 13, color: "var(--text-muted)", borderTop: hairline, paddingTop: 14 }}>
         Deposits are priced through each vault&apos;s own totals, the way the vaults page prices them. Deposit, withdraw and collect on the{" "}
         <Link to="/vaults/">vaults page</Link>.
@@ -399,7 +404,7 @@ export const STATIC_VIEW: PortfolioView = {
     },
     share: {
       value: DASH,
-      footnote: "of the $OURO every cycle is divided among",
+      footnote: "of the $OURO above the line",
       note: `Airdrops need ${LINE} $OURO in one wallet. Above that, each cycle is split pro-rata across everyone who clears it.`,
     },
     received: {
