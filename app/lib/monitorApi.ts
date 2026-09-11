@@ -305,6 +305,11 @@ export interface OuroPending {
   // reads as a figure someone shows, and this one is not shown anywhere.
   creator: string;
   treasury: string;
+  /**
+   * Cold store for the ETH float, or null on a deploy that predates the custody split. Only an
+   * address: the balance is read straight from the chain, like `treasury`'s.
+   */
+  ethReserve: string | null;
   queued: OuroQueuedAsset[];
   queuedUsd: number | null;
   block: number;

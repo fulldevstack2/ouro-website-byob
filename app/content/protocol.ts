@@ -58,9 +58,17 @@ export const PROTOCOL_CONTRACTS: AddressEntry[] = [
   { name: "ETH/OURO pool (Uniswap v4)", address: "0x4abc526118181921d76bf184896938ae7c8fc0921abce79ebef3d36a622968a5", poolId: true },
   { name: "Tax claimer (pulls the tax out of the hook)", address: "0xd8E6c485aC9210A33B434325FAD5743310102405" },
   { name: "Airdrop wallet (collections land here, and payouts leave from it)", address: AIRDROP_WALLET },
+  // The hot wallet above signs every cycle, so it holds a working float only. The ETH behind it sits
+  // here and is forwarded when that float runs low. Listed separately because the two together are
+  // the reserve — /airdrops totals both, and reading either alone understates it.
+  { name: "Airdrop ETH reserve (3-of-3 Safe, tops up the payout wallet)", address: "0x9EF77382E25334c7952a643286a98178514eECf2" },
   { name: "Airdrop distributor", address: "0x0bd09D209292c3359885adDBF9CF94A7AEcC369F" },
   { name: "Team vest (Sablier Lockup, stream 156)", address: "0x548129a58bC230549DF7F9e33f27E77F6779ff0f" },
-  { name: "Reserve (holds the protocol-owned liquidity)", address: "0xa2d45d2454B4029be1a0c33ae9f5cb1b5dc6C84D" },
+  // Custody moved on 2026-09-11 from the funding EOA 0xa2d45d2454B4029be1a0c33ae9f5cb1b5dc6C84D, which
+  // minted the positions by hand and now holds none. That wallet still appears in the Ledger's position
+  // history and in the two `transfer_in` transactions, so it is kept here for anyone reconciling them.
+  // The Ledger's own "Wallet that holds them" row reads `lp` from /v1/reserve and needs no address here.
+  { name: "Reserve (holds the protocol-owned liquidity · 3-of-3 Safe)", address: "0xc8BF917136cEd0126f8cDe688CE0d2ff146Af33E" },
 ];
 
 /**
