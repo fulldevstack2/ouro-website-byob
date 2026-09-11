@@ -1,4 +1,16 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import {
+  base,
+  binanceWallet,
+  bitgetWallet,
+  metaMaskWallet,
+  okxWallet,
+  rabbyWallet,
+  rainbowWallet,
+  safeWallet,
+  trustWallet,
+  walletConnectWallet,
+} from "@rainbow-me/rainbowkit/wallets";
 import { defineChain } from "viem";
 import { injected } from "wagmi/connectors";
 import { createConfig } from "wagmi";
@@ -35,6 +47,30 @@ const projectId = "0031ff4cbef4968b799fc2910156439c";
 export const hasWalletConnect = projectId.length > 0;
 
 /**
+ * Curated list on top of RainbowKit's stock Popular set. OKX / Bitget / Trust / Binance ship with
+ * WalletConnect deep links so the compact modal works on phone (QR + open-in-app). Rabby is
+ * extension-only; RainbowKit still shows it on desktop and installed browsers via EIP-6963.
+ * WalletConnect stays last among the named apps as the catch-all for any other mobile wallet.
+ */
+const wallets = [
+  {
+    groupName: "Popular",
+    wallets: [
+      okxWallet,
+      metaMaskWallet,
+      trustWallet,
+      bitgetWallet,
+      binanceWallet,
+      rainbowWallet,
+      base,
+      rabbyWallet,
+      walletConnectWallet,
+      safeWallet,
+    ],
+  },
+];
+
+/**
  * `ssr: false` is deliberate and load-bearing, and the same choice helios-dex-ui documents.
  *
  * With `ssr: true` wagmi defers reconnection past the first render, so on a refresh the first frame
@@ -48,9 +84,11 @@ const transports = { [robinhoodChain.id]: rpcTransport() };
 export const wagmiConfig = hasWalletConnect
   ? getDefaultConfig({
       appName: site.name,
+      appUrl: site.url,
       projectId,
       chains: [robinhoodChain],
       transports,
+      wallets,
       ssr: false,
     })
   : createConfig({

@@ -98,8 +98,8 @@ export default function Portfolio() {
           </div>
           <div>
             <Method n="04" title="Share of a cycle">
-              Balance over the eligible supply, the weighted balance a cycle is divided among. The top three holders take 30% less than pro-rata, so the
-              figure is a floor for most wallets.
+              Balance over the eligible supply, the weighted balance a cycle is divided among. Every wallet above the line gets the same pro-rata
+              share.
             </Method>
             <Method n="05" title="Not a forecast">
               The daily and monthly figures apply the average of recent cycles to this wallet&apos;s share of the supply, and the next payment is an

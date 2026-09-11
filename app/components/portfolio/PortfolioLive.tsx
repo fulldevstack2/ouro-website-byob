@@ -270,7 +270,7 @@ function buildView(i: Inputs): PortfolioView {
         : excluded
           ? `Never paid, however large. The monitor's note on this address: ${excluded}.`
           : p.eligible
-            ? "Each cycle is split pro-rata across the eligible supply. The top three holders take 30% less, so this is a floor for most wallets."
+            ? "Each cycle is split pro-rata across the eligible supply. Every wallet above the line gets the same rate."
             : `${fmtTokens(p.shortfallTokens)} more $OURO clears the line. Below it a wallet gets nothing from any cycle.`,
     },
     received: {

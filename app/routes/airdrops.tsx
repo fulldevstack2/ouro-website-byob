@@ -698,7 +698,7 @@ export default function Airdrops() {
             Eligible supply excludes wallets under {fmtNum(y?.lineTokens ?? 100_000)}, the pool, and the team vest.
             <br />
             <br />
-            Top three holders get 30% less than pro-rata; everyone else gets a bit more. Figures above are a floor for most wallets.
+            Each cycle is split pro-rata across that supply. Every wallet above the line gets the same rate.
             <br />
             <br />
             Cost = mid price + trade tax (no slippage).
