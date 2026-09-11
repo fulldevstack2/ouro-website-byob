@@ -167,18 +167,6 @@ function ShareCardDialog({ card, holdingRow, fileStem, open, onClose }: ShareCar
       }}
     >
       <div className="pf-share__inner">
-        <div className="pf-share__head">
-          <div>
-            <h2 id="pf-share-title" className="pf-share__title">
-              Share your airdrops
-            </h2>
-            <p className="pf-share__lede">A picture of what this wallet has been paid. Choose what else goes on it.</p>
-          </div>
-          <button type="button" className="pf-share__close" onClick={onClose} aria-label="Close">
-            <span aria-hidden="true">×</span>
-          </button>
-        </div>
-
         <canvas
           ref={canvasRef}
           className="pf-share__canvas"
@@ -188,46 +176,60 @@ function ShareCardDialog({ card, holdingRow, fileStem, open, onClose }: ShareCar
           aria-label={`${card.kicker}: ${card.hero}. ${shown.rows.map((r) => `${r.label}, ${r.value}`).join(". ")}.`}
         />
 
-        <div className="pf-share__toggles">
-          {holdingRow && (
+        <div className="pf-share__side">
+          <div className="pf-share__head">
+            <div>
+              <h2 id="pf-share-title" className="pf-share__title">
+                Share your airdrops
+              </h2>
+              <p className="pf-share__lede">A picture of what this wallet has been paid. Choose what else goes on it.</p>
+            </div>
+            <button type="button" className="pf-share__close" onClick={onClose} aria-label="Close">
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
+
+          <div className="pf-share__toggles">
+            {holdingRow && (
+              <label className="pf-share__toggle">
+                <input type="checkbox" checked={showHolding} onChange={(e) => setShowHolding(e.target.checked)} />
+                <span>
+                  Show my balance <span style={{ ...mono, color: "var(--text-muted)" }}>({holdingRow.value})</span>
+                </span>
+              </label>
+            )}
             <label className="pf-share__toggle">
-              <input type="checkbox" checked={showHolding} onChange={(e) => setShowHolding(e.target.checked)} />
+              <input type="checkbox" checked={showQr} onChange={(e) => setShowQr(e.target.checked)} />
+              <span>Show QR code</span>
+            </label>
+            <label className="pf-share__toggle">
+              <input type="checkbox" checked={showAddress} onChange={(e) => setShowAddress(e.target.checked)} />
               <span>
-                Show my balance <span style={{ ...mono, color: "var(--text-muted)" }}>({holdingRow.value})</span>
+                Show wallet address <span style={{ ...mono, color: "var(--text-muted)" }}>({card.cta.address})</span>
               </span>
             </label>
-          )}
-          <label className="pf-share__toggle">
-            <input type="checkbox" checked={showQr} onChange={(e) => setShowQr(e.target.checked)} />
-            <span>Show QR code</span>
-          </label>
-          <label className="pf-share__toggle">
-            <input type="checkbox" checked={showAddress} onChange={(e) => setShowAddress(e.target.checked)} />
-            <span>
-              Show wallet address <span style={{ ...mono, color: "var(--text-muted)" }}>({card.cta.address})</span>
-            </span>
-          </label>
-        </div>
+          </div>
 
-        <div className="pf-share__actions">
-          <Button size="sm" onClick={save} disabled={busy}>
-            Save image
-          </Button>
-          {canCopy && (
-            <Button size="sm" variant="secondary" onClick={copy} disabled={busy}>
-              Copy
+          <div className="pf-share__actions">
+            <Button size="sm" onClick={save} disabled={busy}>
+              Save image
             </Button>
-          )}
-          {canSend && (
-            <Button size="sm" variant="secondary" onClick={send} disabled={busy}>
-              Share
-            </Button>
-          )}
-        </div>
+            {canCopy && (
+              <Button size="sm" variant="secondary" onClick={copy} disabled={busy}>
+                Copy
+              </Button>
+            )}
+            {canSend && (
+              <Button size="sm" variant="secondary" onClick={send} disabled={busy}>
+                Share
+              </Button>
+            )}
+          </div>
 
-        <p className="pf-share__note" style={{ color: note?.kind === "bad" ? "var(--text-negative)" : "var(--text-muted)" }} aria-live="polite">
-          {note ? note.text : hint}
-        </p>
+          <p className="pf-share__note" style={{ color: note?.kind === "bad" ? "var(--text-negative)" : "var(--text-muted)" }} aria-live="polite">
+            {note ? note.text : hint}
+          </p>
+        </div>
       </div>
     </dialog>
   );
