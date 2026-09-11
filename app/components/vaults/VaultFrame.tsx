@@ -1,9 +1,11 @@
 import { useRef, useState, type ReactNode } from "react";
 
 import { Badge, Button, Card, Stat } from "~/components/ds";
-import { AddressCell, Grid, HelpTip, KVRow, TokenIcon, body14, hairline, micro, mono } from "~/components/site";
+import { AddressCell, ConnectBar, Grid, HelpTip, KVRow, TokenIcon, body14, hairline, micro, mono } from "~/components/site";
 import { revealRow, useCollapse } from "~/hooks/useCollapse";
+import { FLOATING_SUPPLY_TOKENS } from "~/content/protocol";
 import { LIVE_VAULTS, TERMS, type LiveVault } from "~/content/vaults";
+import { fmtNum } from "~/lib/monitorApi";
 
 /* ────────────────────────────────────────────────────────────────────────────
    The vaults section's layout, with no wallet code in it.
@@ -37,21 +39,26 @@ export interface StatBandProps {
   /** Deposits across the vaults, in dollars, with the OURO total as the footnote. */
   tvl: ReactNode;
   tvlNote: ReactNode;
+  /** How much of the floating supply sits in the vaults, as a percentage. */
+  pooledShare: ReactNode;
+  pooledShareNote: ReactNode;
   /** Measured airdrop APR (`/v1/ouro/yield`), with its basis caveat. */
   apr: ReactNode;
   aprNote: ReactNode;
 }
 
 /**
- * The band above the rows: TVL, airdrop APR, performance fee.
+ * The band above the rows: TVL, the share of supply pooled, airdrop APR, performance fee.
  *
  * Descriptions live in a "?" tip next to each label (mouse-following on desktop, tap on mobile).
+ * Phone keeps all four in a 2×2 grid.
  */
-export function StatBand({ tvl, tvlNote, apr, aprNote }: StatBandProps) {
+export function StatBand({ tvl, tvlNote, pooledShare, pooledShareNote, apr, aprNote }: StatBandProps) {
   const feeNote = `Of harvest gains only, and no deposit or withdrawal fee. ${TERMS.feeSplit.airdrops}% of the gain funds more airdrops, ${TERMS.feeSplit.ops}% covers ops`;
   return (
-    <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md stat-band">
+    <Grid cols="repeat(4, 1fr)" gap={24} className="grid--2col-md stat-band">
       <Stat label={<StatLabel text="TVL" tip={tvlNote} />} value={tvl} />
+      <Stat className="cell-rule" label={<StatLabel text="Supply pooled" tip={pooledShareNote} />} value={pooledShare} />
       <Stat className="cell-rule" label={<StatLabel text="Airdrop APR" tip={aprNote} />} value={apr} />
       <Stat className="cell-rule" label={<StatLabel text="Performance fee" tip={feeNote} />} value={`${TERMS.performanceFeePct}%`} />
     </Grid>
@@ -70,29 +77,11 @@ function StatLabel({ text, tip }: { text: string; tip: ReactNode }) {
 export const STATIC_BAND: StatBandProps = {
   tvl: "—",
   tvlNote: "Deposits across the three vaults, priced in dollars from the chain and the monitor",
+  pooledShare: "—",
+  pooledShareNote: `OURO in the three vaults as a share of the ${fmtNum(FLOATING_SUPPLY_TOKENS)} floating supply, which is the billion minted less what is still locked in the team vest`,
   apr: "—",
   aprNote: "What a wallet above the line earns from payouts actually made, annualised, before any vault fee",
 };
-
-/**
- * The bar over the rows: the app's name on the left, the wallet button on the right.
- *
- * It used to carry a note that changed with the wallet state, which meant the row above the rows was
- * either a paragraph of instructions or empty. A fixed title is steadier and reads as the app's
- * header, which is what this line is. What a wallet is for is said at the point of need instead, on
- * the deposit panel's own hint.
- *
- * Not a heading element: the page's h1 is already "The vaults.", and a near-duplicate h2 under it
- * would be a worse outline, not a better one.
- */
-export function ConnectBar({ right }: { right: ReactNode }) {
-  return (
-    <div className="connect-bar">
-      <div className="connect-bar__title">Ouro Vaults</div>
-      <div className="connect-bar__action">{right}</div>
-    </div>
-  );
-}
 
 /** The rows, stacked. */
 export function VaultList({ children }: { children: ReactNode }) {
@@ -276,7 +265,7 @@ export function VaultsStatic() {
   return (
     <>
       <StatBand {...STATIC_BAND} />
-      <ConnectBar right={<Button disabled>Connect wallet</Button>} />
+      <ConnectBar title="Ouro Vaults" right={<Button disabled>Connect wallet</Button>} />
       <VaultList>
         {LIVE_VAULTS.map((v) => (
           <Frame

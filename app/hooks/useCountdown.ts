@@ -13,7 +13,8 @@ export interface Countdown {
  * client render agree — the same reason useClock starts empty. A baked-in countdown would
  * ship whatever the build machine's clock said and then jump on hydration.
  *
- * Used for one-off scheduled targets (see PayoutCadence), not as a promise that a cycle will fire.
+ * Used for the portfolio's per-wallet "Next payment" estimate and PayoutCadence's one-off target,
+ * not as a promise that a cycle will fire.
  */
 export function useCountdown(target: Date): Countdown | null {
   const [c, setC] = useState<Countdown | null>(null);

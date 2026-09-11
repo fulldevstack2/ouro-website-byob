@@ -8,6 +8,8 @@ export { PageHeader } from "./PageHeader";
 export { Wordmark } from "./Wordmark";
 export { NumberedRow } from "./NumberedRow";
 export { KVRow } from "./KVRow";
+export { Pager } from "./Pager";
+export { ConnectBar } from "./ConnectBar";
 export { HelpTip } from "./HelpTip";
 export { LoopRing } from "./LoopRing";
 export { HeroRing } from "./HeroRing";

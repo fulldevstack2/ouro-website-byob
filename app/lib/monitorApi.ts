@@ -316,22 +316,6 @@ export interface OuroPending {
   at: number;
 }
 
-/**
- * Cron for the next OURO airdrop / vault-harvest window (`GET /v1/ouro/next`).
- * `dueTs` is the next wall-clock multiple of `cadenceSec` (2h in prod).
- */
-export interface OuroNext {
-  generatedAt: number;
-  cadenceSec: number;
-  lastTs: number | null;
-  lastEpoch: number | null;
-  dueTs: number;
-  overdueSec: number | null;
-  status: Liveness;
-  source: string;
-  caveat: string;
-}
-
 /** One day of the airdrop wallet: what landed, what went out, and what it closed at. */
 export interface OuroQueueDay {
   day: number;
@@ -414,6 +398,153 @@ export interface OuroHolders {
   counts: { holders: number; eligible: number; paid: number; belowLine: number; excludedByPolicy: number };
   exclusionPolicy: { address: string; reason: string }[];
   holders: OuroHolder[];
+}
+
+// ── one wallet (/v1/portfolio/{address}): what /portfolio prints ──
+
+/** Where a wallet stands for its next payment, as `/v1/portfolio/{address}/next` and `summary.next` say it. */
+export type PortfolioNextStatus = "ineligible" | "excluded" | "due-next-cycle" | "accruing" | "unknown";
+
+/**
+ * When one wallet is next paid. Per wallet, not per cycle: a wallet just over the line is credited
+ * every cycle but paid only once what it is owed covers the gas to send it, so its `estimatedPayTs`
+ * can sit several cycles past the next keeper slot.
+ */
+export interface PortfolioNext {
+  status: PortfolioNextStatus;
+  /** Why there is no countdown, for `ineligible` and `excluded`. */
+  reason: string | null;
+  /** The next keeper slot: the next wall-clock multiple of `cadenceSec`. */
+  nextCycleTs: number;
+  cadenceSec: number;
+  /** When this wallet is estimated to receive a transfer; null when nothing can be said. */
+  estimatedPayTs: number | null;
+  cyclesUntilPay: number | null;
+  /** Owed but not yet sent, in dollars. */
+  pendingUsd: number | null;
+  /** What has to accrue before a transfer is worth its gas. */
+  dustThresholdUsd: number | null;
+  estimatedPerCycleUsd: number | null;
+  shareOfEligible: number | null;
+  /** `inferred` (share × recent payouts) or `stream-ledger` (the keeper's own accrual, if mounted). */
+  source: string;
+  caveat: string;
+}
+
+/** One ERC-20 the wallet holds, read live by the monitor: $OURO, the basket tokens and WETH. */
+export interface PortfolioHolding {
+  address: string;
+  symbol: string;
+  name: string;
+  decimals: number;
+  /** Raw units, as a decimal string; `balanceF` is the same in whole tokens. */
+  balance: string;
+  balanceF: number;
+  priceUsd: number | null;
+  usd: number | null;
+}
+
+/** The wallet's position in one live vault. Only vaults it has a position in are listed. */
+export interface PortfolioVaultPosition {
+  address: string;
+  kind: "compounding" | "payout";
+  shareSymbol: string;
+  label: string;
+  depositSymbol: string;
+  /** Its shares in the deposit token, through the vault's own totals. */
+  assets: string;
+  assetsF: number;
+  assetsUsd: number | null;
+  payoutSymbol: string;
+  /** Payout vaults: what it can claim now. Null on the compounding vault, which has nothing to claim by design. */
+  earned: string | null;
+  earnedF: number | null;
+  earnedUsd: number | null;
+}
+
+/**
+ * Everything /portfolio prints for one wallet, from `GET /v1/portfolio/{address}`.
+ *
+ * Two clocks inside it. The balance, the standing and the share come from the monitor's holder
+ * snapshot (`snapshotBlock`; `blocksBehind` says how far it trails the head). The holdings and the
+ * vault positions are read from the chain as the request is served (`liveAt`), and are null with
+ * `liveError` set when that read failed. A wallet that has never held $OURO is a 200 with zeros, not
+ * a 404: only a malformed address is one. Served `Cache-Control: no-store`.
+ */
+export interface PortfolioSummary {
+  address: string;
+  generatedAt: number;
+  chainId: number;
+  symbol: string;
+  decimals: number;
+  balance: string;
+  balanceTokens: number;
+  /** At or above the line. Policy-excluded addresses are `eligible` with `excluded` set, so check both. */
+  eligible: boolean;
+  /** Null when the wallet is paid; otherwise why not, in words (below the line, or the policy reason). */
+  excluded: string | null;
+  eligibilityLine: string;
+  lineTokens: number;
+  /** Whole tokens short of the line; 0 at or above it. */
+  shortfallTokens: number;
+  /** Fraction (0 to 1) of the supply a cycle is divided among; null when the wallet is not paid. */
+  shareOfEligible: number | null;
+  shareOfEligiblePct: number | null;
+  eligibleSupplyTokens: number | null;
+  priceUsd: number | null;
+  balanceUsd: number | null;
+  /** Every payment valued when sent. Null while any indexed leg is unpriced; 0 when never paid. */
+  totalAirdropUsd: number | null;
+  /** Distinct payout transactions received. */
+  airdropPayments: number;
+  lastAirdropTs: number | null;
+  /** Recent cycle averages applied to this wallet's share; null when not paid, or with no priced history. */
+  projectedUsdPerDay: number | null;
+  projectedUsdPerMonth: number | null;
+  next: PortfolioNext;
+  /** The canonical public page for this wallet, for share links. */
+  portfolioUrl: string;
+  snapshotBlock: number | null;
+  head: number | null;
+  blocksBehind: number | null;
+  holdings: PortfolioHolding[] | null;
+  holdingsTotalUsd: number | null;
+  vaults: PortfolioVaultPosition[] | null;
+  /** Deposits plus what is claimable, in dollars. */
+  vaultsTotalUsd: number | null;
+  liveAt: number | null;
+  liveError: string | null;
+}
+
+/** One leg of one payment: a basket token and what its cycle valued it at. */
+export interface PortfolioPaymentAsset {
+  address: string;
+  symbol: string | null;
+  decimals: number | null;
+  amount: string;
+  amountF: number;
+  usd: number | null;
+}
+
+/** One payout transaction to the wallet, from `/v1/portfolio/{address}/airdrops`. */
+export interface PortfolioPayment {
+  tx: string;
+  block: number;
+  ts: number;
+  cycle: number;
+  /** All-or-nothing: null when any leg was unpriced. */
+  paidUsd: number | null;
+  assets: PortfolioPaymentAsset[];
+}
+
+/**
+ * A page of payments, newest first. `nextBefore` is the `before=` for the next older page (an
+ * exclusive bound on `ts`), null once the oldest payment has been served. `limit` is clamped to 1-200.
+ */
+export interface PortfolioAirdrops {
+  address: string;
+  payments: PortfolioPayment[];
+  nextBefore: number | null;
 }
 
 export interface Poll<T> {
@@ -525,6 +656,19 @@ export function fmtWhen(ts: number | null | undefined): string {
   if (!ts) return "—";
   return new Date(ts * 1000).toISOString().replace("T", " ").slice(5, 16) + " UTC";
 }
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * "11 Sep 2026", in UTC. Hand-formatted rather than through `toLocaleDateString`, whose month
+ * abbreviations move with the browser's locale data ("Sep" against "Sept" on the same page), which
+ * matters for the share card: that one is painted into an image and has to come out the same twice.
+ */
+export function fmtDay(ts: number | null | undefined): string {
+  if (!ts) return "—";
+  const d = new Date(ts * 1000);
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+
 export function shortHash(h: string): string {
   return `${h.slice(0, 10)}…${h.slice(-6)}`;
 }

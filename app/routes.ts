@@ -11,6 +11,10 @@ export default [
   route("monitor", "routes/monitor.tsx"),
   route("ledger", "routes/ledger.tsx"),
   route("airdrops", "routes/airdrops.tsx"),
+  // Added 2026-09-10: the connected wallet's view of the airdrop (its balance, every payout it
+  // received, its vault deposits). ?address=0x… shows another wallet and is deliberately offered
+  // nowhere on the site; it is read on the client only, since the route is prerendered.
+  route("portfolio", "routes/portfolio.tsx"),
   // Held back 2026-09-08: referral is not going ahead for now. A product decision this time, not a
   // readiness one — it was briefly re-registered on the 8th. UNREGISTERED, not shelved: `hidden` in
   // NAV only takes a page out of the chrome, and this one must not be pre-rendered, indexed or

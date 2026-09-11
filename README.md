@@ -34,10 +34,15 @@ pnpm preview      # serve build/client on http://localhost:4173
 ```
 app/
   root.tsx                 document shell: fonts, <SiteNav/> + <main/> + <SiteFooter/>, 404/error boundary
-  routes.ts                /  /vaults  /monitor  /ledger  /docs   (the design's views + the vaults + the monitors)
+  routes.ts                /  /vaults  /monitor  /ledger  /airdrops  /portfolio  /docs
   routes/{home,vaults,monitor,ledger,docs}.tsx   /monitor and /ledger read ../ouro-monitor over HTTP
                            (app/lib/monitorApi.ts, MONITOR_API_URL at build): /monitor = the upstream dividend
                            tokens the vaults farm (/v1/summary), /ledger = Ouro's own liquidity (/v1/reserve)
+  routes/portfolio.tsx     the connected wallet's view (?address=0x… for another, unadvertised; see "The portfolio" below):
+                           components/portfolio/ (PortfolioFrame = the layout the prerender writes, PortfolioLive =
+                           the client-only wallet half, ShareCard = the share dialog), hooks/usePortfolio.ts
+                           (ouro-monitor's /v1/portfolio/{address}, polled, and its paged /airdrops history),
+                           lib/shareCard.ts (the card, painted on a canvas) + lib/qr.ts (its code)
   components/ds/           the Ouro design system: Badge, Button, Callout, Card, Stat, LedgerTable,
                            TokenChip, Input, Select, Tabs (ported from _ds_bundle.js, typed)
   components/site/         chrome + layout primitives: SiteNav, SiteFooter, Container, Grid, SectionHead,
@@ -154,7 +159,62 @@ lives in the indexer's `pushes` table and is not exposed per address. It says a 
 says nothing about any particular one — and for an address it has never seen it says "not in the indexed set",
 not "not eligible", because only one of those is a fact about the wallet.
 
-There is no countdown to the next payout, on purpose — see `PayoutCadence`'s note and docs §06.
+There is no countdown to the next payout, on purpose — see `PayoutCadence`'s note and docs §06. The one
+exception is the portfolio's "Next payment · estimate" card, which counts down to ouro-monitor's per-wallet
+estimate and is labelled as one.
+
+## The portfolio (`/portfolio`)
+
+The connected wallet's view of the same data the airdrops page shows for everyone, added 2026-09-10 after
+theindex.finance's `#/portfolio`: its $OURO and what that is worth, its share of every cycle, every
+airdrop it has received with the transaction that paid it, what it holds now, and what it has in the
+three vaults. The page is always the connected wallet's. `/portfolio/?address=0x…` shows another
+wallet instead. There is still **no lookup field**: one was built and removed on 2026-09-10 at the
+owner's request, and the page is the connected wallet's unless a link says otherwise. But the URL itself
+is no longer a secret. On 2026-09-11 the owner asked for the share card's QR to open it, which makes
+showing another holder your portfolio the point of that feature rather than a leak in it. The address in
+the link wins over the connected wallet, so everyone who opens such a link sees the same page, and a line
+under the connect bar says whose wallet is on screen, because a page headed "Your portfolio" must not
+print someone else's figures unlabelled.
+The query string is read on the client only, in `PortfolioLive`, because the route is prerendered and
+has no query string at build; an address that is not one is ignored.
+
+**Where each figure comes from.** ouro-monitor's per-wallet API (its docs: `PORTFOLIO-API.md` in that repo; a
+rendered copy sits at `../PORTFOLIO-API.html`). `hooks/usePortfolio.ts` → `usePortfolioSummary` polls
+`GET /v1/portfolio/{address}` every thirty seconds; one payload carries the balance, the standing against
+the line and the share of the payable supply from the monitor's holder snapshot; the lifetime airdrop value,
+**valued at what each cycle paid the token out at** rather than at today's price; the projection at recent
+cycles' average; the per-wallet next-payment estimate (`next`, the same shape as
+`/v1/portfolio/{address}/next`), which is what the "Next payment · estimate" card counts down to rather than
+the keeper's global slot, because a wallet just over the line is credited every cycle but paid only once what
+it is owed covers the gas to send it; and the wallet's holdings and vault positions, which the monitor reads
+live from the chain as it serves the request (`liveError` when that read failed, and the page says so). The
+history is `/v1/portfolio/{address}/airdrops?limit=60`, paged by `before`: `useAirdropPayments` polls the
+newest page every minute, fetches older pages as the reader turns towards them (one page ahead), and keeps
+everything by transaction hash so a re-poll can only add. A null dollar figure from the monitor means
+unknown, not zero, and prints as a dash. Until 2026-09-11 the page read the chain itself (a wagmi multicall
+for the balances, one `eth_getLogs` over six million blocks for the history, matched to `/v1/ouro/epochs`
+for prices); that code, and the second RPC list it needed, went when the monitor grew the endpoint. No
+account and no sign-in: the page asks the monitor for one address and shows what comes back.
+
+**The share card.** "Share" in the connect bar opens a dialog holding a 1080x1350 image of what the wallet
+has been paid, to save, copy or hand to the phone's share sheet. It is painted straight onto a canvas
+(`lib/shareCard.ts`), so what is on screen IS the file that gets saved and there is no second rendering
+path to keep in step; it is set in the site's own faces, on the warm ground, with the home page's guilloché
+banded across the figure as a watermark (the plate comes from the same `lib/guilloche.ts` maths). Three
+The code opens that wallet's own `/portfolio/?address=…`, which is what the card is for: whoever scans
+it sees every payout the wallet has received, read from the chain in front of them. The address is
+therefore printed beside the code as well as encoded in it, because a card carrying an address it does
+not name is the worse of the two. The card is offered for any wallet on screen, paid or not, so a holder
+who has just crossed the line has something to post; an unpaid card says so plainly and swaps its
+footnote. Two things are still off it. The balance, which is offered behind a toggle in the dialog,
+defaulting to shown. And "at the current rate", because it is a projection and the monitor's is currently
+about twice what a wallet's own payments come to, which has no business on an image that travels without
+the page's caveats. The code is built by `lib/qr.ts`, ~250 lines of byte-mode level-M QR for versions 1 to 6
+(the wallet URL is 83 characters, a version 5 symbol; an origin long enough to overflow version 6 leaves
+the panel as type alone rather than throwing),
+written rather than installed so one 21-character URL does not pull a dependency into the client bundle;
+`node scripts/qr-check.mjs` proves it matches the `qrcode` package's matrices at every mask.
 
 ## Before launch
 

@@ -94,6 +94,9 @@ export const NAV: NavItem[] = [
   // chain through ouro-monitor's /v1/reserve. It needs MONITOR_API_URL set at build time.
   { to: "/ledger/", label: "Ledger" },
   { to: "/airdrops/", label: "Airdrops" },
+  // Added 2026-09-10: the connected wallet's view of the same data. Its $OURO, every airdrop it
+  // received, its vault deposits. (?address=0x… shows another wallet, on purpose unadvertised.)
+  { to: "/portfolio/", label: "Portfolio" },
   // Held back 2026-09-08 with its route (see app/routes.ts). A nav link to a 404 is worse than no
   // link at all.
   { to: "/referral/", label: "Referral", hidden: true },

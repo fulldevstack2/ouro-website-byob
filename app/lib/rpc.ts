@@ -32,3 +32,4 @@ export function rpcTransport() {
     site.chain.rpcUrls.map((url) => http(url, { batch: !NO_BATCH.some((host) => url.includes(host)), timeout: 5_000, retryCount: 0 })),
   );
 }
+

@@ -7,9 +7,11 @@
  */
 import { copyFileSync, existsSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { resolveSiteUrl } from "./site-url.mjs";
 
-const root = new URL("..", import.meta.url).pathname;
+// fileURLToPath, not .pathname: on Windows the pathname is "/D:/WORK%20CODE/…", which join() turns into "D:D:…".
+const root = fileURLToPath(new URL("..", import.meta.url));
 const client = join(root, "build", "client");
 const siteUrl = resolveSiteUrl();
 

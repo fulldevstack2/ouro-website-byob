@@ -2,8 +2,8 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
 import type { Route } from "./+types/airdrops";
-import { Badge, Button, Callout, Card, Input, LedgerTable, Stat, Tabs, type BadgeTone, type LedgerColumn } from "~/components/ds";
-import { AddressCell, Container, Grid, KVRow, MicroLabel, PageHeader, PayoutCadence, SectionHead, body14, hairline, mono } from "~/components/site";
+import { Badge, Callout, Card, Input, LedgerTable, Stat, Tabs, type BadgeTone, type LedgerColumn } from "~/components/ds";
+import { AddressCell, Container, Grid, KVRow, MicroLabel, PageHeader, Pager, PayoutCadence, SectionHead, body14, hairline, mono } from "~/components/site";
 import { Bars } from "~/components/site/Bars";
 import { COLLECTION_SPLIT_USD, COLLECT_THRESHOLD_USD } from "~/content/protocol";
 import { externalLinkProps, site } from "~/content/site";
@@ -221,39 +221,6 @@ function CycleTxs({ explorer, txs }: { explorer: string | null; txs: string[] })
         <TxLink key={t} explorer={explorer} tx={t} />
       ))}
     </span>
-  );
-}
-
-/**
- * Pages the history table.
- *
- * Client-side, over rows the page has already fetched: the stats and the chart above are computed
- * from the whole history anyway, so paging the request would cost a round trip and buy nothing.
- *
- * Labelled NEWER and OLDER rather than previous and next. The table is reverse-chronological, so
- * "next" would walk backwards in time — the one direction a reader of a ledger has to be sure of.
- */
-function Pager({ page, pageCount, total, onPage }: { page: number; pageCount: number; total: number; onPage: (n: number) => void }) {
-  if (pageCount <= 1) return null;
-  const from = page * HISTORY_PAGE_SIZE + 1;
-  const to = Math.min(total, (page + 1) * HISTORY_PAGE_SIZE);
-  return (
-    <nav
-      aria-label="Airdrop history pages"
-      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginTop: 20 }}
-    >
-      <span aria-live="polite" style={{ ...mono, fontSize: 12, color: "var(--text-muted)" }}>
-        {fmtNum(from)}–{fmtNum(to)} of {fmtNum(total)} payouts
-      </span>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-        <Button variant="secondary" size="sm" disabled={page === 0} onClick={() => onPage(page - 1)} aria-label="Newer payouts">
-          <span aria-hidden="true">←</span> Newer
-        </Button>
-        <Button variant="secondary" size="sm" disabled={page >= pageCount - 1} onClick={() => onPage(page + 1)} aria-label="Older payouts" arrow>
-          Older
-        </Button>
-      </span>
-    </nav>
   );
 }
 
@@ -783,7 +750,7 @@ export default function Airdrops() {
                 }))}
               />
             </div>
-            <Pager page={safePage} pageCount={pageCount} total={payouts.length} onPage={goToPage} />
+            <Pager page={safePage} pageCount={pageCount} total={payouts.length} pageSize={HISTORY_PAGE_SIZE} noun="payouts" label="Airdrop history pages" onPage={goToPage} />
           </>
         ) : (
           <Card label="Cycles">
