@@ -708,7 +708,7 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
    nested inside. The canvas in it is painted by lib/shareCard.ts and IS the file that gets saved,
    so it is sized here in CSS only; its pixel dimensions are fixed at 1080 x 1350. */
 .pf-share {
-  width: min(440px, calc(100vw - 32px));
+  width: min(560px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   max-height: calc(100dvh - 32px);
   padding: 0;
