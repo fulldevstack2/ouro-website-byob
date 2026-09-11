@@ -244,20 +244,36 @@ function buildView(i: Inputs): PortfolioView {
           ? { tone: "positive", label: "Above the line" }
           : { tone: "caution", label: "Below the line" };
 
+  // Vault OURO is live on the same payload; surface it on Balance so a emptied-into-vaults wallet
+  // does not look like the monitor missed the tokens. Eligibility still uses wallet balance only.
+  const vaultPositions = p && Array.isArray(p.vaults) ? p.vaults : null;
+  const vaultOuro =
+    vaultPositions?.reduce((sum, v) => sum + (v.depositSymbol === OURO.symbol && v.assetsF > 0 ? v.assetsF : 0), 0) ?? 0;
+
+  const balanceFootnote = !viewing
+    ? S.metrics.balance.footnote
+    : !p
+      ? pendingWord
+      : (() => {
+          const priced =
+            p.balanceUsd === null || p.priceUsd === null
+              ? "Awaiting a price from the monitor"
+              : `${fmtUsd(p.balanceUsd)} at ${fmtUsd(p.priceUsd, { exact: true })} each`;
+          return vaultOuro > 0 ? `${priced} · ${fmtTokens(vaultOuro)} OURO in the vaults` : priced;
+        })();
+
+  const balanceNote = !viewing
+    ? S.metrics.balance.note
+    : vaultOuro > 0 && p
+      ? `${i.mine ? "Your connected wallet" : "The wallet named in the link"} holds ${fmtTokens(p.balanceTokens)} OURO here. Another ${fmtTokens(vaultOuro)} OURO sits in the vaults below — that earns through the vault, and does not count toward the line.`
+      : `${i.mine ? "Your connected wallet" : "The wallet named in the link"}, read through ouro-monitor and refreshed every thirty seconds. What it has in the vaults is counted separately below.`;
+
   const metrics: PortfolioView["metrics"] = {
     balance: {
       value: p ? fmtTokens(p.balanceTokens) : DASH,
       unit: OURO.symbol,
-      footnote: !viewing
-        ? S.metrics.balance.footnote
-        : !p
-          ? pendingWord
-          : p.balanceUsd === null || p.priceUsd === null
-            ? "Awaiting a price from the monitor"
-            : `${fmtUsd(p.balanceUsd)} at ${fmtUsd(p.priceUsd, { exact: true })} each`,
-      note: !viewing
-        ? S.metrics.balance.note
-        : `${i.mine ? "Your connected wallet" : "The wallet named in the link"}, read through ouro-monitor and refreshed every thirty seconds. What it has in the vaults is counted separately below.`,
+      footnote: balanceFootnote,
+      note: balanceNote,
     },
     share: {
       value: !p ? DASH : p.shareOfEligible !== null ? fmtPct(p.shareOfEligible, 4) : paid ? DASH : "0%",
@@ -411,20 +427,19 @@ function buildView(i: Inputs): PortfolioView {
 
   // The vaults: every live vault, filled in from the positions the monitor lists (it lists only the
   // vaults the wallet has something in).
-  const positions = p && Array.isArray(p.vaults) ? p.vaults : null;
   const vaultRows: VaultRowView[] = LIVE_VAULTS.map((v) => {
-    const pos = positions?.find((x) => x.address.toLowerCase() === v.entry.address.toLowerCase());
+    const pos = vaultPositions?.find((x) => x.address.toLowerCase() === v.entry.address.toLowerCase());
     return {
       key: v.entry.address,
       title: `Deposit ${v.token.symbol} · Earn ${v.payoutSymbol}`,
-      deposit: !viewing || !positions ? DASH : !pos || pos.assetsF === 0 ? "Nothing deposited" : amountUsd(pos.assetsF, pos.depositSymbol, pos.assetsUsd),
+      deposit: !viewing || !vaultPositions ? DASH : !pos || pos.assetsF === 0 ? "Nothing deposited" : amountUsd(pos.assetsF, pos.depositSymbol, pos.assetsUsd),
       collect:
         pos && pos.earnedF !== null && pos.earnedF > 0
           ? `${fmtEarned(pos.earned, v.payoutDecimals)} ${pos.payoutSymbol}${pos.earnedUsd !== null ? ` (${fmtUsd(pos.earnedUsd)})` : ""} to collect`
           : undefined,
     };
   });
-  const vaultsTotal = viewing && positions && p ? fmtUsd(p.vaultsTotalUsd) : DASH;
+  const vaultsTotal = viewing && vaultPositions && p ? fmtUsd(p.vaultsTotalUsd) : DASH;
 
   return {
     metrics,
