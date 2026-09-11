@@ -33,13 +33,3 @@ export function rpcTransport() {
   );
 }
 
-/**
- * The transport for reading history rather than state: `eth_getLogs` from the first airdrop cycle to
- * now, for one wallet (hooks/useAirdropHistory.ts). Its own list, site.chain.logRpcUrls, because the
- * endpoints that serve state fastest refuse or cap that query and the one that answers it whole is
- * the one `rpcTransport` puts last. One call at a time, a long timeout and one retry: a wide log scan
- * is slow on a cold node, and nothing else is queued behind it.
- */
-export function logsTransport() {
-  return fallback(site.chain.logRpcUrls.map((url) => http(url, { batch: false, timeout: 20_000, retryCount: 1 })));
-}

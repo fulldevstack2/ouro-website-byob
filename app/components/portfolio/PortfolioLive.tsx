@@ -1,7 +1,6 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useMemo } from "react";
 import { useSearchParams } from "react-router";
-import { getAddress, isAddress, type Address } from "viem";
+import { getAddress, isAddress, type Address, type Hex } from "viem";
 import { useAccount } from "wagmi";
 
 import { Callout } from "~/components/ds";
@@ -15,20 +14,20 @@ import {
   ViewingNote,
   type HoldingRowView,
   type MetricView,
+  type NextView,
   type PortfolioView,
   type VaultRowView,
 } from "~/components/portfolio/PortfolioFrame";
+import { ShareCardTrigger } from "~/components/portfolio/ShareCard";
 import { WalletProvider } from "~/components/wallet/WalletProvider";
-import { AIRDROP_WALLET, BASKET_TOKENS } from "~/content/protocol";
+import { BASKET_TOKENS, shortAddress } from "~/content/protocol";
+import { canonicalPath } from "~/lib/meta";
 import { site } from "~/content/site";
-import { TOKEN_DECIMALS } from "~/content/vaults";
-import { buildHistory, tokenMetaFrom, useAirdropReceipts, useBlockTimes, type ReceiptsPoll } from "~/hooks/useAirdropHistory";
-import { useBasketPrices } from "~/hooks/useBasketPrices";
-import { usePortfolioChain, type WalletChain } from "~/hooks/usePortfolioChain";
-import { usePrices, type Prices } from "~/hooks/usePrices";
-import { MONITOR_API, fmtNum, fmtPct, fmtTokens, fmtUsd, fmtWhen, useMonitor, type OuroCycle, type OuroHolders } from "~/lib/monitorApi";
+import { LIVE_VAULTS } from "~/content/vaults";
+import { useAirdropPayments, usePortfolioSummary, type PaymentsFeed } from "~/hooks/usePortfolio";
+import { ago, fmtDay, fmtNum, fmtPct, fmtTokens, fmtUsd, fmtWhen, type Poll, type PortfolioSummary } from "~/lib/monitorApi";
+import type { ShareCardData, ShareCardRow } from "~/lib/shareCard";
 import { fmtAmount } from "~/lib/vaultChain";
-import { toNumber, usdValue } from "~/lib/vaultYield";
 
 /* ────────────────────────────────────────────────────────────────────────────
    The live portfolio. Loaded on the client only (routes/portfolio.tsx imports it lazily once
@@ -41,14 +40,14 @@ import { toNumber, usdValue } from "~/lib/vaultYield";
    ignored. The query string is only read here, after hydration: the route is prerendered and there
    is no query string at build time.
 
-   Reading needs no wallet. Balances and vault positions come through wagmi's public transport, the
-   history through the chain's own logs (useAirdropHistory), the prices and the cycle data through
-   ouro-monitor. Nothing about the reader, or the wallet on screen, is written anywhere.
+   Reading needs no wallet. Everything on the page comes from ouro-monitor's portfolio endpoints
+   (hooks/usePortfolio.ts): one summary payload, polled, and the payments a page at a time. The
+   wallet is only for knowing whose page to show.
    ──────────────────────────────────────────────────────────────────────────── */
 
-const OURO_DECIMALS = TOKEN_DECIMALS.ouro;
 const DASH = "—";
-const NO_CYCLES: OuroCycle[] = [];
+/** Robinhood Chain seals a block every tenth of a second, so this is five minutes of snapshot lag. */
+const STALE_BLOCKS = 3_000;
 
 export default function PortfolioLive() {
   return (
@@ -71,45 +70,39 @@ function LiveSection() {
   const viewing: Address | null = linked ?? connected ?? null;
   const mine = viewing !== null && connected !== undefined && viewing.toLowerCase() === connected.toLowerCase();
 
-  // What the page reads.
-  const prices = usePrices();
-  const basket = useBasketPrices();
-  const holders = useMonitor<OuroHolders>(MONITOR_API ? "/v1/ouro/holders?min=100000" : null, 120_000);
-  const cyclesPoll = useMonitor<{ token: string; epochs: OuroCycle[] }>(MONITOR_API ? "/v1/ouro/epochs?limit=500" : null, 60_000);
-  const chain = usePortfolioChain(viewing);
-  const cycles = cyclesPoll.data?.epochs ?? NO_CYCLES;
-  const tokenMeta = useMemo(() => tokenMetaFrom(cycles), [cycles]);
-  const tokenAddresses = useMemo(() => [...tokenMeta.keys()] as Address[], [tokenMeta]);
-  const receipts = useAirdropReceipts(viewing, basket.treasury ?? AIRDROP_WALLET, tokenAddresses);
-
-  // Two passes: the first finds the payments the monitor has not indexed, whose time has to come from
-  // their block; the second prints them once those blocks have been read.
-  const firstPass = useMemo(() => buildHistory(receipts.receipts ?? [], cycles, tokenMeta, {}), [receipts.receipts, cycles, tokenMeta]);
-  const missingBlocks = useMemo(() => firstPass.rows.filter((r) => r.ts === null).map((r) => r.block), [firstPass]);
-  const blockTimes = useBlockTimes(missingBlocks);
-  const history = useMemo(
-    () => (Object.keys(blockTimes).length > 0 ? buildHistory(receipts.receipts ?? [], cycles, tokenMeta, blockTimes) : firstPass),
-    [receipts.receipts, cycles, tokenMeta, blockTimes, firstPass],
-  );
-
-  const view = buildView({ viewing, mine, prices, basketPrices: basket.prices, holders: holders.data, chain, receipts, history });
+  const summary = usePortfolioSummary(viewing);
+  const feed = useAirdropPayments(viewing);
+  const view = buildView({ viewing, mine, summary, feed });
+  const p = summary.data;
+  const share = p ? shareCard(p) : null;
 
   return (
     <>
-      {viewing && chain.error && (
-        <Callout tone="caution" title={`${site.chain.name} is not answering`} style={{ marginBottom: 24 }}>
-          The balances and the vault figures stay a dash until it does. Nothing here is cached or estimated.
+      {viewing && summary.error && (
+        <Callout tone="caution" title="ouro-monitor is not answering" style={{ marginBottom: 24 }}>
+          {p ? "Showing its last good read. " : "Every figure stays a dash until it does; nothing here is cached or estimated. "}It said: {summary.error}
         </Callout>
       )}
-      {viewing && receipts.error && (
-        <Callout tone="caution" title="The history could not be read" style={{ marginBottom: 24 }}>
-          {receipts.receipts ? "Showing the last good read. " : ""}The chain&apos;s log endpoint answered: {receipts.error}
+      {viewing && p?.liveError && (
+        <Callout tone="caution" title={`${site.chain.name} did not answer the monitor`} style={{ marginBottom: 24 }}>
+          What the wallet holds and its vault deposits stay a dash until it does. The monitor said: {p.liveError}
+        </Callout>
+      )}
+      {viewing && p && p.blocksBehind !== null && p.blocksBehind > STALE_BLOCKS && (
+        <Callout tone="caution" title="The monitor's holder snapshot is behind the chain" style={{ marginBottom: 24 }}>
+          By {fmtNum(p.blocksBehind)} blocks, about {ago(p.blocksBehind / 10)}. The balance, the standing and the share come from that snapshot; what the wallet
+          holds is read live.
         </Callout>
       )}
       <ConnectBar
         title={BAR_TITLE}
         note={viewing && !mine ? <ViewingNote address={viewing} /> : undefined}
-        right={<ConnectButton showBalance={false} chainStatus="icon" accountStatus="address" />}
+        right={
+          <>
+            {share && <ShareCardTrigger card={share.card} holdingRow={share.holdingRow} fileStem={share.fileStem} />}
+            <ConnectButton showBalance={false} chainStatus="icon" accountStatus="address" />
+          </>
+        }
       />
       <PortfolioBody view={view} historyKey={viewing ?? "none"} />
     </>
@@ -121,189 +114,328 @@ function LiveSection() {
 interface Inputs {
   viewing: Address | null;
   mine: boolean;
-  prices: Prices;
-  basketPrices: Record<string, number>;
-  holders: OuroHolders | null;
-  chain: WalletChain;
-  receipts: ReceiptsPoll;
-  history: ReturnType<typeof buildHistory>;
-}
-
-/** "1,234 OURO (\$5.20)", or the amount alone while the price is unknown. */
-function withUsd(value: bigint | undefined, decimals: number, symbol: string, priceUsd: number | null, maxFrac = 4): string {
-  const amount = `${fmtAmount(value, decimals, maxFrac)} ${symbol}`;
-  const usd = usdValue(value, decimals, priceUsd);
-  return usd === null || value === undefined ? amount : `${amount} (${fmtUsd(usd)})`;
+  summary: Poll<PortfolioSummary>;
+  feed: PaymentsFeed;
 }
 
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 
+/** What the site knows about a token the monitor names, by address: its mark, and the name the rest of the site uses for it. */
+const KNOWN = new Map<string, { name: string; icon?: string }>();
+KNOWN.set(OURO.address.toLowerCase(), { name: OURO.name, icon: OURO.icon });
+for (const t of BASKET_TOKENS) KNOWN.set(t.address.toLowerCase(), { name: t.name, icon: t.icon });
+
+/** A raw amount from the monitor as a bigint, or undefined when it is not one. */
+function raw(s: string | null | undefined): bigint | undefined {
+  return s !== null && s !== undefined && /^\d+$/.test(s) ? BigInt(s) : undefined;
+}
+
+/** A claimable amount: exact to a millionth, then "<0.000001". A dust claim reads as one either way. */
+function fmtEarned(amount: string | null, decimals: number): string {
+  return fmtAmount(raw(amount), decimals, 6);
+}
+
+/** "1,234 OURO ($5.20)", or the amount alone while the price is unknown. */
+function amountUsd(amountF: number, symbol: string, usd: number | null): string {
+  const amount = `${fmtTokens(amountF)} ${symbol}`;
+  return usd === null ? amount : `${amount} (${fmtUsd(usd)})`;
+}
+
+/** A transaction hash the explorer can be pointed at, or null for anything else. */
+const hex = (s: string): Hex | null => (/^0x[0-9a-fA-F]{64}$/.test(s) ? (s as Hex) : null);
+
+/**
+ * The card behind the Share button, for whichever wallet is on screen.
+ *
+ * It is offered whenever there is a wallet to describe, paid or not (owner's call, 2026-09-11): a
+ * holder who has just crossed the line has something worth posting too, and the card says plainly
+ * that nothing has been paid yet. The only figure it will not print is one it does not have, so an
+ * unvalued total falls back to the count of payments rather than to a dash where the hero goes.
+ *
+ * THE CODE OPENS THIS WALLET'S PORTFOLIO. Same decision: the card exists to be scanned into
+ * /portfolio/?address=…, which is how one holder shows another what the airdrop has actually paid.
+ * So the address is on the card in plain type as well as inside the code, because a card carrying an
+ * address it does not name is the worse of the two.
+ *
+ * STILL LEFT OFF. The balance, which is offered behind a toggle in the dialog rather than assumed.
+ * And "at the current rate", a projection the monitor currently puts at about twice what this
+ * wallet's own payments come to, which has no business on an image that carries none of the page's
+ * caveats.
+ */
+function shareCard(p: PortfolioSummary): { card: ShareCardData; holdingRow: ShareCardRow | null; fileStem: string } {
+  const excluded = p.eligible && p.excluded !== null;
+  const paidCount = p.airdropPayments;
+  const priced = p.totalAirdropUsd !== null;
+  const address = getAddress(p.address);
+
+  // At most three, so the optional balance row never makes a fourth into a fifth: the figures block
+  // is anchored to its foot and a fifth row would run up into the badge.
+  const rows: ShareCardRow[] = [];
+  if (p.shareOfEligible !== null) rows.push({ label: "Share of every cycle", value: fmtPct(p.shareOfEligible, 4) });
+  if (priced) rows.push({ label: "Payments", value: fmtNum(paidCount) });
+  if (p.lastAirdropTs) rows.push({ label: "Latest", value: fmtDay(p.lastAirdropTs) });
+  if (paidCount === 0) rows.push({ label: "The line", value: `${fmtNum(p.lineTokens)} OURO` });
+  if (p.shortfallTokens > 0) rows.push({ label: "Short of the line", value: `${fmtTokens(p.shortfallTokens)} OURO` });
+
+  const sub = excluded
+    ? "Excluded by policy. No cycle pays this address."
+    : paidCount === 0
+      ? p.eligible
+        ? "Not paid yet. The next cycle includes this wallet."
+        : "Not paid yet. It is below the line."
+      : priced
+        ? "Paid to one wallet by the Ouro airdrop."
+        : "Received by one wallet. Some legs are not priced yet.";
+
+  return {
+    card: {
+      kicker: "Airdrops received",
+      hero: priced ? fmtUsd(p.totalAirdropUsd) : `${fmtNum(paidCount)} ${plural(paidCount, "payment", "payments")}`,
+      sub,
+      stamp: `${fmtDay(p.generatedAt)} · ${new Date(p.generatedAt * 1000).toISOString().slice(11, 16)} UTC`,
+      badge: excluded
+        ? { text: "Excluded by policy", tone: "negative" }
+        : p.eligible
+          ? { text: "Above the line · paid every cycle", tone: "positive" }
+          : { text: "Below the line", tone: "caution" },
+      rows: rows.slice(0, 3),
+      footnote:
+        paidCount > 0
+          ? "Each payment is valued at what its cycle paid the token out at, not at today's price. Past payouts are not a promise of future ones."
+          : "Wallets at or above the line are paid every cycle, in the tokens the airdrop holds. Nothing here is a promise of future payouts.",
+      cta: {
+        caps: "Scan for this wallet",
+        line: "Every payout, read from the chain.",
+        url: `${site.url.replace(/^https?:\/\//, "")} · ${shortAddress(address)}`,
+        // Built here rather than taken from the API's `portfolioUrl`, which omits the trailing slash
+        // this site serves its directories at. site.url is pinned to the public origin at build time
+        // (netlify.toml), so a card saved from a preview deploy still points somewhere real.
+        href: `${site.url}${canonicalPath("/portfolio")}?address=${address}`,
+      },
+    },
+    holdingRow: { label: "Holding", value: `${fmtTokens(p.balanceTokens)} OURO` },
+    fileStem: `ouro-portfolio-${address.slice(0, 8).toLowerCase()}`,
+  };
+}
+
 function buildView(i: Inputs): PortfolioView {
-  const { viewing, chain, prices, receipts, history } = i;
-  const y = prices.ouroYield;
-  const bal = chain.ouro;
-  const balF = toNumber(bal, OURO_DECIMALS);
-  const balUsd = usdValue(bal, OURO_DECIMALS, prices.ouroUsd);
-  const lineTokens = y?.lineTokens ?? (i.holders ? Number(i.holders.eligibilityLine) / 10 ** i.holders.decimals : OURO.thresholdTokens);
-  const line = fmtNum(lineTokens);
-  const excluded = viewing ? (i.holders?.exclusionPolicy.find((e) => e.address.toLowerCase() === viewing.toLowerCase()) ?? null) : null;
-  const above = balF !== null && balF >= lineTokens && excluded === null;
-  // Its share of every cycle: zero below the line or excluded, unknown while the supply is.
-  const share = balF === null ? null : !above ? 0 : y?.eligibleTokens ? balF / y.eligibleTokens : null;
-  const perDay = share !== null && share > 0 && y?.paidUsdPerDay != null ? share * y.paidUsdPerDay : null;
+  const { viewing, summary, feed } = i;
+  const p = summary.data;
+  const S = STATIC_VIEW;
+  const line = fmtNum(p?.lineTokens ?? OURO.thresholdTokens);
+  /** The footnote while there is no payload yet: the first read is in flight, or it failed. */
+  const pendingWord = summary.error ? "The monitor did not answer" : "Reading the monitor";
+  // Standing. The monitor calls any balance at or above the line `eligible`, policy exclusions
+  // included, so a wallet that is paid is eligible AND not excluded.
+  const excluded = p && p.eligible && p.excluded !== null ? p.excluded : null;
+  const paid = p !== null && p.eligible && excluded === null;
 
   const standing: MetricView["badge"] = !viewing
     ? undefined
-    : bal === undefined
-      ? { tone: "neutral", label: chain.error ? "Chain unreachable" : "Reading the chain" }
+    : !p
+      ? { tone: "neutral", label: summary.error ? "Monitor unreachable" : "Reading the monitor" }
       : excluded
         ? { tone: "negative", label: "Excluded by policy" }
-        : above
+        : p.eligible
           ? { tone: "positive", label: "Above the line · paid every cycle" }
           : { tone: "caution", label: "Below the line" };
 
-  const S = STATIC_VIEW;
-  const s = history.summary;
-  const read = viewing !== null && receipts.receipts !== null;
-
   const metrics: PortfolioView["metrics"] = {
     balance: {
-      value: viewing ? fmtAmount(bal, OURO_DECIMALS, 0) : DASH,
+      value: p ? fmtTokens(p.balanceTokens) : DASH,
       unit: OURO.symbol,
       footnote: !viewing
         ? S.metrics.balance.footnote
-        : bal === undefined
-          ? chain.error
-            ? `${site.chain.name} did not answer`
-            : "Reading the chain"
-          : balUsd === null
+        : !p
+          ? pendingWord
+          : p.balanceUsd === null || p.priceUsd === null
             ? "Awaiting a price from the monitor"
-            : `${fmtUsd(balUsd)} at ${fmtUsd(prices.ouroUsd, { exact: true })} each`,
+            : `${fmtUsd(p.balanceUsd)} at ${fmtUsd(p.priceUsd, { exact: true })} each`,
       note: !viewing
         ? S.metrics.balance.note
-        : `${i.mine ? "Your connected wallet" : "The wallet named in the link"}, read from the OURO token contract every fifteen seconds. What it has in the vaults is counted separately below.`,
+        : `${i.mine ? "Your connected wallet" : "The wallet named in the link"}, read through ouro-monitor and refreshed every thirty seconds. What it has in the vaults is counted separately below.`,
     },
     share: {
-      value: share === null ? DASH : share === 0 ? "0%" : fmtPct(share, 4),
-      footnote: y?.eligibleTokens != null ? `of the ${fmtNum(y.eligibleTokens)} $OURO a cycle is divided among` : S.metrics.share.footnote,
+      value: !p ? DASH : p.shareOfEligible !== null ? fmtPct(p.shareOfEligible, 4) : paid ? DASH : "0%",
+      footnote: p?.eligibleSupplyTokens != null ? `of the ${fmtNum(p.eligibleSupplyTokens)} $OURO a cycle is divided among` : S.metrics.share.footnote,
       badge: standing,
-      note: excluded
-        ? `Never paid, however large. The monitor's note on this address: ${excluded.reason}.`
-        : above
-          ? "Each cycle is split pro-rata across the eligible supply. The top three holders take 30% less, so this is a floor for most wallets."
-          : viewing && balF !== null
-            ? `${fmtTokens(lineTokens - balF)} more $OURO clears the line. Below it a wallet gets nothing from any cycle.`
-            : S.metrics.share.note,
+      note: !p
+        ? S.metrics.share.note
+        : excluded
+          ? `Never paid, however large. The monitor's note on this address: ${excluded}.`
+          : p.eligible
+            ? "Each cycle is split pro-rata across the eligible supply. The top three holders take 30% less, so this is a floor for most wallets."
+            : `${fmtTokens(p.shortfallTokens)} more $OURO clears the line. Below it a wallet gets nothing from any cycle.`,
     },
     received: {
-      value: read ? fmtUsd(s.usd) : DASH,
+      value: p ? fmtUsd(p.totalAirdropUsd) : DASH,
       footnote: !viewing
         ? S.metrics.received.footnote
-        : !read
-          ? receipts.error
-            ? "The chain's logs did not answer"
-            : "Reading the chain's logs"
-          : s.payments === 0
+        : !p
+          ? pendingWord
+          : p.airdropPayments === 0
             ? "No payments yet"
-            : `${fmtNum(s.payments)} ${plural(s.payments, "payment", "payments")} across ${fmtNum(s.cycles)} ${plural(s.cycles, "cycle", "cycles")}${s.unpriced ? `, ${fmtNum(s.unpriced)} unpriced` : ""}`,
+            : p.totalAirdropUsd === null
+              ? `${fmtNum(p.airdropPayments)} ${plural(p.airdropPayments, "payment", "payments")}, at least one not priced yet`
+              : `${fmtNum(p.airdropPayments)} ${plural(p.airdropPayments, "payment", "payments")}, the latest ${fmtWhen(p.lastAirdropTs)}`,
       note: "Basket tokens the airdrop has sent this wallet, valued at what each cycle paid them out at, not today's price. Sold or moved since, they still count here.",
     },
     rate: {
-      value: perDay === null ? DASH : fmtUsd(perDay),
-      unit: perDay === null ? undefined : "/ day",
+      value: p?.projectedUsdPerDay != null ? fmtUsd(p.projectedUsdPerDay) : DASH,
+      unit: p?.projectedUsdPerDay != null ? "/ day" : undefined,
       footnote:
-        perDay !== null
-          ? `${fmtUsd(perDay * 30)} a month, at the last ${y?.basisDays ? fmtNum(y.basisDays, 0) : "seven"} days' rate`
+        p?.projectedUsdPerDay != null
+          ? `${fmtUsd(p.projectedUsdPerMonth ?? p.projectedUsdPerDay * 30)} a month, at the average of recent cycles`
           : !viewing
             ? S.metrics.rate.footnote
-            : bal === undefined
-              ? "Reading the chain"
-              : above
-                ? "Needs the monitor's rate"
-                : "Nothing is paid below the line",
+            : !p
+              ? pendingWord
+              : excluded
+                ? "Nothing is paid to this address"
+                : p.eligible
+                  ? "Needs priced payouts to project from"
+                  : "Nothing is paid below the line",
       note: S.metrics.rate.note,
     },
   };
 
-  const historyView: PortfolioView["history"] = {
-    rows: history.rows.map((r) => ({
+  // The history. `total` counts payments not fetched yet, from the summary, until the feed has reached
+  // the oldest one; from then on the rows themselves are the count.
+  const rows = feed.payments ?? [];
+  const read = viewing !== null && feed.payments !== null;
+  const total = feed.complete ? rows.length : Math.max(rows.length, p?.airdropPayments ?? 0);
+  const history: PortfolioView["history"] = {
+    rows: rows.map((r) => ({
       key: r.tx,
       when: fmtWhen(r.ts),
-      cycle: r.cycle === null ? DASH : `#${r.cycle}`,
-      tokens: r.legs.map((l) => `${fmtTokens(l.amountF)} ${l.symbol}`).join(" + ") || DASH,
-      value: fmtUsd(r.usd),
-      tx: r.tx,
+      cycle: `#${r.cycle}`,
+      tokens: r.assets.map((a) => `${fmtTokens(a.amountF)} ${a.symbol ?? shortAddress(a.address)}`).join(" + ") || DASH,
+      value: fmtUsd(r.paidUsd),
+      tx: hex(r.tx),
     })),
+    total,
+    loadMore: read && !feed.complete ? feed.loadMore : undefined,
+    loadingMore: feed.loadingMore,
+    problem: feed.error,
     empty: !viewing
       ? S.history.empty
       : !read
-        ? receipts.error
-          ? `The chain's logs could not be read: ${receipts.error}`
-          : "Reading the chain's logs…"
+        ? feed.error
+          ? `The monitor could not be read: ${feed.error}`
+          : "Reading the monitor…"
         : excluded
           ? "Nothing, by policy: this address is infrastructure, not a holder."
-          : above
+          : p?.eligible
             ? "No airdrops yet. This wallet clears the line, so the next cycle includes it."
             : `No airdrops yet. Hold ${line} $OURO at the next cycle to be included, or pool with others in the vaults.`,
-    status: !viewing
-      ? ""
-      : !read
-        ? receipts.error
-          ? "unavailable"
-          : "reading…"
-        : `${fmtNum(s.payments)} ${plural(s.payments, "payment", "payments")}${receipts.error ? " · refresh failed" : ""}`,
+    status: !viewing ? "" : !read ? (feed.error ? "unavailable" : "reading…") : `${fmtNum(total)} ${plural(total, "payment", "payments")}${feed.error ? " · refresh failed" : ""}`,
   };
 
-  // What it holds: $OURO first, then every token the airdrop pays in. The total is withheld if any
-  // held token has no price, the same rule the Ledger applies to its own totals.
-  const holdingRows: HoldingRowView[] = [];
-  let total = 0;
-  let complete = viewing !== null && bal !== undefined;
-  if (balUsd !== null) total += balUsd;
-  else if (bal !== undefined && bal > 0n) complete = false;
-  holdingRows.push({ key: OURO.address, symbol: OURO.symbol, name: OURO.name, icon: OURO.icon, amount: viewing ? fmtAmount(bal, OURO_DECIMALS, 0) : DASH, value: fmtUsd(balUsd) });
-  for (const t of BASKET_TOKENS) {
-    const b = chain.basket[t.address.toLowerCase()];
-    const px = i.basketPrices[t.address.toLowerCase()] ?? (t.symbol === "WETH" ? prices.ethUsd : null);
-    const usd = usdValue(b, t.decimals, px);
-    if (usd !== null) total += usd;
-    else if (b === undefined || b > 0n) complete = false;
-    holdingRows.push({
-      key: t.address,
-      symbol: t.symbol,
-      name: t.name,
-      icon: t.icon,
-      amount: viewing ? fmtAmount(b, t.decimals, 4) : DASH,
-      value: b === undefined ? DASH : usd !== null ? fmtUsd(usd) : b === 0n ? fmtUsd(0) : "no price yet",
-    });
+  // The next payment, from the monitor's per-wallet estimate. Its status decides the whole card.
+  const n = p?.next;
+  let next: NextView;
+  if (!viewing || !p || !n) {
+    next = { ...S.next, footnote: !viewing ? S.next.footnote : pendingWord };
+  } else if (n.status === "due-next-cycle" || n.status === "accruing") {
+    const due = n.status === "due-next-cycle";
+    next = {
+      payAt: n.estimatedPayTs,
+      badge: due ? { tone: "positive", label: "Due next cycle" } : { tone: "caution", label: "Accruing" },
+      footnote:
+        n.estimatedPayTs === null
+          ? "No estimate yet"
+          : due
+            ? `Expected with the next cycle, ${fmtWhen(n.estimatedPayTs)}`
+            : `Expected ${fmtWhen(n.estimatedPayTs)}, about ${fmtNum(n.cyclesUntilPay)} ${plural(n.cyclesUntilPay ?? 0, "cycle", "cycles")} from now`,
+      rows: due
+        ? [{ label: "Per cycle, about", value: fmtUsd(n.estimatedPerCycleUsd) }]
+        : [
+            { label: "Next cycle", value: fmtWhen(n.nextCycleTs) },
+            { label: "Per cycle, about", value: fmtUsd(n.estimatedPerCycleUsd) },
+            { label: "Owed so far", value: `${fmtUsd(n.pendingUsd)} of ${fmtUsd(n.dustThresholdUsd)}` },
+          ],
+      text: due
+        ? "An estimate from this wallet's share and recent payouts, if gas stays ordinary. The keeper wakes every two hours and pays every wallet whose credit covers the gas to send it."
+        : "Credited every cycle, and paid once what it is owed covers about five times the gas to send it. Nothing owed is cancelled; a smaller holding simply waits a few cycles between payments.",
+    };
+  } else if (n.status === "excluded") {
+    next = {
+      payAt: null,
+      badge: { tone: "negative", label: "Excluded by policy" },
+      footnote: "No payment is due",
+      rows: [{ label: "Next cycle", value: fmtWhen(n.nextCycleTs) }],
+      text: `Never paid, however large. The monitor's note on this address: ${n.reason ?? p.excluded ?? "excluded by policy"}.`,
+    };
+  } else if (n.status === "ineligible") {
+    next = {
+      payAt: null,
+      badge: { tone: "caution", label: "Below the line" },
+      footnote: "No payment is due",
+      rows: [{ label: "Next cycle", value: fmtWhen(n.nextCycleTs) }],
+      text: `Wallets below the line are not credited in any cycle. ${fmtTokens(p.shortfallTokens)} more $OURO before the next one puts this wallet in it.`,
+    };
+  } else {
+    next = {
+      payAt: null,
+      badge: { tone: "neutral", label: "No estimate" },
+      footnote: "Not enough priced history to project from",
+      rows: [{ label: "Next cycle", value: fmtWhen(n.nextCycleTs) }],
+      text: "The monitor cannot project a payment for this wallet yet. It is still credited in every cycle it clears the line for.",
+    };
   }
 
-  const vaultRows: VaultRowView[] = chain.vaults.map((p) => {
-    const v = p.vault;
-    const payoutUsd = v.kind === "compounding" ? prices.ouroUsd : v.payoutSymbol === "USDG" ? 1 : prices.ethUsd;
+  // What it holds, as the monitor read it from the chain for this request: $OURO first, then every
+  // token the airdrop pays in. The total is withheld if any held token has no price, the rule the
+  // Ledger applies to its own totals.
+  const held = p && Array.isArray(p.holdings) ? p.holdings : null;
+  const holdingRows: HoldingRowView[] = held
+    ? held.map((h) => {
+        const known = KNOWN.get(h.address.toLowerCase());
+        return {
+          key: h.address,
+          symbol: h.symbol,
+          name: known?.name ?? h.name,
+          icon: known?.icon,
+          amount: fmtTokens(h.balanceF),
+          value: h.usd !== null ? fmtUsd(h.usd) : h.balanceF === 0 ? fmtUsd(0) : "no price yet",
+        };
+      })
+    : S.holdings.rows;
+  const holdingsTotal = held && p && !held.some((h) => h.usd === null && h.balanceF > 0) ? fmtUsd(p.holdingsTotalUsd) : DASH;
+
+  // The vaults: every live vault, filled in from the positions the monitor lists (it lists only the
+  // vaults the wallet has something in).
+  const positions = p && Array.isArray(p.vaults) ? p.vaults : null;
+  const vaultRows: VaultRowView[] = LIVE_VAULTS.map((v) => {
+    const pos = positions?.find((x) => x.address.toLowerCase() === v.entry.address.toLowerCase());
     return {
       key: v.entry.address,
       title: `Deposit ${v.token.symbol} · Earn ${v.payoutSymbol}`,
-      deposit: !viewing || p.deposited === undefined ? DASH : p.deposited === 0n ? "Nothing deposited" : withUsd(p.deposited, OURO_DECIMALS, v.token.symbol, prices.ouroUsd, 0),
-      collect: viewing && p.earned !== undefined && p.earned > 0n ? `${withUsd(p.earned, v.payoutDecimals, v.payoutSymbol, payoutUsd)} to collect` : undefined,
+      deposit: !viewing || !positions ? DASH : !pos || pos.assetsF === 0 ? "Nothing deposited" : amountUsd(pos.assetsF, pos.depositSymbol, pos.assetsUsd),
+      collect:
+        pos && pos.earnedF !== null && pos.earnedF > 0
+          ? `${fmtEarned(pos.earned, v.payoutDecimals)} ${pos.payoutSymbol}${pos.earnedUsd !== null ? ` (${fmtUsd(pos.earnedUsd)})` : ""} to collect`
+          : undefined,
     };
   });
+  const vaultsTotal = viewing && positions && p ? fmtUsd(p.vaultsTotalUsd) : DASH;
 
   return {
     metrics,
-    history: historyView,
-    holdings: { rows: holdingRows, total: viewing && complete ? fmtUsd(total) : DASH, note: S.holdings.note },
-    vaults: { rows: vaultRows },
+    history,
+    next,
+    holdings: { rows: holdingRows, total: holdingsTotal, note: S.holdings.note },
+    vaults: { rows: vaultRows, total: vaultsTotal },
     line: {
       tokens: line,
       text:
-        !viewing || balF === null
+        !viewing || !p
           ? S.line.text
           : excluded
-            ? `Excluded by policy, so no cycle pays it. The monitor's note: ${excluded.reason}.`
-            : above
-              ? `This wallet clears the line, so every cycle includes it${share ? `, at ${fmtPct(share, 4)} of each payout` : ""}.`
-              : `This wallet is ${fmtTokens(lineTokens - balF)} $OURO short of the line. Hold that and every cycle pays it, or pool with others in the vaults and clear it together.`,
+            ? `Excluded by policy, so no cycle pays it. The monitor's note: ${excluded}.`
+            : p.eligible
+              ? `This wallet clears the line, so every cycle includes it${p.shareOfEligible ? `, at ${fmtPct(p.shareOfEligible, 4)} of each payout` : ""}.`
+              : `This wallet is ${fmtTokens(p.shortfallTokens)} $OURO short of the line. Hold that and every cycle pays it, or pool with others in the vaults and clear it together.`,
     },
   };
 }

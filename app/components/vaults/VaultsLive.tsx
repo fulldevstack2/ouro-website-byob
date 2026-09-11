@@ -1,5 +1,5 @@
 import { ConnectButton, useConnectModal } from "@rainbow-me/rainbowkit";
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { formatUnits } from "viem";
 import { useAccount, useChainId, useReadContracts, useSwitchChain } from "wagmi";
 
@@ -7,14 +7,14 @@ import { Badge, Button, Input, Tabs } from "~/components/ds";
 import { ConnectBar, KVRow, MicroLabel, body14, mono } from "~/components/site";
 import { Frame, STATIC_BAND, StatBand, VaultList, VaultsStatic, useOpenVault, type VaultSummary } from "~/components/vaults/VaultFrame";
 import { WalletProvider } from "~/components/wallet/WalletProvider";
+import { FLOATING_SUPPLY_TOKENS } from "~/content/protocol";
 import { externalLinkProps, site } from "~/content/site";
 import { LIVE_VAULTS, TOKEN_DECIMALS, type LiveVault } from "~/content/vaults";
-import { useCountdown } from "~/hooks/useCountdown";
 import { usePrices, type Prices } from "~/hooks/usePrices";
 import { useVaultActions, useVaultView, type TxState, type VaultActions, type VaultView } from "~/hooks/useVault";
-import { MONITOR_API, ago, fmtAge, fmtNum, fmtUsd, useMonitor, type OuroNext } from "~/lib/monitorApi";
+import { ago, fmtAge, fmtNum, fmtPct, fmtUsd } from "~/lib/monitorApi";
 import { fmtAmount, parseAmount, streamPerDay, vaultAbi } from "~/lib/vaultChain";
-import { YIELD_DISPLAY_CAP_PCT, fmtYieldPct, projectedYieldPct, realisedYield, usdValue } from "~/lib/vaultYield";
+import { YIELD_DISPLAY_CAP_PCT, fmtYieldPct, projectedYieldPct, realisedYield, toNumber, usdValue } from "~/lib/vaultYield";
 import { hasWalletConnect, robinhoodChain } from "~/lib/wagmi";
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -44,8 +44,8 @@ function LiveSection() {
   const pooled = useCombinedPooled();
   const tvlUsd = usdValue(pooled, OURO_DECIMALS, prices.ouroUsd);
   const { isOpen, toggle } = useOpenVault();
-  const schedule = useMonitor<OuroNext>(MONITOR_API ? "/v1/ouro/next" : null, 30_000);
-  const harvest = useHarvestSchedule(schedule.data);
+  // Straight from the vaults' own totals, so it needs nothing but the chain.
+  const pooledTokens = toNumber(pooled, OURO_DECIMALS);
 
   return (
     <>
@@ -54,8 +54,12 @@ function LiveSection() {
         // `exact` on the unit price: OURO trades at a fraction of a cent, so "< $0.01 each" would
         // withhold the one figure this note exists to give.
         tvlNote={pooled === undefined ? STATIC_BAND.tvlNote : `${fmtAmount(pooled, OURO_DECIMALS, 0)} OURO across the three vaults${prices.ouroUsd === null ? ", awaiting a price" : ` at ${fmtUsd(prices.ouroUsd, { exact: true })} each`}`}
-        nextHarvest={harvest.nextValue}
-        nextHarvestNote={harvest.nextNote}
+        pooledShare={pooledTokens === null ? "—" : fmtPct(pooledTokens / FLOATING_SUPPLY_TOKENS, 1)}
+        pooledShareNote={
+          pooledTokens === null
+            ? STATIC_BAND.pooledShareNote
+            : `${fmtNum(pooledTokens)} of the ${fmtNum(FLOATING_SUPPLY_TOKENS)} OURO that can move is pooled in the three vaults. The rest of the billion minted is still locked in the team vest.`
+        }
         apr={prices.airdrop ? `${fmtNum(prices.airdrop.aprPct, 0)}%` : "—"}
         aprNote={prices.airdrop ? `${prices.airdrop.caveat ?? "From payouts actually made, at the rate of the last seven days."} What a wallet above the line earns, before any vault fee.` : STATIC_BAND.aprNote}
       />
@@ -74,48 +78,6 @@ function LiveSection() {
       </div>
     </>
   );
-}
-
-const pad2 = (n: number) => String(n).padStart(2, "0");
-
-const DEFAULT_CADENCE_SEC = 7200;
-
-/** Footnote for Next harvest — owned by the site, not pasted from the API caveat field. */
-const NEXT_HARVEST_NOTE = "When the keeper is due to wake. It starts then; a run can still wait if gas is too high for what is owed.";
-
-/** Next unix boundary at a fixed cadence — same rule as ouro-monitor `nextCadenceTs` / keeper.mjs. */
-function nextCadenceTs(nowSec: number, cadenceSec: number): number {
-  return Math.floor(nowSec / cadenceSec) * cadenceSec + cadenceSec;
-}
-
-/**
- * Next harvest countdown. Prefers `/v1/ouro/next` when the monitor serves it; otherwise falls back
- * to the same 2h wall-clock alignment locally (prod Render does not ship `/v1/ouro/next` yet).
- */
-function useHarvestSchedule(next: OuroNext | null): { nextValue: ReactNode; nextNote: ReactNode } {
-  const dueTs = useMemo(() => {
-    const now = Math.floor(Date.now() / 1000);
-    if (next) {
-      if (next.dueTs > now) return next.dueTs;
-      const c = next.cadenceSec > 0 ? next.cadenceSec : DEFAULT_CADENCE_SEC;
-      return nextCadenceTs(now, c);
-    }
-    return nextCadenceTs(now, DEFAULT_CADENCE_SEC);
-  }, [next]);
-  const target = useMemo(() => new Date(dueTs * 1000), [dueTs]);
-  const c = useCountdown(target);
-
-  if (!c) {
-    return { nextValue: "—", nextNote: NEXT_HARVEST_NOTE };
-  }
-
-  const nextValue = c.passed
-    ? "due now"
-    : c.h + c.d * 24 > 0
-      ? `${c.d * 24 + c.h}:${pad2(c.m)}:${pad2(c.s)}`
-      : `${pad2(c.m)}:${pad2(c.s)}`;
-
-  return { nextValue, nextNote: NEXT_HARVEST_NOTE };
 }
 
 /** Deposits across every live vault, one multicall. */

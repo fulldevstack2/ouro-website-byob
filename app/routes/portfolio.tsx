@@ -57,7 +57,7 @@ export default function Portfolio() {
       <PageHeader
         kicker="Your wallet"
         title="Your portfolio."
-        lede="Your $OURO, every airdrop it has received, what it holds now and what sits in the vaults."
+        lede="Your $OURO, every airdrop it has received, when the next one is due, what it holds now and what sits in the vaults."
         ledeStyle={{ maxWidth: 620 }}
         aside={
           <div style={{ paddingBottom: 4 }}>
@@ -77,19 +77,19 @@ export default function Portfolio() {
           kicker="Method"
           title="How this is measured."
           titleStyle={{ fontSize: 30 }}
-          sub="From the chain, for one wallet. Missing price → dash, never an estimate."
+          sub="From the chain through ouro-monitor, for one wallet. Missing price → dash, never an estimate."
           subStyle={{ fontSize: 15 }}
           style={{ marginBottom: 24 }}
         />
         <Grid cols="1fr 1fr" gap={48} align="start">
           <div>
             <Method n="01" title="Balances">
-              $OURO and the basket tokens are read from the token contracts on {site.chain.name}, refreshed every fifteen seconds. Vault deposits are read
-              from each vault&apos;s own totals.
+              $OURO, the basket tokens and the vault deposits are read from their contracts on {site.chain.name} by ouro-monitor as the page asks for
+              them, and asked for again every thirty seconds. Vault deposits are priced through each vault&apos;s own totals.
             </Method>
             <Method n="02" title="History">
-              Every <code style={mono}>Transfer</code> from the airdrop wallet to this address on the tokens the airdrop pays in, from the chain&apos;s own
-              logs, back to the first cycle. Nothing is stored about the reader.
+              Every payout the airdrop has sent this address, from the monitor&apos;s index of the airdrop transactions on {site.chain.name}, newest first
+              and a page at a time back to the first cycle.
             </Method>
             <Method n="03" title="Valued when sent">
               Each payment is priced at what its cycle valued that token at, from the monitor. A leg the monitor could not price shows a dash, and so does
@@ -102,11 +102,12 @@ export default function Portfolio() {
               figure is a floor for most wallets.
             </Method>
             <Method n="05" title="Not a forecast">
-              The daily and monthly figures apply the last seven days&apos; payouts to this holding. They move with volume, in both directions.
+              The daily and monthly figures apply the average of recent cycles to this wallet&apos;s share of the supply, and the next payment is an
+              estimate from the same. Both move with volume, in both directions.
             </Method>
             <Method n="06" title="One wallet">
-              Everything here is read for the connected wallet, and nothing about it is stored. Exchange and bridge balances are someone else&apos;s
-              wallet, and a wallet under {fmtLine()} $OURO is paid nothing until it clears the line.
+              Everything here is read for one wallet, with no account and no sign-in. Exchange and bridge balances are someone else&apos;s wallet, and a
+              wallet under {fmtLine()} $OURO is paid nothing until it clears the line.
             </Method>
           </div>
         </Grid>

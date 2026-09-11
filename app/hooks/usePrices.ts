@@ -17,12 +17,6 @@ export interface Prices {
   loading: boolean;
   /** True when a price came from DexScreener because the monitor had none. */
   fallback: boolean;
-  /**
-   * The whole yield reading the rate above was cut from, for a page that needs more of it than the
-   * rate: /portfolio divides a wallet's balance by `eligibleTokens` and applies `paidUsdPerDay` to
-   * the result. One request serves both rather than the same JSON fetched twice.
-   */
-  ouroYield: OuroYield | null;
 }
 
 /**
@@ -73,7 +67,6 @@ export function usePrices(): Prices {
     airdrop,
     loading: !settled,
     fallback: settled && (monitorOuro === null || monitorEth === null),
-    ouroYield: y.data,
   };
 }
 

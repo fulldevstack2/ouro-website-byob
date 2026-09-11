@@ -26,11 +26,21 @@ export const COLLECTION_SPLIT_USD = {
 };
 
 /**
- * The wallet collections land in and every airdrop leaves from: the `from` of every payout transfer,
- * which is what a wallet's airdrop history (/portfolio) is filtered on. The monitor publishes the same
- * address as `treasury` on /v1/ouro/pending; this is the fallback while that has not loaded.
+ * The wallet collections land in and every airdrop leaves from: the `from` of every payout transfer.
+ * The monitor publishes the same address as `treasury` on /v1/ouro/pending.
  */
 export const AIRDROP_WALLET: `0x${string}` = "0xEA1B87B70852e48FDcA9262Ca91018C44C19001c";
+
+/**
+ * The supply the vaults' share is measured against: the billion minted, less the ~123,000,000 still
+ * locked in the team vest (the Sablier stream in PROTOCOL_CONTRACTS below).
+ *
+ * Against the full billion the figure would understate what is pooled, because a token nobody can
+ * move cannot be deposited. Set by the owner on 2026-09-11 and kept as a constant rather than read
+ * from the chain: it rises as the vest unlocks, and a denominator that drifts silently under a page
+ * that does not say it is moving is worse than one somebody updates. Revisit it as the vest releases.
+ */
+export const FLOATING_SUPPLY_TOKENS = 877_000_000;
 
 /** Deployed protocol contracts, `null` until launch (rendered as "Publishes at launch"). */
 export interface AddressEntry {
@@ -67,13 +77,14 @@ export const RESERVE_POOLS: AddressEntry[] = [
 ];
 
 /**
- * A token the airdrop pays in, for reading a wallet's holdings and its history on /portfolio.
+ * A token the airdrop pays in, for marking a wallet's holdings on /portfolio.
  *
  * The basket is CASHCAT and PONS today. WETH is listed because the fee leg arrives as the pools
  * earned it (docs §05: "often basket tokens plus WETH") and the airdrop wallet's queue already
- * carries a WETH line. The portfolio page also picks up any token a cycle actually paid, from the
- * monitor's epoch data, so a new constituent shows up in a wallet's history before it is added
- * here; this list is what the page knows before that data arrives, and where each token's mark lives.
+ * carries a WETH line. ouro-monitor names every token a wallet holds and every token a payment
+ * carried, so a new constituent shows up on the page before it is added here; this list is where
+ * each token's mark and its display name live, and what the prerendered page lists before any
+ * wallet is connected.
  */
 export interface BasketToken {
   symbol: string;
@@ -89,13 +100,6 @@ export const BASKET_TOKENS: BasketToken[] = [
   { symbol: "PONS", name: "Pons", address: "0x39dBED3a2bd333467115dE45665cC57F813C4571", decimals: 18, icon: "/tokens/pons.png" },
   { symbol: "WETH", name: "Wrapped Ether", address: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73", decimals: 18, icon: "/tokens/weth.svg" },
 ];
-
-/**
- * Where a wallet's airdrop history starts: just before cycle 1, which paid in block 53,140,053 on
- * 2026-09-03 at 04:35 UTC. A log scan from here to the head is one request on the chain's own
- * endpoint; from block zero it would walk fifty million empty blocks first.
- */
-export const AIRDROPS_FROM_BLOCK = 53_140_000n;
 
 /** The launchpad rails $OURO trades on. Not ours — letscash's, shared by every token they launch. */
 export const VENUE: AddressEntry[] = [
