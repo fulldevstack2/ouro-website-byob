@@ -516,13 +516,25 @@ export default function Airdrops() {
   }, [queue.data, nowSec]);
 
   /**
-   * ETH the airdrop wallet holds back rather than streams out — what underwrites a cycle on a day
-   * the tax leg is thin. Read straight from the chain: it is a balance, not something the indexer
-   * derives. The address comes from the monitor rather than being hardcoded, so it follows the
-   * keeper's `treasury()` if that ever moves.
+   * ETH that underwrites a cycle on a day the tax leg is thin, across BOTH wallets that hold it: the
+   * hot wallet the keeper signs from, and the 3-of-3 Safe that holds the float and tops it up.
+   *
+   * The headline sums them on purpose. Moving ETH into the Safe is custody changing, not reserves
+   * falling, and a figure that counted only the hot wallet would drop by whatever was moved and read
+   * as a drain on a public page. The split is shown underneath, where it is information rather than
+   * an alarm.
+   *
+   * Read straight from the chain: these are balances, not something the indexer derives. Both
+   * addresses come from the monitor rather than being hardcoded, so they follow the keeper's
+   * `treasury()` and the configured reserve if either ever moves.
    */
-  const reserveWei = useEthBalance(pending.data?.treasury as `0x${string}` | undefined);
-  const reserveEth = reserveWei === null ? null : Number(reserveWei) / 1e18;
+  const hotWei = useEthBalance(pending.data?.treasury as `0x${string}` | undefined);
+  const coldWei = useEthBalance((pending.data?.ethReserve ?? undefined) as `0x${string}` | undefined);
+  const hotEth = hotWei === null ? null : Number(hotWei) / 1e18;
+  // Before custody is split there is no Safe to read, and a missing address must read as absent, not
+  // as zero — `useEthBalance(undefined)` stays null, so the total stays the hot wallet alone.
+  const coldEth = pending.data?.ethReserve == null ? 0 : coldWei === null ? null : Number(coldWei) / 1e18;
+  const reserveEth = hotEth === null || coldEth === null ? null : hotEth + coldEth;
   const ethUsd = reserve.data?.positions[0]?.side1.symbol === "WETH" ? reserve.data.positions[0].side1.priceUsd : (reserve.data?.positions.flatMap((p) => [p.side0, p.side1]).find((s) => s.symbol === "WETH")?.priceUsd ?? null);
   const reserveUsd = reserveEth === null || ethUsd === null ? null : reserveEth * ethUsd;
   const uncollected = reserve.data?.totals.uncollectedFeesUsd ?? null;
@@ -611,7 +623,14 @@ export default function Airdrops() {
       <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md" style={{ marginBottom: 24 }}>
         <Card label="1 · Held in reserve">
           <Stat label="Airdrop reserves" value={fmtUsd(reserveUsd)} unit={reserveEth === null ? undefined : `${fmtEth(reserveEth)} ETH`} />
-          <div style={{ ...body14, marginTop: 12 }}>ETH held back in the airdrop wallet. On slower trading days, the airdrop is paid out of this.</div>
+          <div style={{ ...body14, marginTop: 12 }}>ETH held back to pay the airdrop. On slower trading days, the airdrop is paid out of this.</div>
+          {pending.data?.ethReserve != null && (
+            <div style={{ ...mono, fontSize: 13, marginTop: 14, color: "var(--text-primary)" }}>
+              {hotEth === null ? "—" : `${fmtEth(hotEth)} ETH`} in the payout wallet
+              <br />
+              {coldEth === null ? "—" : `${fmtEth(coldEth)} ETH`} in the reserve multisig
+            </div>
+          )}
         </Card>
         <Card label="2 · Collected, waiting to stream">
           <Stat label="Queued in the airdrop wallet" value={fmtUsd(pending.data?.queuedUsd ?? null)} />
