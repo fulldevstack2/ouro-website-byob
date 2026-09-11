@@ -706,13 +706,16 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
 /* A native <dialog>, so Escape, the backdrop, the focus trap and handing focus back to the button
    are the browser's work rather than ours, and the top layer puts it over the page whatever it is
    nested inside. The canvas in it is painted by lib/shareCard.ts and IS the file that gets saved,
-   so it is sized here in CSS only; its pixel dimensions are fixed at 1080 x 1350. */
+   so it is sized here in CSS only; its pixel dimensions are fixed at 1080 x 1350.
+
+   Preview + controls sit side by side so a tall 4:5 card can stay large without making the dialog
+   scroll. On a narrow viewport they stack and the canvas is capped to the leftover height. */
 .pf-share {
-  width: min(440px, calc(100vw - 32px));
+  width: min(860px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
   max-height: calc(100dvh - 32px);
   padding: 0;
-  overflow: auto;
+  overflow: hidden;
   color: var(--text-primary);
   background: var(--surface-card);
   border: 1px solid var(--border-hairline);
@@ -721,7 +724,16 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
 }
 .pf-share::backdrop { background: rgba(27, 23, 16, 0.5); }
 
-.pf-share__inner { display: grid; gap: 16px; padding: 20px; }
+.pf-share__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+  gap: 20px;
+  padding: 20px;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  align-items: start;
+}
+.pf-share__side { display: grid; gap: 14px; align-content: start; min-width: 0; }
 .pf-share__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .pf-share__title {
   margin: 0;
@@ -740,20 +752,39 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
   .pf-share__close:hover { color: var(--text-primary); border-color: var(--neutral-900); }
 }
 
-/* The ground behind it shows through the sheet's rounded corners, so the frame is the card's own. */
+/* The ground behind it shows through the sheet's rounded corners, so the frame is the card's own.
+   Height is capped to the dialog so the sheet scales down instead of forcing a scrollbar. */
 .pf-share__canvas {
-  display: block; width: 100%; height: auto;
-  border: 1px solid var(--border-hairline); border-radius: var(--radius-md);
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: calc(100vh - 72px);
+  max-height: calc(100dvh - 72px);
+  margin: 0 auto;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
   background: var(--page);
 }
 
+.pf-share__toggles { display: grid; gap: 10px; }
 .pf-share__toggle { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
 .pf-share__toggle input { width: 16px; height: 16px; flex: none; accent-color: var(--bronze-600); cursor: pointer; }
 
 .pf-share__actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .pf-share__note { margin: 0; font-size: 13px; line-height: 1.5; }
 
-@media (max-width: 520px) {
-  .pf-share__inner { padding: 16px; gap: 14px; }
+@media (max-width: 720px) {
+  .pf-share { width: min(420px, calc(100vw - 32px)); }
+  .pf-share__inner {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+    padding: 16px;
+  }
+  /* Stacked: leave room for the side controls under the preview. */
+  .pf-share__canvas {
+    max-height: calc(100vh - 280px);
+    max-height: calc(100dvh - 280px);
+  }
   .pf-share__title { font-size: 19px; }
 }
