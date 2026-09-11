@@ -21,8 +21,8 @@ import { fmtNum } from "~/lib/monitorApi";
    out of the server bundle.
 
    SHAPE. It follows theindex.finance's portfolio page, which readers of this chain already know: the
-   connect bar, a band of metric cards, then the payment history beside a stack of smaller cards (the
-   next payment, holdings, the vaults, the line). The page is always the connected wallet's. It can
+   connect bar, a band of metric cards, then the payment history with vaults and the line under it,
+   and next-payment / holdings on the right. The page is always the connected wallet's. It can
    also show another wallet, `?address=0x…`, but that is deliberately not offered anywhere on the
    page: no lookup field, no link to it. The only trace is `ViewingNote`, which says whose figures are
    on screen when they are not the connected wallet's, because a page headed "Your portfolio" must
@@ -371,18 +371,25 @@ export function LineCard({ l }: { l: PortfolioView["line"] }) {
 /**
  * The figures and the tables, under the connect bar. `historyKey` remounts the history card, and so
  * resets its page, when the wallet on screen changes.
+ *
+ * Layout: history down the middle with vaults + the line under it; next payment and holdings stay
+ * on the right so that column is only two cards and does not feel squeezed.
  */
 export function PortfolioBody({ view, historyKey }: { view: PortfolioView; historyKey?: string }) {
   return (
     <>
       <MetricCards m={view.metrics} />
       <div className="pf-body">
-        <HistoryCard key={historyKey} h={view.history} />
+        <div className="pf-main">
+          <HistoryCard key={historyKey} h={view.history} />
+          <div className="pf-below">
+            <VaultsCard v={view.vaults} />
+            <LineCard l={view.line} />
+          </div>
+        </div>
         <div className="pf-side">
           <NextPaymentCard n={view.next} />
           <HoldingsCard h={view.holdings} />
-          <VaultsCard v={view.vaults} />
-          <LineCard l={view.line} />
         </div>
       </div>
     </>

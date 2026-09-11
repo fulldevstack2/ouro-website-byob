@@ -675,14 +675,16 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
 }
 
 /* 14. Portfolio (/portfolio) --------------------------------------------- */
-/* One wallet's page: the connect bar (shared with /vaults), four metric cards, then the history table
-   beside a stack of three smaller cards. The stack goes under the table from 960px down. On desktop the
-   side stack is capped so the history column keeps enough width for the five-column ledger without a
-   horizontal scrollbar. */
+/* One wallet's page: the connect bar (shared with /vaults), four metric cards, then the history
+   table with vaults + the line under it, and next-payment / holdings on the right. The side is only
+   two cards so it can be a bit wider; vaults and the line used to live there and felt squeezed.
+   From 960px down everything stacks in one column. */
 .pf-page { padding-top: 64px; }
 
-.pf-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 260px); gap: 24px; align-items: start; margin-top: 24px; }
+.pf-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: 24px; align-items: start; margin-top: 24px; }
+.pf-main { display: grid; gap: 24px; min-width: 0; }
 .pf-side { display: grid; gap: 24px; min-width: 0; }
+.pf-below { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
 
 /* A token the wallet holds: mark, symbol and name on the left, amount over value on the right. */
 .pf-token-row {
@@ -697,6 +699,7 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
 
 @media (max-width: 720px) {
   .pf-page { padding-top: 32px; }
+  .pf-below { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* 15. The share card (/portfolio) ---------------------------------------- */
