@@ -747,6 +747,7 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
   background: var(--page);
 }
 
+.pf-share__toggles { display: grid; gap: 10px; }
 .pf-share__toggle { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
 .pf-share__toggle input { width: 16px; height: 16px; flex: none; accent-color: var(--bronze-600); cursor: pointer; }
 

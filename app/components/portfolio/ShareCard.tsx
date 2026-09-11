@@ -8,8 +8,8 @@ import { SHARE_CARD, SHARE_CARD_FONTS, drawShareCard, type ShareCardData, type S
    "Share" on the airdrops figure: a dialog holding the card, and the three ways off the page.
 
    What is on screen is the canvas that gets saved, so the preview cannot drift from the file. The
-   card is painted in lib/shareCard.ts; this owns the dialog, the one choice a reader gets (whether
-   their balance is on it), and the save, copy and share paths, each shown only where the browser
+   card is painted in lib/shareCard.ts; this owns the dialog, the choices a reader gets (balance, QR,
+   printed wallet address), and the save, copy and share paths, each shown only where the browser
    has it. A native <dialog> rather than a div: Escape, the backdrop, focus trapping and returning
    focus to the button afterwards all come with it.
 
@@ -44,6 +44,8 @@ function ShareCardDialog({ card, holdingRow, fileStem, open, onClose }: ShareCar
   const dialogRef = useRef<HTMLDialogElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [showHolding, setShowHolding] = useState(true);
+  const [showQr, setShowQr] = useState(true);
+  const [showAddress, setShowAddress] = useState(true);
   const [note, setNote] = useState<Note>(null);
   const [busy, setBusy] = useState(false);
 
@@ -52,8 +54,9 @@ function ShareCardDialog({ card, holdingRow, fileStem, open, onClose }: ShareCar
     [card, holdingRow, showHolding],
   );
   // The card is rebuilt on every poll of the wallet, so the effect below watches its CONTENT: an
-  // identical card must not force a repaint, and a changed figure must.
-  const fingerprint = useMemo(() => JSON.stringify(shown), [shown]);
+  // identical card must not force a repaint, and a changed figure must. Options are part of the
+  // fingerprint so toggling QR / address repaints too.
+  const fingerprint = useMemo(() => JSON.stringify({ shown, showQr, showAddress }), [shown, showQr, showAddress]);
 
   useEffect(() => {
     const d = dialogRef.current;
@@ -70,7 +73,7 @@ function ShareCardDialog({ card, holdingRow, fileStem, open, onClose }: ShareCar
     if (!ctx) return;
     let alive = true;
     const paint = () => {
-      if (alive) drawShareCard(ctx, shown);
+      if (alive) drawShareCard(ctx, shown, { showQr, showAddress });
     };
     paint();
     // Painted again once the faces are in: a canvas asked for a font it does not have yet falls
@@ -81,7 +84,7 @@ function ShareCardDialog({ card, holdingRow, fileStem, open, onClose }: ShareCar
     return () => {
       alive = false;
     };
-    // `fingerprint` stands in for `shown`, see above.
+    // `fingerprint` stands in for `shown` + options, see above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, fingerprint]);
 
@@ -93,19 +96,16 @@ function ShareCardDialog({ card, holdingRow, fileStem, open, onClose }: ShareCar
     return blob;
   }, []);
 
-  const run = useCallback(
-    async (job: () => Promise<Note>) => {
-      setBusy(true);
-      try {
-        setNote(await job());
-      } catch (e) {
-        setNote({ kind: "bad", text: (e as Error).message || "That did not work." });
-      } finally {
-        setBusy(false);
-      }
-    },
-    [],
-  );
+  const run = useCallback(async (job: () => Promise<Note>) => {
+    setBusy(true);
+    try {
+      setNote(await job());
+    } catch (e) {
+      setNote({ kind: "bad", text: (e as Error).message || "That did not work." });
+    } finally {
+      setBusy(false);
+    }
+  }, []);
 
   const save = () =>
     run(async () => {
@@ -148,6 +148,12 @@ function ShareCardDialog({ card, holdingRow, fileStem, open, onClose }: ShareCar
     setCanSend(typeof navigator.canShare === "function" && typeof navigator.share === "function");
   }, []);
 
+  const hint = showQr
+    ? "The code on the card opens this wallet's portfolio. Anyone who scans it can see the same figures."
+    : showAddress
+      ? "The wallet address is printed on the card. Turn on the code if you want it to open the portfolio."
+      : "No code or address on the card — only the airdrop figures.";
+
   return (
     <dialog
       ref={dialogRef}
@@ -166,7 +172,7 @@ function ShareCardDialog({ card, holdingRow, fileStem, open, onClose }: ShareCar
             <h2 id="pf-share-title" className="pf-share__title">
               Share your airdrops
             </h2>
-            <p className="pf-share__lede">A picture of what this wallet has been paid. The code on it opens this portfolio, so whoever scans it sees the same figures.</p>
+            <p className="pf-share__lede">A picture of what this wallet has been paid. Choose what else goes on it.</p>
           </div>
           <button type="button" className="pf-share__close" onClick={onClose} aria-label="Close">
             <span aria-hidden="true">×</span>
@@ -182,14 +188,26 @@ function ShareCardDialog({ card, holdingRow, fileStem, open, onClose }: ShareCar
           aria-label={`${card.kicker}: ${card.hero}. ${shown.rows.map((r) => `${r.label}, ${r.value}`).join(". ")}.`}
         />
 
-        {holdingRow && (
+        <div className="pf-share__toggles">
+          {holdingRow && (
+            <label className="pf-share__toggle">
+              <input type="checkbox" checked={showHolding} onChange={(e) => setShowHolding(e.target.checked)} />
+              <span>
+                Show my balance <span style={{ ...mono, color: "var(--text-muted)" }}>({holdingRow.value})</span>
+              </span>
+            </label>
+          )}
           <label className="pf-share__toggle">
-            <input type="checkbox" checked={showHolding} onChange={(e) => setShowHolding(e.target.checked)} />
+            <input type="checkbox" checked={showQr} onChange={(e) => setShowQr(e.target.checked)} />
+            <span>Show QR code</span>
+          </label>
+          <label className="pf-share__toggle">
+            <input type="checkbox" checked={showAddress} onChange={(e) => setShowAddress(e.target.checked)} />
             <span>
-              Show my balance <span style={{ ...mono, color: "var(--text-muted)" }}>({holdingRow.value})</span>
+              Show wallet address <span style={{ ...mono, color: "var(--text-muted)" }}>({card.cta.address})</span>
             </span>
           </label>
-        )}
+        </div>
 
         <div className="pf-share__actions">
           <Button size="sm" onClick={save} disabled={busy}>
@@ -208,7 +226,7 @@ function ShareCardDialog({ card, holdingRow, fileStem, open, onClose }: ShareCar
         </div>
 
         <p className="pf-share__note" style={{ color: note?.kind === "bad" ? "var(--text-negative)" : "var(--text-muted)" }} aria-live="polite">
-          {note ? note.text : "The code on the card carries this wallet's address. Anyone who scans it can see its portfolio."}
+          {note ? note.text : hint}
         </p>
       </div>
     </dialog>

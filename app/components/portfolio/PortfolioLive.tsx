@@ -206,7 +206,8 @@ function shareCard(p: PortfolioSummary): { card: ShareCardData; holdingRow: Shar
       cta: {
         caps: "Scan for this wallet",
         line: "Every payout, read from the chain.",
-        url: `${site.url.replace(/^https?:\/\//, "")} · ${shortAddress(address)}`,
+        site: site.url.replace(/^https?:\/\//, ""),
+        address: shortAddress(address),
         // Built here rather than taken from the API's `portfolioUrl`, which omits the trailing slash
         // this site serves its directories at. site.url is pinned to the public origin at build time
         // (netlify.toml), so a card saved from a preview deploy still points somewhere real.

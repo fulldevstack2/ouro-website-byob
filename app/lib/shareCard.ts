@@ -1,5 +1,6 @@
 import { tracePoints, traceStep, type Family } from "~/lib/guilloche";
 import { qrEncode, type QrMatrix } from "~/lib/qr";
+import { site } from "~/content/site";
 
 /* ────────────────────────────────────────────────────────────────────────────
    The share card: one wallet's airdrops, as an image someone can post.
@@ -22,9 +23,11 @@ import { qrEncode, type QrMatrix } from "~/lib/qr";
    address IS on the card, printed beside the code as well as encoded in it. A card that quietly
    carried an address it did not name would be the worse of the two.
 
-   WHAT IS STILL NOT ON IT. The balance, which is offered behind a toggle in the dialog rather than
-   assumed. And the "at the current rate" projection, because a figure the monitor currently
-   overstates has no business on an image that travels without the page's caveats.
+   WHAT IS STILL NOT ON IT BY DEFAULT. The balance, the QR and the printed wallet address are each
+   offered behind a toggle in the dialog rather than assumed — a holder may want the figures without
+   handing out a scannable link. And the "at the current rate" projection stays off entirely, because
+   a figure the monitor currently overstates has no business on an image that travels without the
+   page's caveats.
    ──────────────────────────────────────────────────────────────────────────── */
 
 /** 4:5. The tallest shape X shows without cropping, and it is not cropped anywhere else either. */
@@ -52,7 +55,16 @@ const SANS = `"Public Sans", -apple-system, "Segoe UI", Helvetica, sans-serif`;
 const MONO = `"JetBrains Mono", "SF Mono", Menlo, monospace`;
 
 /** Every face the card sets, so they can be waited for before the first paint. */
-export const SHARE_CARD_FONTS = [`600 54px ${SERIF}`, `400 27px ${SANS}`, `600 30px ${SANS}`, `700 150px ${MONO}`, `400 19px ${MONO}`, `500 25px ${MONO}`, `600 30px ${MONO}`];
+export const SHARE_CARD_FONTS = [
+  `600 54px ${SERIF}`,
+  `italic 400 24px ${SERIF}`,
+  `400 27px ${SANS}`,
+  `600 30px ${SANS}`,
+  `700 150px ${MONO}`,
+  `400 19px ${MONO}`,
+  `500 25px ${MONO}`,
+  `600 30px ${MONO}`,
+];
 
 export interface ShareCardRow {
   label: string;
@@ -69,12 +81,26 @@ export interface ShareCardData {
   badge?: { text: string; tone: keyof typeof TONES };
   /** When the figures were read, top right. A running total on an undated card is a claim with no date on it. */
   stamp: string;
-  /** Three or four; the block is anchored to its bottom, so fewer rows simply start lower. */
+  /** Up to four; the block packs from the top, so a hidden Holding row does not leave a blank slot. */
   rows: ShareCardRow[];
   /** Under the rows, in two lines at most. What the figure does and does not claim. */
   footnote: string;
   /** The panel along the foot: what a reader should do, what the code opens, and the URL it encodes. */
-  cta: { caps: string; line: string; url: string; href: string };
+  cta: {
+    caps: string;
+    line: string;
+    /** Site origin without scheme, e.g. "ourolayer.com". */
+    site: string;
+    /** Short wallet address printed on the card (toggleable in the dialog). */
+    address: string;
+    href: string;
+  };
+}
+
+/** What the share dialog can hide on the painted card. Defaults keep today's behaviour. */
+export interface ShareCardOptions {
+  showQr?: boolean;
+  showAddress?: boolean;
 }
 
 /* ── the sheet ────────────────────────────────────────────────────────────── */
@@ -98,9 +124,11 @@ const HERO_BASE = 432;
 const SUB_BASE = 494;
 const BADGE_TOP = 532;
 const BADGE_H = 52;
-const ROWS_BOTTOM = 960;
+/** At most four rows (Holding plus three). Pack from the top so a hidden Holding does not leave a blank slot. */
 const ROW_H = 84;
-const FOOTNOTE_BASE = 1012;
+const ROWS_TOP = BADGE_TOP + BADGE_H + 40;
+const ROWS_MAX = 4;
+const FOOTNOTE_BASE = ROWS_TOP + ROWS_MAX * ROW_H + 52;
 const FOOTNOTE_LEAD = 32;
 /** The plate is banded between the header rule and the figures, the way a certificate panels its engraving. */
 const PLATE_BAND_BOTTOM = 600;
@@ -113,7 +141,10 @@ const QR_BOX = 216;
  * (SHARE_CARD_FONTS); a face that is not in yet falls back to a system one and the card comes out
  * looking like a different product.
  */
-export function drawShareCard(ctx: CanvasRenderingContext2D, data: ShareCardData): void {
+export function drawShareCard(ctx: CanvasRenderingContext2D, data: ShareCardData, options: ShareCardOptions = {}): void {
+  const showQr = options.showQr !== false;
+  const showAddress = options.showAddress !== false;
+
   ctx.save();
   ctx.clearRect(0, 0, SHARE_CARD.width, SHARE_CARD.height);
 
@@ -136,7 +167,7 @@ export function drawShareCard(ctx: CanvasRenderingContext2D, data: ShareCardData
   figure(ctx, data);
   rows(ctx, data.rows);
   footnote(ctx, data.footnote);
-  band(ctx, data.cta);
+  band(ctx, data.cta, { showQr, showAddress });
 
   ctx.restore();
 
@@ -210,9 +241,10 @@ function badge(ctx: CanvasRenderingContext2D, text: string, tone: (typeof TONES)
   tracked(ctx, label, LEFT + 24 + dot + 14, BADGE_TOP + BADGE_H / 2 + 7, spacing);
 }
 
-/** The figures, as the site sets them: label left, value right, a hairline between. Anchored to the bottom. */
+/** The figures, as the site sets them: label left, value right, a hairline between. Pack from the top. */
 function rows(ctx: CanvasRenderingContext2D, list: ShareCardRow[]): void {
-  const top = ROWS_BOTTOM - list.length * ROW_H;
+  const top = ROWS_TOP;
+  const bottom = top + list.length * ROW_H;
   rule(ctx, LEFT, top, CONTENT);
 
   list.forEach((row, i) => {
@@ -237,7 +269,7 @@ function rows(ctx: CanvasRenderingContext2D, list: ShareCardRow[]): void {
     if (i < list.length - 1) rule(ctx, LEFT, y + ROW_H, CONTENT);
   });
 
-  rule(ctx, LEFT, ROWS_BOTTOM, CONTENT);
+  rule(ctx, LEFT, bottom, CONTENT);
 }
 
 function footnote(ctx: CanvasRenderingContext2D, text: string): void {
@@ -248,7 +280,7 @@ function footnote(ctx: CanvasRenderingContext2D, text: string): void {
 }
 
 /** The panel along the foot: the code, and what to do with it. */
-function band(ctx: CanvasRenderingContext2D, cta: ShareCardData["cta"]): void {
+function band(ctx: CanvasRenderingContext2D, cta: ShareCardData["cta"], opts: { showQr: boolean; showAddress: boolean }): void {
   const bottom = SHEET.y + SHEET.h;
   roundRect(ctx, SHEET.x, BAND_TOP, SHEET.w, bottom - BAND_TOP, SHEET.r, "bottom");
   ctx.fillStyle = TINT;
@@ -259,24 +291,40 @@ function band(ctx: CanvasRenderingContext2D, cta: ShareCardData["cta"]): void {
   // A URL too long for the largest symbol this encodes leaves the panel as type alone rather than
   // taking the whole card down with it. The site's own origin is nowhere near that; a build pointed
   // at a much longer one is the case this survives.
-  const code = safeQr(cta.href);
+  const code = opts.showQr ? safeQr(cta.href) : null;
   if (code) qr(ctx, code, LEFT, centre - QR_BOX / 2, QR_BOX);
 
+  // Site tagline, bottom right of the card — same words as the home page.
+  const tagline = site.tagline;
+  ctx.font = `italic 400 24px ${SERIF}`;
+  const tagW = ctx.measureText(tagline).width;
+  const tagGap = 48;
+
   const x = code ? LEFT + QR_BOX + 44 : LEFT;
-  const width = RIGHT - x;
+  const width = Math.max(120, RIGHT - x - tagW - tagGap);
+  const foot = opts.showAddress ? `${cta.site} · ${cta.address}` : cta.site;
+
   ctx.textAlign = "left";
-  ctx.fillStyle = BRONZE_DEEP;
-  ctx.font = `600 19px ${SANS}`;
-  tracked(ctx, cta.caps.toUpperCase(), x, centre - 42, 2.1);
+  if (opts.showQr) {
+    ctx.fillStyle = BRONZE_DEEP;
+    ctx.font = `600 19px ${SANS}`;
+    tracked(ctx, cta.caps.toUpperCase(), x, centre - 42, 2.1);
+  }
 
   ctx.fillStyle = INK;
   ctx.font = fit(ctx, cta.line, width, (size) => `600 ${size}px ${SANS}`, 30, 22);
-  ctx.fillText(cta.line, x, centre + 10);
+  ctx.fillText(cta.line, x, opts.showQr ? centre + 10 : centre - 8);
 
-  // The address rides in this line, so it shrinks to fit rather than running off the card.
+  // Site (and optional address) shrink to fit rather than running off the card.
   ctx.fillStyle = BRONZE;
-  ctx.font = fit(ctx, cta.url, width, (size) => `500 ${size}px ${MONO}`, 25, 16);
-  ctx.fillText(cta.url, x, centre + 54);
+  ctx.font = fit(ctx, foot, width, (size) => `500 ${size}px ${MONO}`, 25, 16);
+  ctx.fillText(foot, x, opts.showQr ? centre + 54 : centre + 36);
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = SECONDARY;
+  ctx.font = `italic 400 24px ${SERIF}`;
+  ctx.fillText(tagline, RIGHT, bottom - 48);
+  ctx.textAlign = "left";
 }
 
 /** The code, or null when the URL is longer than the encoder's largest symbol. */
