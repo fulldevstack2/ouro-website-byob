@@ -26,12 +26,6 @@ export const COLLECTION_SPLIT_USD = {
 };
 
 /**
- * The wallet collections land in and every airdrop leaves from: the `from` of every payout transfer.
- * The monitor publishes the same address as `treasury` on /v1/ouro/pending.
- */
-export const AIRDROP_WALLET: `0x${string}` = "0xEA1B87B70852e48FDcA9262Ca91018C44C19001c";
-
-/**
  * The supply the vaults' share is measured against: the billion minted, less the ~123,000,000 still
  * locked in the team vest (the Sablier stream in PROTOCOL_CONTRACTS below).
  *
@@ -57,7 +51,7 @@ export const PROTOCOL_CONTRACTS: AddressEntry[] = [
   { name: "OURO token", address: "0x8Ea0eB3505f5B3Bd2BbEa0fEBae0cE850cC73ecc" },
   { name: "ETH/OURO pool (Uniswap v4)", address: "0x4abc526118181921d76bf184896938ae7c8fc0921abce79ebef3d36a622968a5", poolId: true },
   { name: "Tax claimer (pulls the tax out of the hook)", address: "0xd8E6c485aC9210A33B434325FAD5743310102405" },
-  { name: "Airdrop wallet (collections land here, and payouts leave from it)", address: AIRDROP_WALLET },
+  { name: "Airdrop wallet (collections land here, and payouts leave from it)", address: "0xEA1B87B70852e48FDcA9262Ca91018C44C19001c" },
   // The hot wallet above signs every cycle, so it holds a working float only. The ETH behind it sits
   // here and is forwarded when that float runs low. Listed separately because the two together are
   // the reserve — /airdrops totals both, and reading either alone understates it.
