@@ -676,12 +676,12 @@ button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radi
 
 /* 14. Portfolio (/portfolio) --------------------------------------------- */
 /* One wallet's page: the connect bar (shared with /vaults), four metric cards, then the history table
-   beside a stack of three smaller cards. The stack goes under the table from 960px down, where a
-   narrow side column left the table too tight for a timestamp, a cycle, two token amounts, a value
-   and a hash. */
+   beside a stack of three smaller cards. The stack goes under the table from 960px down. On desktop the
+   side stack is capped so the history column keeps enough width for the five-column ledger without a
+   horizontal scrollbar. */
 .pf-page { padding-top: 64px; }
 
-.pf-body { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr); gap: 24px; align-items: start; margin-top: 24px; }
+.pf-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 260px); gap: 24px; align-items: start; margin-top: 24px; }
 .pf-side { display: grid; gap: 24px; min-width: 0; }
 
 /* A token the wallet holds: mark, symbol and name on the left, amount over value on the right. */

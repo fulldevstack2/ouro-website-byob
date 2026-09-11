@@ -151,12 +151,10 @@ export function MetricCards({ m }: { m: PortfolioView["metrics"] }) {
 
 const HISTORY_COLS: LedgerColumn[] = [
   { key: "when", label: "Received", nowrap: true },
-  // width keeps the caps header from being crushed into "Tokens" when the history card is the
-  // narrow column of pf-body; LedgerTable still sizes from content when there is room.
-  { key: "cycle", label: "Cycle", numeric: true, nowrap: true, width: 72 },
+  { key: "cycle", label: "Cycle", numeric: true, nowrap: true },
   { key: "tokens", label: "Tokens" },
-  { key: "value", label: "Value when sent", align: "right", numeric: true, nowrap: true, width: 130 },
-  { key: "tx", label: "Tx", align: "right", nowrap: true, width: 110 },
+  { key: "value", label: "Value when sent", align: "right", numeric: true, nowrap: true },
+  { key: "tx", label: "Tx", align: "right", nowrap: true },
 ];
 
 /** Rows per page: one day of payouts at the two-hourly cadence, the same as the airdrops page. */
