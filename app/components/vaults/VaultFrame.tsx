@@ -39,7 +39,7 @@ export interface StatBandProps {
   /** Deposits across the vaults, in dollars, with the OURO total as the footnote. */
   tvl: ReactNode;
   tvlNote: ReactNode;
-/** How much of the floating supply sits in the vaults, as a percentage. */
+  /** How much of the floating supply sits in the vaults, as a percentage. */
   pooledShare: ReactNode;
   pooledShareNote: ReactNode;
   /** Measured airdrop APR (`/v1/ouro/yield`), with its basis caveat. */
