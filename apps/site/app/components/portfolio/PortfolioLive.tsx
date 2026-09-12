@@ -340,36 +340,78 @@ function buildView(i: Inputs): PortfolioView {
             ? "Each cycle is split pro-rata across the eligible supply. Every wallet above the line gets the same rate."
             : `${fmtTokens(p.shortfallTokens)} more $OURO clears the line. Below it a wallet gets nothing from any cycle.`,
     },
-    received: {
-      value: p ? fmtUsd(p.totalAirdropUsd) : DASH,
-      footnote: !viewing
-        ? S.metrics.received.footnote
+    received: (() => {
+      const vaultEarned =
+        p && p.totalVaultEarnedUsd !== null && p.totalVaultEarnedUsd > 0 ? p.totalVaultEarnedUsd : null;
+      // When the rate card has nothing to say, vault rewards take that slot instead — keep them off
+      // this footnote so the band does not print the same dollars twice.
+      const vaultOnRateCard = vaultEarned !== null && p?.projectedUsdPerDay == null;
+      const showVaultHere = vaultEarned !== null && !vaultOnRateCard;
+      const airdropFoot = !viewing
+        ? null
         : !p
           ? pendingWord
           : p.airdropPayments === 0
-            ? "No payments yet"
+            ? "No airdrop payments yet"
             : p.totalAirdropUsd === null
               ? `${fmtNum(p.airdropPayments)} ${plural(p.airdropPayments, "payment", "payments")}, at least one not priced yet`
-              : `${fmtNum(p.airdropPayments)} ${plural(p.airdropPayments, "payment", "payments")}, the latest ${fmtWhen(p.lastAirdropTs)}`,
-      note: "Basket tokens the airdrop has sent this wallet, valued at what each cycle paid them out at, not today's price. Sold or moved since, they still count here.",
-    },
-    rate: {
-      value: p?.projectedUsdPerDay != null ? fmtUsd(p.projectedUsdPerDay) : DASH,
-      unit: p?.projectedUsdPerDay != null ? "/ day" : undefined,
-      footnote:
-        p?.projectedUsdPerDay != null
-          ? `${fmtUsd(p.projectedUsdPerMonth ?? p.projectedUsdPerDay * 30)} a month, at the average of recent cycles`
-          : !viewing
-            ? S.metrics.rate.footnote
-            : !p
-              ? pendingWord
-              : excluded
-                ? "Nothing is paid to this address"
-                : p.eligible
-                  ? "Needs priced payouts to project from"
-                  : "Nothing is paid below the line",
-      note: S.metrics.rate.note,
-    },
+              : `${fmtNum(p.airdropPayments)} ${plural(p.airdropPayments, "payment", "payments")}, the latest ${fmtWhen(p.lastAirdropTs)}`;
+      const footnote = !viewing
+        ? S.metrics.received.footnote
+        : !p
+          ? pendingWord
+          : showVaultHere
+            ? airdropFoot
+              ? `${airdropFoot}. In addition, received ${fmtUsd(vaultEarned)} from the vaults`
+              : `Received ${fmtUsd(vaultEarned)} from the vaults`
+            : airdropFoot;
+      return {
+        value: p ? fmtUsd(p.totalAirdropUsd) : DASH,
+        footnote,
+        note:
+          vaultEarned !== null
+            ? vaultOnRateCard
+              ? "Basket tokens the airdrop has sent this wallet, valued at what each cycle paid them out at, not today's price. Vault rewards are in the next card."
+              : "Basket airdrops valued at what each cycle paid out, not today's price. Vault figure is claimed, claimable, and compounding gain — separate from the line."
+            : "Basket tokens the airdrop has sent this wallet, valued at what each cycle paid them out at, not today's price. Sold or moved since, they still count here.",
+      };
+    })(),
+    rate: (() => {
+      // Below the line the airdrop rate is empty; put vault rewards in this slot so a vaulted wallet
+      // is not a dash beside three filled cards.
+      const vaultEarned =
+        p && p.projectedUsdPerDay == null && p.totalVaultEarnedUsd !== null && p.totalVaultEarnedUsd > 0
+          ? p.totalVaultEarnedUsd
+          : null;
+      if (vaultEarned !== null) {
+        return {
+          label: "Received from the vaults",
+          value: fmtUsd(vaultEarned),
+          footnote:
+            p!.vaultClaims > 0
+              ? `${fmtNum(p!.vaultClaims)} ${plural(p!.vaultClaims, "claim", "claims")}${p!.lastVaultClaimTs ? `, the latest ${fmtWhen(p!.lastVaultClaimTs)}` : ""}`
+              : "Claimed, claimable, and compounding gain",
+          note: "What the vaults have returned this wallet. Deposits earn through the vault and do not count toward the line.",
+        };
+      }
+      return {
+        value: p?.projectedUsdPerDay != null ? fmtUsd(p.projectedUsdPerDay) : DASH,
+        unit: p?.projectedUsdPerDay != null ? "/ day" : undefined,
+        footnote:
+          p?.projectedUsdPerDay != null
+            ? `${fmtUsd(p.projectedUsdPerMonth ?? p.projectedUsdPerDay * 30)} a month, at the average of recent cycles`
+            : !viewing
+              ? S.metrics.rate.footnote
+              : !p
+                ? pendingWord
+                : excluded
+                  ? "Nothing is paid to this address"
+                  : p.eligible
+                    ? "Needs priced payouts to project from"
+                    : "Nothing is paid below the line",
+        note: S.metrics.rate.note,
+      };
+    })(),
   };
 
   // The history. `total` counts payments not fetched yet, from the summary, until the feed has reached

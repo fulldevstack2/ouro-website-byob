@@ -3,7 +3,7 @@ import { Link } from "react-router";
 
 import type { Route } from "./+types/home";
 import { Badge, Button, Callout, Card, Stat } from "@ouro/ds";
-import { AprHeadline, Container, CrankFeed, Grid, HelpTip, HeroRing, KVRow, LoopRing, MicroLabel, NumberedRow, SectionHead, body14, display, hairline, PayoutCadence } from "~/components/site";
+import { AprHeadline, AirdropCalc, Container, CrankFeed, Grid, HelpTip, HeroRing, KVRow, LoopRing, MicroLabel, NumberedRow, SectionHead, body14, display, hairline, PayoutCadence } from "~/components/site";
 import { site } from "~/content/site";
 import { TERMS } from "~/content/vaults";
 import { pageMeta } from "~/lib/meta";
@@ -31,6 +31,7 @@ export default function Home() {
       <DifferenceSection />
       <BasketSection />
       <YieldSection />
+      <AirdropCalc />
       <LiveProofSection />
       <RoadmapSection />
       <LockSection />
@@ -74,11 +75,14 @@ function Hero() {
               letscash platform.
             </p>
             <AprHeadline />
-            <div className="cta-row hero-in" style={{ display: "flex", gap: 12, marginTop: 28 }}>
+            <div className="cta-row hero-in" style={{ display: "flex", gap: 12, marginTop: 28, flexWrap: "wrap" }}>
               <Button size="lg" arrow href={site.links.buy} target="_blank" rel="noreferrer">
                 Buy {site.ticker}
               </Button>
-              <Button size="lg" variant="secondary" href="#start">
+              <Button size="lg" variant="secondary" href="#calc">
+                Calculate your airdrop
+              </Button>
+              <Button size="lg" variant="ghost" href="#start">
                 How it works
               </Button>
             </div>
