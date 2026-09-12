@@ -23,6 +23,7 @@ import {
   type TokenSummary,
 } from "@ouro/monitor-client";
 
+import { cadenceStats, type CadenceStats } from "~/lib/cadence";
 import { PROJECTS, type Project, type SortKey } from "~/registry";
 
 /** What every project page and the comparison table read. The future `/v1/projects` row. */
@@ -36,6 +37,11 @@ export interface ProjectRow {
   taxedShare: number | null;
 
   paidAllTimeUsd: number | null;
+  /**
+   * True when `paidAllTimeUsd` is a sum over a page that came back FULL, so older cycles may exist
+   * beyond it and the total is a floor rather than a total. The page must say so when set.
+   */
+  paidAllTimeTruncated: boolean;
   paid24hUsd: number | null;
   paidPerDayUsd: number | null;
   /** Distinct assets the last cycle paid out, for the "tokens paid" cell. */
@@ -56,6 +62,14 @@ export interface ProjectRow {
   lastPayoutTs: number | null;
   nextPayoutTs: number | null;
   liveness: Liveness;
+  /**
+   * How often this project actually pays, measured from its own cycles.
+   *
+   * The configured cadence describes the schedule; this describes the behaviour, and for every
+   * project here they differ substantially. See lib/cadence.ts for why the page reports the
+   * distribution instead of a status badge.
+   */
+  cadence: CadenceStats;
 }
 
 /** An empty row: every figure null, so a project with no data renders dashes, never zeroes. */
@@ -67,6 +81,7 @@ function blankRow(project: Project): ProjectRow {
     volume24hUsd: null,
     taxedShare: null,
     paidAllTimeUsd: null,
+    paidAllTimeTruncated: false,
     paid24hUsd: null,
     paidPerDayUsd: null,
     assets: null,
@@ -80,12 +95,19 @@ function blankRow(project: Project): ProjectRow {
     lastPayoutTs: null,
     nextPayoutTs: null,
     liveness: "unknown",
+    cadence: cadenceStats([], Math.floor(Date.now() / 1000)),
   };
 }
 
-/** INDEX and HOOD10 both come out of `/v1/summary` already in one shape. */
-function fromSummary(project: Project, t: TokenSummary | undefined): ProjectRow {
-  const row = blankRow(project);
+/**
+ * INDEX and HOOD10 both come out of `/v1/summary` already in one shape.
+ *
+ * `cycles` is that project's payout history, used only to measure its real cadence. HOOD10 has none
+ * (never indexed), so its cadence stats come back empty and render as dashes — which is correct: we
+ * cannot describe a rhythm we have not observed.
+ */
+function fromSummary(project: Project, t: TokenSummary | undefined, cycles: OuroCycle[] | null, now: number): ProjectRow {
+  const row = { ...blankRow(project), cadence: cadenceStats((cycles ?? []).map((c) => c.endTs ?? c.startTs), now) };
   if (!t) return row;
   const m = t.market;
   return {
@@ -122,13 +144,16 @@ function fromSummary(project: Project, t: TokenSummary | undefined): ProjectRow 
  * reason the total belongs on the server. A cycle with any unpriced leg has `paidUsd === null`;
  * those are skipped rather than counted as zero, and `pricedCycles` says how many were counted.
  */
+const OURO_CYCLE_PAGE = 200;
+
 function fromOuro(
   project: Project,
   y: OuroYield | null,
   next: OuroNext | null,
   cycles: OuroCycle[] | null,
+  now: number,
 ): ProjectRow {
-  const row = blankRow(project);
+  const row = { ...blankRow(project), cadence: cadenceStats((cycles ?? []).map((c) => c.endTs ?? c.startTs), now) };
   const priced = cycles?.filter((c) => c.paidUsd !== null) ?? null;
   const allTime = priced && priced.length > 0 ? priced.reduce((sum, c) => sum + (c.paidUsd ?? 0), 0) : null;
 
@@ -144,6 +169,8 @@ function fromOuro(
     // fully diluted value the other two report, so the table labels this cell for what it is.
     marketCapUsd: y?.eligibleValueUsd ?? null,
     paidAllTimeUsd: allTime,
+    // A full page means there may be more behind it; 86 cycles today, but the guard is the point.
+    paidAllTimeTruncated: (cycles?.length ?? 0) >= OURO_CYCLE_PAGE,
     paid24hUsd: paid24h,
     paidPerDayUsd: y?.paidUsdPerDay ?? null,
     assets: lastCycle?.assets?.map((a) => ({ address: a.address, symbol: a.symbol })) ?? null,
@@ -192,15 +219,23 @@ export function useProjects(intervalMs = 30_000): ProjectsState {
   const ouroYield = useMonitor<OuroYield>("/v1/ouro/yield?days=7", intervalMs);
   const ouroNext = useMonitor<OuroNext>("/v1/ouro/next", intervalMs);
   const ouroCycles = useMonitor<{ epochs: OuroCycle[] }>("/v1/ouro/epochs?limit=200", intervalMs);
+  /**
+   * INDEX's own cycles, for its measured cadence. A fifth request purely to avoid describing a
+   * project by a schedule it does not keep — and the first thing `/v1/projects` should fold in,
+   * since the server can compute these percentiles once instead of every browser doing it.
+   */
+  const indexCycles = useMonitor<{ epochs: OuroCycle[] }>("/v1/index/epochs?limit=200", intervalMs);
 
-  const polls = [summary, ouroYield, ouroNext, ouroCycles];
+  const polls = [summary, ouroYield, ouroNext, ouroCycles, indexCycles];
   const configured = !polls.some((p) => p.error === "not-configured");
 
+  const now = Math.floor(Date.now() / 1000);
   const rows = PROJECTS.map((project) => {
     if (project.key === "ouro") {
-      return fromOuro(project, ouroYield.data, ouroNext.data, ouroCycles.data?.epochs ?? null);
+      return fromOuro(project, ouroYield.data, ouroNext.data, ouroCycles.data?.epochs ?? null, now);
     }
-    return fromSummary(project, summary.data?.tokens?.[project.key as "index" | "hood10"]);
+    const cycles = project.key === "index" ? (indexCycles.data?.epochs ?? null) : null;
+    return fromSummary(project, summary.data?.tokens?.[project.key as "index" | "hood10"], cycles, now);
   });
 
   return {

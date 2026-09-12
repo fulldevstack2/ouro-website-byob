@@ -61,7 +61,8 @@ export type Metric =
   | "recipients"
   | "ratePerLine"
   | "apr"
-  | "nextPayout"
+  | "payoutRhythm"
+  | "lastPaid"
   | "tax"
   | "wallet";
 
@@ -76,7 +77,8 @@ export const METRICS: { key: Metric; label: string; hint?: string }[] = [
   { key: "recipients", label: "Wallets paid", hint: "in the most recent cycle" },
   { key: "ratePerLine", label: "Rate per line, per day" },
   { key: "apr", label: "APR", hint: "annualised from the basis shown" },
-  { key: "nextPayout", label: "Next payout" },
+  { key: "payoutRhythm", label: "How often it pays", hint: "measured, not the configured interval" },
+  { key: "lastPaid", label: "Last paid" },
   { key: "tax", label: "Tax funding it" },
   { key: "wallet", label: "Per-wallet history" },
 ];
@@ -163,7 +165,8 @@ export const PROJECTS: Project[] = [
       recipients: { state: "measured" },
       ratePerLine: { state: "measured", note: "cycles are allocated pro-rata by balance" },
       apr: { state: "measured", basisDays: 7 },
-      nextPayout: { state: "measured", note: "nextDistribution() — an exact due time" },
+      payoutRhythm: { state: "measured", note: "measured from its own cycles" },
+      lastPaid: { state: "measured" },
       tax: {
         state: "estimated",
         note: "3% of the ETH leg of every swap on the hook pool; the hook emits nothing to settle it",
@@ -186,8 +189,17 @@ export const PROJECTS: Project[] = [
       "Taxes its own trades and splits the proceeds: half to holders as an airdrop, half into liquidity the protocol keeps and earns fees on.",
     coverage: {
       price: MARKET_MEASURED,
-      marketCap: MARKET_MEASURED,
-      volume24h: MARKET_MEASURED,
+      // NOT a fully diluted value. /v1/summary carries FDV for INDEX and HOOD10 but does not cover
+      // $OURO, so this cell is the eligible supply marked at spot — what the yield is a yield ON,
+      // which is a smaller number than FDV and a different claim. Marked rather than quietly shown.
+      marketCap: {
+        state: "estimated",
+        note: "eligible supply at spot, not fully diluted — the summary endpoint does not serve $OURO's FDV",
+      },
+      volume24h: {
+        state: "not_indexed",
+        note: "$OURO's pool volume is not carried on the summary endpoint",
+      },
       paidAllTime: { state: "measured", note: "from the Airdropper's own events" },
       paid24h: { state: "measured" },
       assets: { state: "measured", note: "per cycle, per asset" },
@@ -202,7 +214,8 @@ export const PROJECTS: Project[] = [
       },
       // The number the whole site can most easily mislead with. It ships with its window attached.
       apr: { state: "measured", basisDays: 7, historyDays: 9.2, note: "young — the rate tracks launch volume" },
-      nextPayout: { state: "measured", note: "wall-clock keeper wake, not an on-chain clock" },
+      payoutRhythm: { state: "measured", note: "measured from its own cycles" },
+      lastPaid: { state: "measured" },
       tax: { state: "measured" },
       wallet: { state: "measured", note: "every receipt, with the transaction that paid it" },
     },

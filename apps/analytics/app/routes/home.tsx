@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 
 import type { Route } from "./+types/home";
 import { ago, fmtNum, fmtUsd } from "@ouro/monitor-client";
+import { fmtHours } from "~/lib/cadence";
 import { Basis, DASH, Figure } from "~/components/Coverage";
 import { sortRows, useProjects, type ProjectRow } from "~/lib/projects";
 import { DEFAULT_SORT, METRICS, SORT_LABELS, type Metric, type SortKey } from "~/registry";
@@ -37,10 +38,6 @@ function cell(metric: Metric, row: ProjectRow): { value: string | null; extra?: 
     case "marketCap":
       return {
         value: row.marketCapUsd === null ? null : fmtUsd(row.marketCapUsd, { compact: true }),
-        // $OURO's figure is the eligible supply at spot, not a fully diluted value: it is what the
-        // yield is a yield ON. Labelling it in the cell keeps the column honest rather than making
-        // three different quantities look like one.
-        extra: p.key === "ouro" ? <span className="basis">eligible supply at spot</span> : undefined,
       };
 
     case "volume24h":
@@ -53,7 +50,13 @@ function cell(metric: Metric, row: ProjectRow): { value: string | null; extra?: 
       };
 
     case "paidAllTime":
-      return { value: row.paidAllTimeUsd === null ? null : fmtUsd(row.paidAllTimeUsd, { compact: true }) };
+      return {
+        value: row.paidAllTimeUsd === null ? null : fmtUsd(row.paidAllTimeUsd, { compact: true }),
+        // A floor, not a total, when the cycle page came back full. Never let that pass silently.
+        extra: row.paidAllTimeTruncated ? (
+          <span className="basis">at least — older cycles beyond the page were not summed</span>
+        ) : undefined,
+      };
 
     case "paid24h":
       return { value: row.paid24hUsd === null ? null : fmtUsd(row.paid24hUsd, { compact: true }) };
@@ -95,14 +98,47 @@ function cell(metric: Metric, row: ProjectRow): { value: string | null; extra?: 
         extra: <Basis basisDays={row.aprBasisDays} historyDays={row.aprHistoryDays} />,
       };
 
-    case "nextPayout": {
-      const every =
-        p.cadenceSec % 3600 === 0 ? `every ${p.cadenceSec / 3600} h` : `every ${Math.round(p.cadenceSec / 60)} min`;
-      const due =
-        row.nextPayoutTs === null ? null : ago(row.nextPayoutTs - Math.floor(Date.now() / 1000));
+    /**
+     * What the project's payout rhythm ACTUALLY is.
+     *
+     * This replaced "every 1 h", which came from the configured interval and described a schedule
+     * none of these projects keeps — INDEX's real gaps run p50 1.0h to a 58.9h max. The median alone
+     * would be equally misleading, so the spread rides with it.
+     */
+    case "payoutRhythm": {
+      const c = row.cadence;
+      if (c.medianH === null) return { value: null };
       return {
-        value: every,
-        extra: due ? <span className="basis">next in ~{due}</span> : undefined,
+        value: `~${fmtHours(c.medianH)}`,
+        extra: (
+          <span className="basis">
+            typical · 90% within {fmtHours(c.p90H)} · longest {fmtHours(c.maxH)} ({c.samples} cycles)
+          </span>
+        ),
+      };
+    }
+
+    /**
+     * Elapsed since the last payout, and whether that is unusual FOR THIS PROJECT.
+     *
+     * Replaces a "next in ~N" countdown that was computed from the contract's declared due time and
+     * clamped negatives to zero — so INDEX, 10.4h past due, rendered "next in ~0 s". Elapsed time is
+     * a fact; a predicted next payout, for a keeper-driven crank with no permissionless fallback,
+     * is not.
+     */
+    case "lastPaid": {
+      const c = row.cadence;
+      if (c.sinceLastH === null) return { value: null };
+      return {
+        value: `${fmtHours(c.sinceLastH)} ago`,
+        extra:
+          c.quieterThanUsual === null ? undefined : (
+            <span className="basis">
+              {c.quieterThanUsual
+                ? `longer than 90% of its recent gaps (${fmtHours(c.p90H)})`
+                : `within its usual range (90% under ${fmtHours(c.p90H)})`}
+            </span>
+          ),
       };
     }
 
@@ -249,7 +285,7 @@ export default function Home() {
         <span>Read from Robinhood Chain · nothing reported by hand</span>
         <span>Operated by Ouro · unaffiliated with the other projects listed</span>
         <span>{DASH} means not measured, not zero</span>
-        <span>Price, value and volume: GeckoTerminal, polled every 5 min</span>
+        <span>Prices and volume: GeckoTerminal / DexScreener, polled every 5 min</span>
       </footer>
     </>
   );
