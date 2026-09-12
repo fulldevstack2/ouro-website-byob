@@ -81,7 +81,7 @@ export const RESERVE_POOLS: AddressEntry[] = [
 /**
  * A token the airdrop pays in, for marking a wallet's holdings on /portfolio.
  *
- * The basket is CASHCAT and PONS today. WETH is listed because the fee leg arrives as the pools
+ * The basket is CASHCAT, PONS and AI today. WETH is listed because the fee leg arrives as the pools
  * earned it (docs §05: "often basket tokens plus WETH") and the airdrop wallet's queue already
  * carries a WETH line. ouro-monitor names every token a wallet holds and every token a payment
  * carried, so a new constituent shows up on the page before it is added here; this list is where
@@ -100,6 +100,7 @@ export interface BasketToken {
 export const BASKET_TOKENS: BasketToken[] = [
   { symbol: "CASHCAT", name: "Cash Cat", address: "0x020bfC650A365f8BB26819deAAbF3E21291018b4", decimals: 18, icon: "/tokens/cashcat.jpg" },
   { symbol: "PONS", name: "Pons", address: "0x39dBED3a2bd333467115dE45665cC57F813C4571", decimals: 18, icon: "/tokens/pons.png" },
+  { symbol: "AI", name: "Artificial Inu", address: "0x2E8c31162b855A2ffa90F6F8634643Ad6F111e18", decimals: 18, icon: "/tokens/ai.png" },
   { symbol: "WETH", name: "Wrapped Ether", address: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73", decimals: 18, icon: "/tokens/weth.svg" },
 ];
 
@@ -148,6 +149,6 @@ export const PARAMETERS: ParameterRow[] = [
   { parameter: "Fee collection threshold", value: "$100 of accrued LP fees", mutable: "Protocol policy" },
   { parameter: "Airdrop cadence", value: "Every 2 hours", mutable: "Protocol policy" },
   { parameter: "Stream length", value: "~48 hours per collection", mutable: "Protocol policy" },
-  { parameter: "Basket", value: "Opens with CASHCAT + PONS, toward ~5", mutable: "Protocol policy" },
+  { parameter: "Basket", value: "CASHCAT + PONS + AI, toward ~5", mutable: "Protocol policy" },
   { parameter: "Chain", value: "Robinhood Chain (4663)", mutable: "No" },
 ];
