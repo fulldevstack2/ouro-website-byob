@@ -16,6 +16,7 @@ import { injected } from "wagmi/connectors";
 import { createConfig } from "wagmi";
 
 import { site } from "~/content/site";
+import { robinhoodWallet } from "~/lib/robinhoodWallet";
 import { rpcTransport } from "~/lib/rpc";
 
 /**
@@ -47,15 +48,18 @@ const projectId = "0031ff4cbef4968b799fc2910156439c";
 export const hasWalletConnect = projectId.length > 0;
 
 /**
- * Curated list on top of RainbowKit's stock Popular set. OKX / Bitget / Trust / Binance ship with
- * WalletConnect deep links so the compact modal works on phone (QR + open-in-app). Rabby is
- * extension-only; RainbowKit still shows it on desktop and installed browsers via EIP-6963.
- * WalletConnect stays last among the named apps as the catch-all for any other mobile wallet.
+ * Curated list on top of RainbowKit's stock Popular set. Robinhood Wallet is first because this
+ * site runs on Robinhood Chain and RH is not in RainbowKit's built-ins (custom connector in
+ * robinhoodWallet.ts). OKX / Bitget / Trust / Binance ship with WalletConnect deep links so the
+ * compact modal works on phone (QR + open-in-app). Rabby is extension-only; RainbowKit still shows
+ * it on desktop and installed browsers via EIP-6963. WalletConnect stays last among the named apps
+ * as the catch-all for any other mobile wallet.
  */
 const wallets = [
   {
     groupName: "Popular",
     wallets: [
+      robinhoodWallet,
       okxWallet,
       metaMaskWallet,
       trustWallet,
