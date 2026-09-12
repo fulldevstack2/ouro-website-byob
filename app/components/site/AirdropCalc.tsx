@@ -28,7 +28,9 @@ const LINE = OURO.thresholdTokens;
 const PRESETS = [LINE, 250_000, 500_000, 1_000_000, 5_000_000] as const;
 const MAX_HOLD = 50_000_000;
 
-const BASKET_ICON: Record<string, string | undefined> = Object.fromEntries(BASKET_TOKENS.map((b) => [b.symbol, b.icon]));
+/** Site-known basket marks, keyed by address — the monitor may still return a null symbol for a new leg. */
+const BASKET_BY_ADDR = new Map(BASKET_TOKENS.map((b) => [b.address.toLowerCase(), b]));
+const BASKET_ORDER = new Map(BASKET_TOKENS.map((b, i) => [b.address.toLowerCase(), i]));
 
 /**
  * Landing-page airdrop calculator, in the spirit of HOOD10's #calc: drag a holding size, see what
@@ -64,12 +66,22 @@ export function AirdropCalc() {
   const slice = useMemo(() => {
     if (!last?.assets?.length || share === null) return [];
     return last.assets
-      .filter((a) => a.amountF > 0)
-      .map((a) => ({
-        symbol: a.symbol ?? a.address.slice(0, 6),
-        amountF: a.amountF * share,
-        usd: a.usd === null ? null : a.usd * share,
-      }));
+      .filter((a) => a.amountF > 1e-6)
+      .map((a) => {
+        const known = BASKET_BY_ADDR.get(a.address.toLowerCase());
+        return {
+          address: a.address.toLowerCase(),
+          symbol: known?.symbol ?? a.symbol ?? a.address.slice(0, 6),
+          icon: known?.icon,
+          amountF: a.amountF * share,
+          usd: a.usd === null ? null : a.usd * share,
+        };
+      })
+      .sort((a, b) => {
+        const ia = BASKET_ORDER.get(a.address) ?? 999;
+        const ib = BASKET_ORDER.get(b.address) ?? 999;
+        return ia - ib || a.symbol.localeCompare(b.symbol);
+      });
   }, [last, share]);
 
   const status = !MONITOR_API
@@ -197,7 +209,7 @@ export function AirdropCalc() {
           >
             {slice.map((s) => (
               <div
-                key={s.symbol}
+                key={s.address}
                 style={{
                   border: hairline,
                   borderRadius: "var(--radius-sm)",
@@ -206,7 +218,7 @@ export function AirdropCalc() {
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <TokenIcon symbol={s.symbol} src={BASKET_ICON[s.symbol]} size={18} />
+                  <TokenIcon symbol={s.symbol} src={s.icon} size={18} />
                   <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: "var(--tracking-caps)", textTransform: "uppercase" }}>{s.symbol}</span>
                 </div>
                 <div style={{ ...mono, marginTop: 8, fontSize: 16, fontWeight: 600 }}>{fmtTokens(s.amountF)}</div>
