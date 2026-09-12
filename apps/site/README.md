@@ -1,5 +1,9 @@
 # Ouro website
 
+> **This app moved into a workspace.** It is now `apps/site` beside `apps/analytics`, over the shared
+> `packages/ds` and `packages/monitor-client`. Paths in this file are relative to `apps/site` unless they
+> start with `packages/`. See the workspace README at the repo root for the layout and the deploy change.
+
 Marketing site + docs for **Ouro ($OURO)**, *own the fee generating layer of Robinhood Chain*, on Robinhood Chain (4663).
 
 Built from the Claude Design export in `../ouros-website-claude-design/` ("Ouro Site" design component + the
@@ -11,7 +15,7 @@ Ouro design system). This repo is the React implementation of that design.
 - **Static output.** `react-router.config.ts` sets `ssr: false` + `prerender: true`: every route is pre-rendered to HTML at build time and hydrates into a client-side app. No server to run.
 - **No CSS framework.** Styling is the design system's CSS custom-property tokens plus small component-scoped inline styles, exactly as in the design export.
 - **Two deliberate departures from the export** (reviewer feedback, 2026-08-30): the page ground is a warm grey
-  (`--page: #EEEBE5`, white `--paper` cards sit on it; see the note at the top of `styles/tokens/colors.css`), and the
+  (`--page: #EEEBE5`, white `--paper` cards sit on it; see the note at the top of `packages/ds/src/styles/tokens/colors.css`), and the
   hero's right column is **Ouro's plate**, `components/site/HeroRing.tsx`: guilloché — the engine-turned line work on a
   banknote or share certificate — engraved live on a canvas (`lib/guilloche.ts` is the pure maths). Two families of lathe
   traces turn against each other in two inks, one lit line laps the outer figure for ever and lights the Loop's four
@@ -36,29 +40,28 @@ app/
   root.tsx                 document shell: fonts, <SiteNav/> + <main/> + <SiteFooter/>, 404/error boundary
   routes.ts                /  /vaults  /monitor  /ledger  /airdrops  /portfolio  /docs
   routes/{home,vaults,monitor,ledger,docs}.tsx   /monitor and /ledger read ../ouro-monitor over HTTP
-                           (app/lib/monitorApi.ts, MONITOR_API_URL at build): /monitor = the upstream dividend
+                           (@ouro/monitor-client, MONITOR_API_URL at build): /monitor = the upstream dividend
                            tokens the vaults farm (/v1/summary), /ledger = Ouro's own liquidity (/v1/reserve)
   routes/portfolio.tsx     the connected wallet's view (?address=0x… for another, unadvertised; see "The portfolio" below):
                            components/portfolio/ (PortfolioFrame = the layout the prerender writes, PortfolioLive =
                            the client-only wallet half, ShareCard = the share dialog), hooks/usePortfolio.ts
                            (ouro-monitor's /v1/portfolio/{address}, polled, and its paged /airdrops history),
                            lib/shareCard.ts (the card, painted on a canvas) + lib/qr.ts (its code)
-  components/ds/           the Ouro design system: Badge, Button, Callout, Card, Stat, LedgerTable,
-                           TokenChip, Input, Select, Tabs (ported from _ds_bundle.js, typed)
+                           (the design system itself now lives in packages/ds — see the workspace README)
   components/site/         chrome + layout primitives: SiteNav, SiteFooter, Container, Grid, SectionHead,
                            PageHeader, MicroLabel, NumberedRow, KVRow, HelpTip, LoopRing, CrankFeed,
                            HeroRing (the guilloché plate in the home hero)
   lib/guilloche.ts         the plate's maths: one lathe trace, its family's index step, an SVG path
-  lib/monitorApi.ts        ouro-monitor client: useMonitor() poller, the response types, the formatters
+                           (the monitor client now lives in packages/monitor-client)
   content/site.ts          name, tagline, X handle, chain, `auditPublished`, external links (TODOs)
   content/protocol.ts      protocol contract list (TBD until launch), the Reserve's pools, canonical infra, parameters
   content/vaults.ts        the nine vaults (OURO / HOOD10 / INDEX × pays in itself / WETH / USDG): status, terms, addresses; the OURO three are live
   hooks/useClock.ts        the "HH:MM:SS UTC" ticker on the Ledger / crank feed
-  styles/tokens/*.css      design tokens, copied verbatim from the export
+                           (design tokens now live in packages/ds/src/styles/tokens)
   styles/site.css          the design's <helmet> rules, hover states, layout + responsive collapse
   app.css                  imports the above
 public/favicon.svg         placeholder (the brand has no logo; wordmark initial)
-netlify.toml               static deploy: publish build/client, SPA fallback for unknown URLs
+netlify.toml               static deploy; Netlify base directory must be set to apps/site
 ```
 
 ### How the design maps to code
@@ -66,7 +69,7 @@ netlify.toml               static deploy: publish build/client, SPA fallback for
 | Claude Design                                   | Here                                                                 |
 | ----------------------------------------------- | -------------------------------------------------------------------- |
 | `<sc-if value="{{ isHome }}">` … four views     | four routes in `app/routes.ts`; nav uses `<NavLink>` (active state)   |
-| `<x-import component-from-global-scope="…">`    | `import { Badge, Button, … } from "~/components/ds"`                  |
+| `<x-import component-from-global-scope="…">`    | `import { Badge, Button, … } from "@ouro/ds"`                         |
 | `style-hover="…"`                               | `.nav-link:hover`, `.foot-link:hover`, `.toc-link:hover` in `site.css` |
 | `DCLogic` state (`view`, `now`, `connected`)    | routes, `useClock()`, local `useState` in `routes/vaults.tsx`          |
 | props `xHandle`, `auditPublished`               | `content/site.ts`                                                     |
@@ -241,7 +244,7 @@ written rather than installed so one 21-character URL does not pull a dependency
   For a local build against the final domain: `SITE_URL=https://example.com pnpm build`.
 - **Post-build** (`scripts/postbuild.mjs`): removes `build/server`, copies the SPA fallback to `404.html` (Netlify
   returns a real 404 status for unknown URLs), writes `robots.txt` and `sitemap.xml`.
-- **Fonts** are self-hosted Latin subsets in `public/fonts` (`app/styles/fonts.css`), preloaded from `root.tsx`; no
+- **Fonts** are self-hosted Latin subsets in `public/fonts` (`packages/ds/src/styles/fonts.css`), preloaded from `root.tsx`; no
   third-party CSS blocks the first paint.
 - **Open Graph cards** live in `public/og`; regenerate after copy changes with `node scripts/og-cards.mjs`
   (renders `scripts/og/card.html` with headless Chrome).
