@@ -46,7 +46,7 @@ export const TOKENS: IndexToken[] = [
     siteUrl: "/",
     docsUrl: "/docs/",
     taxLine: "5% of the ETH leg on every buy and sell",
-    dividend: "Ouro's airdrop: the Reserve basket (CASHCAT and PONS today), in kind",
+    dividend: "Ouro's airdrop: the Reserve basket (CASHCAT, PONS and AI today), in kind",
     cadence: "Every two hours, each collection streamed over two days",
     threshold: "100,000 OURO (0.01% of supply)",
     thresholdTokens: 100_000,

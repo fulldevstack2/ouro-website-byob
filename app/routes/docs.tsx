@@ -256,7 +256,7 @@ export default function Docs() {
                 ["Fees are collected once they reach", `$${COLLECT_THRESHOLD_USD} accrued`],
                 ["A collection then splits", `$${COLLECTION_SPLIT_USD.holders} airdropped / $${COLLECTION_SPLIT_USD.reserve} compounded`],
                 ["A collection is streamed over", "about 48 hours"],
-                ["Assets paid today", "CASHCAT + PONS"],
+                ["Assets paid today", "CASHCAT + PONS + AI"],
               ]}
             />
             <P style={{ marginTop: 12 }}>
