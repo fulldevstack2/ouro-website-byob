@@ -233,22 +233,40 @@ export const PROJECTS: Project[] = [
     operator: "third-party",
     blurb:
       "Taxes its own trades and distributes a basket of ten constituents to holders through a Merkle distributor, one period at a time.",
-    notIndexedReason: "not backfilled yet — 16.07M blocks of history to replay",
+    // Backfilling since 2026-09-12. Remove this line when the cursor reaches head; while it is set,
+    // the column head says so once instead of every empty cell repeating it.
+    notIndexedReason: "backfilling its 16.4M-block history — figures cover the periods read so far",
     coverage: {
-      // Spread FIRST, then override. The other way round, `allNotIndexed` silently overwrites the
-      // three market rows below and the page claims we cannot read HOOD10's price — which we can.
-      // Set the eta from the Phase 0 spike's measurement, and then hit it. A badge with no date on
-      // a neutral scoreboard ages into exactly the accusation it was meant to avoid.
-      ...allNotIndexed(undefined),
-      // Market data does not go through the indexer, so these three are live even while the rest is not.
       price: MARKET_MEASURED,
       marketCap: MARKET_MEASURED,
       volume24h: MARKET_MEASURED,
-      // The one thing worth stating positively about it: once indexed, its tax is better than INDEX's.
-      tax: {
-        state: "not_indexed",
-        note: "will be exact when indexed — the hook emits FeeAccrued per swap",
+      /**
+       * Indexed, and genuinely NOT valued.
+       *
+       * HOOD10 marks its payouts to GeckoTerminal daily closes, and the closes for its ten basket
+       * constituents at its 2026-08 periods do not resolve — so the epochs are real and the dollars
+       * are unknown. `/v1/summary` sums `paid_usd` to 0 against four closed periods that paid 576,
+       * 602, 676 and 652 wallets. lib/projects.ts withholds that zero rather than publishing it.
+       */
+      paidAllTime: {
+        state: "estimated",
+        note: "periods are indexed but their payouts could not be priced — wallet counts are exact, dollars are not available",
       },
+      paid24h: {
+        state: "estimated",
+        note: "same: the periods are read, the dollar value of their payouts is not",
+      },
+      assets: { state: "measured", note: "the ten basket constituents, per period" },
+      holders: { state: "measured", note: "replayed from the token's own transfers" },
+      recipients: { state: "measured", note: "wallets the last period actually paid" },
+      // Both derive from paid_usd, which is unavailable for the reason above.
+      ratePerLine: { state: "not_indexed", note: "needs a priced payout; see Airdropped" },
+      apr: { state: "not_indexed", note: "needs a priced payout; see Airdropped" },
+      payoutRhythm: { state: "measured", note: "measured from the periods read so far" },
+      lastPaid: { state: "measured" },
+      // The one place HOOD10 is better instrumented than INDEX: its hook emits FeeAccrued per swap.
+      tax: { state: "measured", note: "exact — the hook emits FeeAccrued per swap" },
+      wallet: { state: "not_indexed", note: "payout receipts are not indexed for this project" },
     },
   },
 ];

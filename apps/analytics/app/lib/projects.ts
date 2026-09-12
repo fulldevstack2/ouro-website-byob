@@ -72,6 +72,21 @@ export interface ProjectRow {
   cadence: CadenceStats;
 }
 
+/**
+ * A paid total, or null when the zero is ours rather than the project's.
+ *
+ * `{ epochs: 4, paid_usd: 0 }` means four payout cycles were indexed and none could be valued —
+ * unknown, not nothing. `{ epochs: 0, paid_usd: 0 }` means no cycle happened in the window, which
+ * is a real zero and safe to show.
+ */
+function unvaluedZero(indexedTo: number | null, sum: { epochs?: number; paid_usd?: number | null } | undefined): number | null {
+  if (indexedTo === null || !sum) return null;
+  const usd = sum.paid_usd ?? null;
+  if (usd === null) return null;
+  if (usd === 0 && (sum.epochs ?? 0) > 0) return null;
+  return usd;
+}
+
 /** An empty row: every figure null, so a project with no data renders dashes, never zeroes. */
 function blankRow(project: Project): ProjectRow {
   return {
@@ -116,11 +131,23 @@ function fromSummary(project: Project, t: TokenSummary | undefined, cycles: Ouro
     marketCapUsd: m?.fdv_usd ?? null,
     volume24hUsd: m?.vol24_all_usd ?? null,
     taxedShare: m?.taxed_share ?? null,
-    // `indexedTo === null` means the source has never synced. Its paid totals come back as a
-    // genuine 0 from the SQL sum, which would render as "this project has paid nothing" — a
-    // statement about the project rather than about us. Withhold instead.
-    paidAllTimeUsd: t.indexedTo === null ? null : (t.paid?.all?.paid_usd ?? null),
-    paid24hUsd: t.indexedTo === null ? null : (t.paid?.h24?.paid_usd ?? null),
+    /**
+     * Zero is a claim about the project; withhold it unless we can stand behind it.
+     *
+     * Two ways a zero arrives here and neither means "this project has paid nothing":
+     *
+     *  · `indexedTo === null` — the source has never synced, and the SQL sum over no rows is 0.
+     *  · Epochs ARE indexed but carry no USD value. HOOD10 does exactly this: it marks payouts to
+     *    GeckoTerminal daily closes, and the closes for its ten basket constituents at its 2026-08
+     *    periods do not resolve, so `paid_usd` sums to 0 against real epochs that really paid —
+     *    576, 602, 676 and 652 wallets in the first four. Rendering that as $0 would be a false
+     *    statement about a live competitor.
+     *
+     * A project that genuinely paid nothing in a window has no epochs in it, which `epochs === 0`
+     * already distinguishes.
+     */
+    paidAllTimeUsd: unvaluedZero(t.indexedTo, t.paid?.all),
+    paid24hUsd: unvaluedZero(t.indexedTo, t.paid?.h24),
     paidPerDayUsd: t.yield?.paidUsdPerDay ?? null,
     assets: t.lastEpoch?.assets?.map((a) => ({ address: a.address, symbol: a.symbol })) ?? null,
     holdersAboveLine: t.holders?.aboveLine ?? null,
@@ -225,8 +252,10 @@ export function useProjects(intervalMs = 30_000): ProjectsState {
    * since the server can compute these percentiles once instead of every browser doing it.
    */
   const indexCycles = useMonitor<{ epochs: OuroCycle[] }>("/v1/index/epochs?limit=200", intervalMs);
+  /** HOOD10's periods, live since its backfill was re-enabled on 2026-09-12. */
+  const hood10Cycles = useMonitor<{ epochs: OuroCycle[] }>("/v1/hood10/epochs?limit=200", intervalMs);
 
-  const polls = [summary, ouroYield, ouroNext, ouroCycles, indexCycles];
+  const polls = [summary, ouroYield, ouroNext, ouroCycles, indexCycles, hood10Cycles];
   const configured = !polls.some((p) => p.error === "not-configured");
 
   const now = Math.floor(Date.now() / 1000);
@@ -234,7 +263,12 @@ export function useProjects(intervalMs = 30_000): ProjectsState {
     if (project.key === "ouro") {
       return fromOuro(project, ouroYield.data, ouroNext.data, ouroCycles.data?.epochs ?? null, now);
     }
-    const cycles = project.key === "index" ? (indexCycles.data?.epochs ?? null) : null;
+    const cycles =
+      project.key === "index"
+        ? (indexCycles.data?.epochs ?? null)
+        : project.key === "hood10"
+          ? (hood10Cycles.data?.epochs ?? null)
+          : null;
     return fromSummary(project, summary.data?.tokens?.[project.key as "index" | "hood10"], cycles, now);
   });
 
