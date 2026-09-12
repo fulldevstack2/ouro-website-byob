@@ -42,6 +42,11 @@ export interface MetricView {
   badge?: { tone: BadgeTone; label: string };
   /** A sentence under the figure saying what it is. */
   note: ReactNode;
+  /**
+   * When set, replaces the card's fixed title (e.g. rate card becomes vault rewards when the
+   * airdrop rate does not apply).
+   */
+  label?: string;
 }
 
 export interface HistoryRowView {
@@ -122,7 +127,7 @@ export function ViewingNote({ address }: { address: Address }) {
 
 function Metric({ n, label, m }: { n: string; label: string; m: MetricView }) {
   return (
-    <Card label={`${n} · ${label}`}>
+    <Card label={`${n} · ${m.label ?? label}`}>
       <Stat value={m.value} unit={m.unit} footnote={m.footnote} />
       {m.badge && (
         <div style={{ marginTop: 12, minWidth: 0, maxWidth: "100%" }}>
