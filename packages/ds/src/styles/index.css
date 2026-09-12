@@ -1,0 +1,9 @@
+/* The whole design system's CSS: the self-hosted faces, then the tokens set in them.
+   An app imports this once, from its own root stylesheet, and then adds its own layout on top.
+
+   fonts.css points at absolute "/fonts/…woff2" URLs, so every app has to serve those four files
+   from its own public/fonts directory. They are duplicated per app on purpose: ~100 KB of pinned
+   subsets, against a copy step that can silently not run, is a trade worth making. If the faces
+   ever change, change them in each app's public/fonts. */
+@import "./fonts.css";
+@import "./tokens.css";

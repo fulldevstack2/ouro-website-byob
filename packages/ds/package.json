@@ -1,0 +1,31 @@
+{
+  "name": "@ouro/ds",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The Ouro design system: the components ported from the Claude Design export, and the tokens and faces they are set in. Consumed as TypeScript source \u2014 Vite compiles it through the workspace symlink, so there is no build step and no dist to keep in step.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles/index.css",
+    "./tokens.css": "./src/styles/tokens.css"
+  },
+  "types": "./src/index.ts",
+  "files": [
+    "src",
+    "assets"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router": "^8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3",
+    "react-router": "^8"
+  }
+}

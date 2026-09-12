@@ -1,0 +1,4 @@
+/* The design system (self-hosted faces + tokens) is the one copy shared with apps/site. This app
+   adds only its own layout on top — same materials, different room. */
+@import "@ouro/ds/styles.css";
+@import "./styles/analytics.css";

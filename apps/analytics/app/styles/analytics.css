@@ -1,0 +1,290 @@
+/* analytics.ourolayer.com — layout only. Every colour, face and step comes from @ouro/ds tokens, so
+   this file never hard-codes a hex: the two properties share one palette by construction. */
+
+body {
+  background: var(--surface-page);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; }
+
+.container {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding-inline: 20px;
+}
+
+/* ── chrome ─────────────────────────────────────────────────────────────── */
+.nav {
+  border-bottom: 1px solid var(--border-hairline);
+  background: var(--surface-nav);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-block: 14px;
+}
+.wordmark {
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-md);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.wordmark .dim { color: var(--text-muted); font-weight: var(--weight-regular); }
+
+/* The operator disclosure. It is in the chrome on every page, not in an about page, because this
+   site ranks projects it does not run on a domain one of them owns. */
+.disclosure {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+.disclosure a { color: var(--text-accent); text-underline-offset: 2px; }
+
+/* ── page header ────────────────────────────────────────────────────────── */
+.page-head { padding-block: 44px 28px; }
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-accent);
+  margin: 0 0 14px;
+}
+h1 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+  font-size: clamp(30px, 5vw, var(--text-3xl));
+  line-height: var(--leading-display);
+  letter-spacing: var(--tracking-display);
+  margin: 0;
+  text-wrap: balance;
+}
+.lede {
+  font-size: var(--text-md);
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin: 18px 0 0;
+  max-width: 62ch;
+  text-wrap: pretty;
+}
+
+/* ── status strip ───────────────────────────────────────────────────────── */
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 24px;
+  padding-block: 16px;
+  border-block: 1px solid var(--border-hairline);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+.strip b { font-weight: var(--weight-medium); color: var(--text-secondary); }
+
+/* ── the comparison table ───────────────────────────────────────────────── */
+.section { padding-block: 36px; }
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+h2 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  margin: 0;
+}
+.sub {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin: 0 0 4px;
+  max-width: 68ch;
+}
+
+.table-scroll { overflow-x: auto; margin-top: 18px; }
+
+table.matrix {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 680px;
+  font-size: var(--text-sm);
+}
+.matrix th,
+.matrix td {
+  text-align: left;
+  padding: 12px 16px;
+  vertical-align: top;
+}
+.matrix thead th {
+  border-bottom: 1px solid var(--border-strong);
+  padding-bottom: 10px;
+}
+.matrix tbody tr { border-bottom: 1px solid var(--border-hairline); }
+.matrix tbody tr:last-child { border-bottom: 0; }
+.matrix tbody tr:hover { background: var(--surface-tint); }
+
+.metric-name {
+  color: var(--text-secondary);
+  width: 26%;
+  min-width: 190px;
+}
+.metric-name .hint {
+  display: block;
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  margin-top: 2px;
+}
+
+/* Figures are mono and tabular so columns align down the page — the house rule from the site:
+   numbers and addresses read as data. */
+.cell {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.cell.dash { color: var(--text-faint); }
+
+/* ── project column heads ───────────────────────────────────────────────── */
+.phead { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.phead .sym {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-base);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-primary);
+}
+.phead .who {
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  font-family: var(--font-body);
+  letter-spacing: 0;
+}
+
+/* ── coverage marks ─────────────────────────────────────────────────────────
+   Status is carried by SHAPE and TEXT, never by hue alone. The brand's green, amber and red fail
+   colour-vision separation against one another (deutan ΔE 3.0 for the red/amber pair), so a
+   traffic-light here would be unreadable for some readers and meaningless in greyscale. A measured
+   figure gets no mark at all — the number is the statement; only a qualification needs a label. */
+.mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 2px;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+.mark.estimated {
+  border: 1px solid var(--border-accent);
+  background: var(--accent-faint);
+  color: var(--text-accent);
+}
+.mark.not-indexed {
+  border: 1px dashed var(--border-soft);
+  background: transparent;
+  color: var(--text-muted);
+}
+.mark-note {
+  display: block;
+  font-family: var(--font-body);
+  font-size: var(--text-2xs);
+  line-height: 1.4;
+  color: var(--text-faint);
+  letter-spacing: 0;
+  white-space: normal;
+  margin-top: 3px;
+  max-width: 30ch;
+}
+
+/* The basis rides IN the row, not in a tooltip: a rate without its window is half the figure, and
+   this page puts other people's rates next to ours. */
+.basis {
+  display: block;
+  font-family: var(--font-body);
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  letter-spacing: 0;
+  white-space: normal;
+  margin-top: 3px;
+}
+
+/* ── sort control ───────────────────────────────────────────────────────── */
+.sortbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+.sortbar label { letter-spacing: 0.04em; text-transform: uppercase; font-size: var(--text-2xs); }
+.sortbar select {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  padding: 4px 8px;
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  background: var(--surface-card);
+  color: var(--text-primary);
+}
+.sortbar select:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* ── notes + footer ─────────────────────────────────────────────────────── */
+.note {
+  border-left: 2px solid var(--border-soft);
+  padding-left: 16px;
+  margin: 22px 0;
+  max-width: 66ch;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+.note strong { color: var(--text-primary); font-weight: var(--weight-semibold); }
+
+.foot {
+  border-top: 1px solid var(--border-hairline);
+  margin-top: 30px;
+  padding-block: 26px 50px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+}
+.foot a { color: var(--text-muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

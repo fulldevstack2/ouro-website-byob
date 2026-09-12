@@ -1,30 +1,18 @@
 {
-  "name": "ouro-website",
+  "name": "ouro-web",
   "private": true,
   "type": "module",
+  "description": "Workspace root: ourolayer.com (apps/site), the airdrop analytics dashboard (apps/analytics), and the design system both share (packages/ds).",
+  "engines": { "node": ">=20" },
   "scripts": {
-    "dev": "react-router dev",
-    "build": "react-router build && node scripts/postbuild.mjs",
-    "preview": "sirv build/client --single __spa-fallback.html --port 4173",
-    "typecheck": "react-router typegen && tsc"
-  },
-  "dependencies": {
-    "@rainbow-me/rainbowkit": "^2.2.11",
-    "@tanstack/react-query": "^5.102.8",
-    "isbot": "^5",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7",
-    "react-router": "^8",
-    "viem": "^2.56.3",
-    "wagmi": "^2.19.5"
+    "dev": "pnpm --filter @ouro/site dev",
+    "dev:analytics": "pnpm --filter @ouro/analytics dev",
+    "build": "pnpm --recursive --filter './apps/*' build",
+    "build:site": "pnpm --filter @ouro/site build",
+    "build:analytics": "pnpm --filter @ouro/analytics build",
+    "typecheck": "pnpm --recursive typecheck"
   },
   "devDependencies": {
-    "@react-router/dev": "^8",
-    "@types/node": "^22",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "sirv-cli": "^3.0.1",
-    "typescript": "^5.9.3",
-    "vite": "^8.0.3"
+    "typescript": "^5.9.3"
   }
 }

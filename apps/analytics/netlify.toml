@@ -1,0 +1,16 @@
+# Netlify site for analytics.ourolayer.com — the SECOND site off this repo.
+#
+# MONOREPO: set this site's **Base directory** to `apps/analytics` in the Netlify UI (Site
+# configuration → Build & deploy → Build settings). Netlify then reads THIS file, and the paths below
+# stay relative to this app. `pnpm install` run from here walks up to the workspace root and installs
+# the whole workspace, which is what `@ouro/ds` and `@ouro/monitor-client` need to resolve.
+[build]
+  command = "pnpm run build"
+  publish = "build/client"
+
+[build.environment]
+  SITE_URL = "https://analytics.ourolayer.com"
+
+  # Origin of ouro-monitor, inlined at BUILD time (vite.config.ts → __MONITOR_API__), so a deploy is
+  # required to change it. Keep CORS_ORIGINS on the monitor's Render service in step with this.
+  MONITOR_API_URL = "https://ouro-monitor.onrender.com"

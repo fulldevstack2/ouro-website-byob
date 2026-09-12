@@ -1,7 +1,11 @@
 .DS_Store
 .env
-/node_modules/
 
-# React Router
-/.react-router/
-/build/
+# Not anchored with a leading slash: these now exist per app and per package, not just at the root.
+# (They were `/node_modules/`, `/build/` and `/.react-router/` when this repo was a single app —
+# once apps moved under apps/*, root-anchored patterns stopped matching and 350 build artefacts
+# turned up in `git status`.)
+node_modules/
+build/
+.react-router/
+.vite/

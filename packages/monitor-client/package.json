@@ -1,0 +1,16 @@
+{
+  "name": "@ouro/monitor-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Typed client for ouro-monitor's read-only JSON API: the response shapes, the useMonitor() poller, and the formatters. One copy, because these types ARE the contract with the indexer — a second copy is a second contract that drifts.",
+  "exports": { ".": "./src/index.ts" },
+  "types": "./src/index.ts",
+  "files": ["src"],
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "peerDependencies": { "react": "^19.0.0" },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "typescript": "^5.9.3"
+  }
+}
