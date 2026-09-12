@@ -158,11 +158,11 @@ const hex = (s: string): Hex | null => (/^0x[0-9a-fA-F]{64}$/.test(s) ? (s as He
  * address it does not name is the worse of the two.
  *
  * STILL LEFT OFF. The wallet balance, which is offered behind a toggle in the dialog rather than
- * assumed. Vault deposits print when present. Lifetime vault rewards ("From the vaults") print when
- * the monitor has priced claimed + claimable; otherwise claimable-only shows as "Vaults to collect".
- * And "at the current rate", a projection the monitor currently puts at about twice what this
- * wallet's own payments come to, which has no business on an image that carries none of the page's
- * caveats.
+ * assumed. Vault deposits print when present. Lifetime vault rewards ("Received from the vaults")
+ * print when the monitor has priced claimed + claimable; otherwise claimable-only shows as
+ * "Vaults to collect". Shortfall stays off the card — nothing to share there. And "at the current
+ * rate", a projection the monitor currently puts at about twice what this wallet's own payments
+ * come to, which has no business on an image that carries none of the page's caveats.
  */
 function shareCard(p: PortfolioSummary): { card: ShareCardData; holdingRow: ShareCardRow | null; fileStem: string } {
   const excluded = p.eligible && p.excluded !== null;
@@ -181,23 +181,15 @@ function shareCard(p: PortfolioSummary): { card: ShareCardData; holdingRow: Shar
 
   // At most three, so the optional wallet-balance row never makes a fourth into a fifth: the
   // figures block is anchored to its foot and a fifth row would run up into the badge. Vault rows
-  // sit first when present so a emptied-into-vaults wallet does not look empty on the card; rewards
-  // beat shortfall when both fight for the third slot (that is the social confusion: "below the line"
-  // with big airdrops — show what the vaults paid).
+  // sit first when present so a emptied-into-vaults wallet does not look empty on the card.
   const rows: ShareCardRow[] = [];
   if (vaultOuro > 0) rows.push({ label: "In the vaults", value: `${fmtTokens(vaultOuro)} OURO` });
   if (vaultEarnedRow) rows.push(vaultEarnedRow);
   else if (claimableRow) rows.push(claimableRow);
-  if (vaultOuro > 0 && p.shortfallTokens > 0) {
-    rows.push({ label: "Short of the line", value: `${fmtTokens(p.shortfallTokens)} OURO` });
-  }
   if (p.shareOfEligible !== null) rows.push({ label: "Share of every cycle", value: fmtPct(p.shareOfEligible, 4) });
   if (priced) rows.push({ label: "Payments", value: fmtNum(paidCount) });
   if (p.lastAirdropTs) rows.push({ label: "Latest", value: fmtDay(p.lastAirdropTs) });
   if (paidCount === 0) rows.push({ label: "The line", value: `${fmtNum(p.lineTokens)} OURO` });
-  if (p.shortfallTokens > 0 && vaultOuro === 0) {
-    rows.push({ label: "Short of the line", value: `${fmtTokens(p.shortfallTokens)} OURO` });
-  }
 
   const sub = excluded
     ? "Excluded by policy. No cycle pays this address."
@@ -275,7 +267,7 @@ function vaultClaimableRow(
 /** Lifetime vault rewards (claimed + claimable), when the monitor has priced them. */
 function vaultEarnedShareRow(p: PortfolioSummary): ShareCardRow | null {
   if (p.totalVaultEarnedUsd === null || p.totalVaultEarnedUsd <= 0) return null;
-  return { label: "From the vaults", value: fmtUsd(p.totalVaultEarnedUsd) };
+  return { label: "Received from the vaults", value: fmtUsd(p.totalVaultEarnedUsd) };
 }
 
 function buildView(i: Inputs): PortfolioView {
