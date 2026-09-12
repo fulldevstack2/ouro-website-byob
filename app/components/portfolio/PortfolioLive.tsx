@@ -157,7 +157,9 @@ const hex = (s: string): Hex | null => (/^0x[0-9a-fA-F]{64}$/.test(s) ? (s as He
  * So the address is on the card in plain type as well as inside the code, because a card carrying an
  * address it does not name is the worse of the two.
  *
- * STILL LEFT OFF. The balance, which is offered behind a toggle in the dialog rather than assumed.
+ * STILL LEFT OFF. The wallet balance, which is offered behind a toggle in the dialog rather than
+ * assumed. Vault deposits print when present. Lifetime vault rewards ("From the vaults") print when
+ * the monitor has priced claimed + claimable; otherwise claimable-only shows as "Vaults to collect".
  * And "at the current rate", a projection the monitor currently puts at about twice what this
  * wallet's own payments come to, which has no business on an image that carries none of the page's
  * caveats.
@@ -168,24 +170,57 @@ function shareCard(p: PortfolioSummary): { card: ShareCardData; holdingRow: Shar
   const priced = p.totalAirdropUsd !== null;
   const address = getAddress(p.address);
 
-  // At most three, so the optional balance row never makes a fourth into a fifth: the figures block
-  // is anchored to its foot and a fifth row would run up into the badge.
+  const vaultPositions = Array.isArray(p.vaults) ? p.vaults : [];
+  const vaultOuro = vaultPositions.reduce(
+    (sum, v) => sum + (v.depositSymbol === OURO.symbol && v.assetsF > 0 ? v.assetsF : 0),
+    0,
+  );
+  const claimable = vaultPositions.filter((v) => v.earnedF !== null && v.earnedF > 0);
+  const claimableRow = vaultClaimableRow(claimable);
+  const vaultEarnedRow = vaultEarnedShareRow(p);
+
+  // At most three, so the optional wallet-balance row never makes a fourth into a fifth: the
+  // figures block is anchored to its foot and a fifth row would run up into the badge. Vault rows
+  // sit first when present so a emptied-into-vaults wallet does not look empty on the card; rewards
+  // beat shortfall when both fight for the third slot (that is the social confusion: "below the line"
+  // with big airdrops — show what the vaults paid).
   const rows: ShareCardRow[] = [];
+  if (vaultOuro > 0) rows.push({ label: "In the vaults", value: `${fmtTokens(vaultOuro)} OURO` });
+  if (vaultEarnedRow) rows.push(vaultEarnedRow);
+  else if (claimableRow) rows.push(claimableRow);
+  if (vaultOuro > 0 && p.shortfallTokens > 0) {
+    rows.push({ label: "Short of the line", value: `${fmtTokens(p.shortfallTokens)} OURO` });
+  }
   if (p.shareOfEligible !== null) rows.push({ label: "Share of every cycle", value: fmtPct(p.shareOfEligible, 4) });
   if (priced) rows.push({ label: "Payments", value: fmtNum(paidCount) });
   if (p.lastAirdropTs) rows.push({ label: "Latest", value: fmtDay(p.lastAirdropTs) });
   if (paidCount === 0) rows.push({ label: "The line", value: `${fmtNum(p.lineTokens)} OURO` });
-  if (p.shortfallTokens > 0) rows.push({ label: "Short of the line", value: `${fmtTokens(p.shortfallTokens)} OURO` });
+  if (p.shortfallTokens > 0 && vaultOuro === 0) {
+    rows.push({ label: "Short of the line", value: `${fmtTokens(p.shortfallTokens)} OURO` });
+  }
 
   const sub = excluded
     ? "Excluded by policy. No cycle pays this address."
     : paidCount === 0
       ? p.eligible
         ? "Not paid yet. The next cycle includes this wallet."
-        : "Not paid yet. It is below the line."
+        : vaultOuro > 0
+          ? "Not paid yet. Vault deposits earn through the vaults, not the line."
+          : "Not paid yet. It is below the line."
       : priced
-        ? "Paid to one wallet by the Ouro airdrop."
+        ? vaultOuro > 0 && !p.eligible
+          ? "Paid to one wallet by the Ouro airdrop. Vault deposits are separate."
+          : "Paid to one wallet by the Ouro airdrop."
         : "Received by one wallet. Some legs are not priced yet.";
+
+  const footnote =
+    paidCount > 0
+      ? vaultOuro > 0
+        ? "Each airdrop is valued at what its cycle paid out, not today's price. Vault deposits earn through the vaults and do not count toward the line."
+        : "Each payment is valued at what its cycle paid the token out at, not at today's price. Past payouts are not a promise of future ones."
+      : vaultOuro > 0
+        ? "Vault deposits earn through the vaults and do not count toward the line. Nothing here is a promise of future payouts."
+        : "Wallets at or above the line are paid every cycle, in the tokens the airdrop holds. Nothing here is a promise of future payouts.";
 
   return {
     card: {
@@ -199,10 +234,7 @@ function shareCard(p: PortfolioSummary): { card: ShareCardData; holdingRow: Shar
           ? { text: "Above the line · paid every cycle", tone: "positive" }
           : { text: "Below the line", tone: "caution" },
       rows: rows.slice(0, 3),
-      footnote:
-        paidCount > 0
-          ? "Each payment is valued at what its cycle paid the token out at, not at today's price. Past payouts are not a promise of future ones."
-          : "Wallets at or above the line are paid every cycle, in the tokens the airdrop holds. Nothing here is a promise of future payouts.",
+      footnote,
       cta: {
         caps: "Scan for this wallet",
         line: "Every payout, read from the chain.",
@@ -214,9 +246,36 @@ function shareCard(p: PortfolioSummary): { card: ShareCardData; holdingRow: Shar
         href: `${site.url}${canonicalPath("/portfolio")}?address=${address}`,
       },
     },
-    holdingRow: { label: "Holding", value: `${fmtTokens(p.balanceTokens)} OURO` },
+    // "In wallet" when vaults are on the card, so the optional row and "In the vaults" read as a pair.
+    holdingRow: {
+      label: vaultOuro > 0 ? "In wallet" : "Holding",
+      value: `${fmtTokens(p.balanceTokens)} OURO`,
+    },
     fileStem: `ouro-portfolio-${address.slice(0, 8).toLowerCase()}`,
   };
+}
+
+/** Claimable payout-vault rewards, as one row. Used when lifetime vault earned is not yet known. */
+function vaultClaimableRow(
+  claimable: NonNullable<PortfolioSummary["vaults"]>,
+): ShareCardRow | null {
+  if (claimable.length === 0) return null;
+  const allPriced = claimable.every((v) => v.earnedUsd !== null);
+  if (allPriced) {
+    const usd = claimable.reduce((sum, v) => sum + (v.earnedUsd ?? 0), 0);
+    return { label: "Vaults to collect", value: fmtUsd(usd) };
+  }
+  const parts = claimable.flatMap((v) =>
+    v.earnedF !== null && v.earnedF > 0 ? [`${fmtTokens(v.earnedF)} ${v.payoutSymbol}`] : [],
+  );
+  if (parts.length === 0) return null;
+  return { label: "Vaults to collect", value: parts.join(" + ") };
+}
+
+/** Lifetime vault rewards (claimed + claimable), when the monitor has priced them. */
+function vaultEarnedShareRow(p: PortfolioSummary): ShareCardRow | null {
+  if (p.totalVaultEarnedUsd === null || p.totalVaultEarnedUsd <= 0) return null;
+  return { label: "From the vaults", value: fmtUsd(p.totalVaultEarnedUsd) };
 }
 
 function buildView(i: Inputs): PortfolioView {

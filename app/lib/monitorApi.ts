@@ -498,6 +498,18 @@ export interface PortfolioSummary {
   /** Distinct payout transactions received. */
   airdropPayments: number;
   lastAirdropTs: number | null;
+  /**
+   * Lifetime USD claimed from payout vaults (indexed Claimed events). Null if any claim is unpriced;
+   * 0 when never claimed. Does not include currently unclaimed earned.
+   */
+  totalVaultClaimedUsd: number | null;
+  vaultClaims: number;
+  lastVaultClaimTs: number | null;
+  /**
+   * Claimed + currently claimable. Null when claimed is unpriced, or live earned has an unpriced leg.
+   * Without live vault reads, equals totalVaultClaimedUsd.
+   */
+  totalVaultEarnedUsd: number | null;
   /** Recent cycle averages applied to this wallet's share; null when not paid, or with no priced history. */
   projectedUsdPerDay: number | null;
   projectedUsdPerMonth: number | null;
