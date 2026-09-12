@@ -20,7 +20,7 @@ import { SHARE_CARD, SHARE_CARD_FONTS, drawShareCard, type ShareCardData, type S
 export interface ShareCardProps {
   /** The card, with the rows that are always on it. */
   card: ShareCardData;
-  /** The balance row, offered behind a toggle because it is the one figure a holder may not want public. */
+  /** Wallet balance row, offered behind a toggle (vault deposits print on the card when present). */
   holdingRow: ShareCardRow | null;
   /** Goes in the saved file's name, e.g. "ouro-airdrops-2026-09-11.png". */
   fileStem: string;
@@ -194,7 +194,8 @@ function ShareCardDialog({ card, holdingRow, fileStem, open, onClose }: ShareCar
               <label className="pf-share__toggle">
                 <input type="checkbox" checked={showHolding} onChange={(e) => setShowHolding(e.target.checked)} />
                 <span>
-                  Show my balance <span style={{ ...mono, color: "var(--text-muted)" }}>({holdingRow.value})</span>
+                  Show {holdingRow.label.toLowerCase()}{" "}
+                  <span style={{ ...mono, color: "var(--text-muted)" }}>({holdingRow.value})</span>
                 </span>
               </label>
             )}

@@ -23,11 +23,12 @@ import { site } from "~/content/site";
    address IS on the card, printed beside the code as well as encoded in it. A card that quietly
    carried an address it did not name would be the worse of the two.
 
-   WHAT IS STILL NOT ON IT BY DEFAULT. The balance, the QR and the printed wallet address are each
-   offered behind a toggle in the dialog rather than assumed — a holder may want the figures without
-   handing out a scannable link. And the "at the current rate" projection stays off entirely, because
-   a figure the monitor currently overstates has no business on an image that travels without the
-   page's caveats.
+   WHAT IS STILL NOT ON IT BY DEFAULT. The wallet balance, the QR and the printed wallet address are
+   each offered behind a toggle in the dialog rather than assumed — a holder may want the figures
+   without handing out a scannable link. Vault deposits and claimable vault rewards print when the
+   portfolio has them (otherwise a card that only says "short of the line" looks empty). And the
+   "at the current rate" projection stays off entirely, because a figure the monitor currently
+   overstates has no business on an image that travels without the page's caveats.
    ──────────────────────────────────────────────────────────────────────────── */
 
 /** 4:5. The tallest shape X shows without cropping, and it is not cropped anywhere else either. */
@@ -124,7 +125,7 @@ const HERO_BASE = 432;
 const SUB_BASE = 494;
 const BADGE_TOP = 532;
 const BADGE_H = 52;
-/** At most four rows (Holding plus three). Pack from the top so a hidden Holding does not leave a blank slot. */
+/** At most four rows (optional wallet balance plus three). Pack from the top so a hidden row does not leave a blank slot. */
 const ROW_H = 84;
 const ROWS_TOP = BADGE_TOP + BADGE_H + 40;
 const ROWS_MAX = 4;
