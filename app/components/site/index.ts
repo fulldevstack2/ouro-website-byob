@@ -22,3 +22,4 @@ export { SiteFooter } from "./SiteFooter";
 export * from "./text";
 export { PayoutCadence } from "./PayoutCadence";
 export { AprHeadline } from "./AprHeadline";
+export { AirdropCalc } from "./AirdropCalc";
