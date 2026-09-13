@@ -3,9 +3,11 @@ import { useState, type ReactNode } from "react";
 import type { Route } from "./+types/home";
 import { ago, fmtNum, fmtUsd } from "@ouro/monitor-client";
 import { fmtHours } from "~/lib/cadence";
+import { LineChart } from "~/components/LineChart";
+import { useSeries, type Series } from "~/lib/series";
 import { Basis, DASH, Figure } from "~/components/Coverage";
 import { sortRows, useProjects, type ProjectRow } from "~/lib/projects";
-import { DEFAULT_SORT, METRICS, SORT_LABELS, type Metric, type SortKey } from "~/registry";
+import { DEFAULT_SORT, METRICS, PROJECTS, SORT_LABELS, type Metric, type SortKey } from "~/registry";
 
 export function meta(_: Route.MetaArgs) {
   return [
@@ -181,6 +183,125 @@ function cell(metric: Metric, row: ProjectRow): { value: string | null; extra?: 
   }
 }
 
+
+const fmtDay = (t: number) => new Date(t * 1000).toISOString().slice(5, 10);
+const fmtUsdAxis = (v: number) =>
+  v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `$${Math.round(v / 1000)}k` : `$${Math.round(v)}`;
+const fmtCount = (v: number) => Math.round(v).toLocaleString("en-US");
+
+/** One row of panels: the same measure for every project, each on the scale that shows it. */
+function Panels({
+  title,
+  lede,
+  series,
+  format,
+  unit,
+}: {
+  title: string;
+  lede: string;
+  series: Series[];
+  format: (v: number) => string;
+  unit: string;
+}) {
+  return (
+    <>
+      <div className="section-head">
+        <div>
+          <h2>{title}</h2>
+          <p className="sub">{lede}</p>
+        </div>
+      </div>
+      <div className="charts">
+        {series.map((s) => (
+          <div className="chart-panel" key={s.key}>
+            <h3>{s.symbol}</h3>
+            {/* Each panel carries its own peak, because the panels do NOT share a y-axis —
+                saying so is the difference between small multiples and a misread comparison. */}
+            <p className="panel-note">
+              own scale · peak {s.points.length ? format(Math.max(...s.points.map((p) => p.v))) : "—"}
+            </p>
+            <LineChart
+              points={s.points}
+              format={format}
+              formatTime={fmtDay}
+              label={`${s.symbol} ${title}`}
+              emptyNote="not enough history to plot"
+            />
+          </div>
+        ))}
+      </div>
+      <details className="chart-table">
+        <summary>Show as a table</summary>
+        <div className="table-scroll">
+          <table className="matrix">
+            <thead>
+              <tr>
+                <th scope="col">Project</th>
+                <th scope="col">Points</th>
+                <th scope="col">First</th>
+                <th scope="col">Latest</th>
+                <th scope="col">Peak</th>
+                <th scope="col">Median</th>
+              </tr>
+            </thead>
+            <tbody>
+              {series.map((s) => {
+                const v = s.points.map((p) => p.v).sort((a, b) => a - b);
+                const med = v.length ? (v[Math.floor(v.length / 2)] as number) : null;
+                const last = s.points[s.points.length - 1];
+                const first = s.points[0];
+                return (
+                  <tr key={s.key}>
+                    <td className="metric-name">{s.symbol}</td>
+                    <td className="cell">{s.points.length}</td>
+                    <td className="cell">{first ? fmtDay(first.t) : "—"}</td>
+                    <td className="cell">{last ? format(last.v) : "—"}</td>
+                    <td className="cell">{v.length ? format(v[v.length - 1] as number) : "—"}</td>
+                    <td className="cell">{med === null ? "—" : format(med)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="legend">All figures in {unit}.</p>
+      </details>
+    </>
+  );
+}
+
+/**
+ * The two series the indexer can support for every project.
+ *
+ * Deliberately only two. Airdropped-dollars-per-day is unusable for HOOD10 (one unpriced basket leg
+ * nulls 39 of its 43 periods), holders-over-time is unusable for $OURO (its source records no
+ * per-epoch holder count), and price and volume history run to ten days and none for $OURO. On a
+ * page whose claim is even-handedness, a two-of-three chart is worse than no chart.
+ */
+function ChartSection() {
+  const { tax, recipients, loading } = useSeries(PROJECTS.map((p) => ({ key: p.key, symbol: p.symbol })));
+  if (loading) return null;
+  return (
+    <section className="container section">
+      <Panels
+        title="Tax collected, per day"
+        lede="What each project's trade tax brought in, by UTC day. This is the money the airdrops are paid out of. Days with no trading are omitted rather than drawn as zero."
+        series={tax}
+        format={fmtUsdAxis}
+        unit="US dollars per day"
+      />
+      <div style={{ height: 28 }} />
+      <Panels
+        title="Wallets paid, per cycle"
+        lede="How many wallets each payout cycle reached. Per cycle rather than per day, because a day holds a different number of cycles for each project — and for INDEX, anywhere from one to twenty."
+        series={recipients}
+        format={fmtCount}
+        unit="wallets per payout cycle"
+      />
+    </section>
+  );
+}
+
 export default function Home() {
   const [sort, setSort] = useState<SortKey>(DEFAULT_SORT);
   const { rows, loading, error, generatedAt, configured } = useProjects();
@@ -297,6 +418,11 @@ export default function Home() {
           </table>
         </div>
 
+      </section>
+
+      <ChartSection />
+
+      <section className="container section">
         <p className="note">
           <strong>The rates are not comparing like with like, and the row says so.</strong> Every APR here is
           real and measured, but they rest on very different things — a rate from nine days of payouts over a

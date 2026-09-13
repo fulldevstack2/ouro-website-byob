@@ -288,3 +288,87 @@ table.matrix {
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* ── charts ─────────────────────────────────────────────────────────────────
+   Small multiples: identical panels, one series each, one accent. No categorical
+   palette, because the warm-only token set cannot produce three colour-vision-separable
+   hues (green/red fails at ΔE 4.3 against a target of 8) and because identical panels
+   are the only treatment that does not rank the projects by ink. */
+.charts {
+  display: grid;
+  gap: 18px;
+  margin-top: 20px;
+}
+@media (min-width: 760px) {
+  .charts { grid-template-columns: repeat(3, 1fr); }
+}
+
+.chart-panel {
+  background: var(--surface-card);
+  border: 1px solid var(--border-hairline);
+  padding: 16px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.chart-panel h3 {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0;
+  margin: 0;
+  color: var(--text-primary);
+}
+.chart-panel .panel-note {
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  margin: 0 0 6px;
+}
+
+.chart { min-width: 0; }
+.chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  touch-action: pan-y;
+}
+.chart-axis {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.chart-readout {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  margin: 4px 0 0;
+  min-height: 1.4em;
+}
+.chart-readout b { color: var(--text-primary); font-weight: var(--weight-medium); }
+
+.chart-empty {
+  font-family: var(--font-body);
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  border: 1px dashed var(--border-hairline);
+  padding: 30px 12px;
+  text-align: center;
+  border-radius: 2px;
+}
+
+/* The table view every chart owes a reader who cannot use it. */
+.chart-table summary {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px 0;
+}
+.chart-table summary:hover { color: var(--text-accent); }
+.chart-table table { min-width: 0; font-size: var(--text-2xs); }
+.chart-table td, .chart-table th { padding: 4px 10px; }
