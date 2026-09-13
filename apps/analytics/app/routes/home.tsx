@@ -49,14 +49,22 @@ function cell(metric: Metric, row: ProjectRow): { value: string | null; extra?: 
           ),
       };
 
-    case "paidAllTime":
+    case "paidAllTime": {
+      const { pricedPeriods: pr, closedPeriods: cl } = row;
+      const partial = pr !== null && cl !== null && pr < cl;
+      if (row.paidAllTimeUsd === null) return { value: null };
       return {
-        value: row.paidAllTimeUsd === null ? null : fmtUsd(row.paidAllTimeUsd, { compact: true }),
-        // A floor, not a total, when the cycle page came back full. Never let that pass silently.
-        extra: row.paidAllTimeTruncated ? (
+        // "at least", because the unpriced cycles are real payouts contributing nothing to the sum.
+        value: `${partial || row.paidAllTimeTruncated ? "≥ " : ""}${fmtUsd(row.paidAllTimeUsd, { compact: true })}`,
+        extra: partial ? (
+          <span className="basis">
+            only {pr} of {cl} payout cycles could be priced — the rest paid wallets this figure does not count
+          </span>
+        ) : row.paidAllTimeTruncated ? (
           <span className="basis">at least — older cycles beyond the page were not summed</span>
         ) : undefined,
       };
+    }
 
     case "paid24h":
       return { value: row.paid24hUsd === null ? null : fmtUsd(row.paid24hUsd, { compact: true }) };
@@ -91,12 +99,25 @@ function cell(metric: Metric, row: ProjectRow): { value: string | null; extra?: 
         extra: <span className="basis">per {fmtNum(p.dividendLineTokens)} {p.symbol}</span>,
       };
 
-    case "apr":
+    case "apr": {
+      const { aprWindowPriced: wp, aprWindowTotal: wt } = row;
+      // A rate divided by a window in which some cycles carry no value is understated by exactly the
+      // share it could not see. Understating a competitor is as unfair as overstating ourselves.
+      const partial = wp !== null && wt !== null && wt > 0 && wp < wt;
       return {
-        value: row.aprPct === null ? null : `${row.aprPct.toFixed(1)}%`,
-        // Never bare. See components/Coverage.tsx → Basis.
-        extra: <Basis basisDays={row.aprBasisDays} historyDays={row.aprHistoryDays} />,
+        value: row.aprPct === null ? null : `${partial ? "≥ " : ""}${row.aprPct.toFixed(1)}%`,
+        extra: (
+          <>
+            <Basis basisDays={row.aprBasisDays} historyDays={row.aprHistoryDays} />
+            {partial ? (
+              <span className="basis">
+                understated: {wp} of {wt} cycles in the window could be priced
+              </span>
+            ) : null}
+          </>
+        ),
       };
+    }
 
     /**
      * What the project's payout rhythm ACTUALLY is.

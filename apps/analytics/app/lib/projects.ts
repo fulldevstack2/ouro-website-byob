@@ -42,6 +42,22 @@ export interface ProjectRow {
    * beyond it and the total is a floor rather than a total. The page must say so when set.
    */
   paidAllTimeTruncated: boolean;
+  /**
+   * How many of this project's closed payout cycles carry a USD value at all.
+   *
+   * The monitor already refuses to value a single cycle whose legs it cannot price — it publishes a
+   * dash rather than the sum of the priced legs. The same discipline has to survive aggregation,
+   * because a project total silently drops the unpriced cycles to zero. HOOD10 makes the case: 4 of
+   * its 43 periods are priced, so its all-time total of $34,247 covers 2,930 of 33,715 recipient
+   * payouts — under a tenth of what it has actually paid, presented as the whole of it.
+   *
+   * INDEX and $OURO are fully priced, so for them these are equal and nothing is shown.
+   */
+  pricedPeriods: number | null;
+  closedPeriods: number | null;
+  /** The same ratio, restricted to the window the APR is measured over. */
+  aprWindowPriced: number | null;
+  aprWindowTotal: number | null;
   paid24hUsd: number | null;
   paidPerDayUsd: number | null;
   /** Distinct assets the last cycle paid out, for the "tokens paid" cell. */
@@ -87,6 +103,20 @@ function unvaluedZero(indexedTo: number | null, sum: { epochs?: number; paid_usd
   return usd;
 }
 
+/** Pricing coverage over all closed cycles, and over the APR's own window. */
+function pricingCoverage(cycles: OuroCycle[] | null, now: number, basisDays: number | null) {
+  const closed = (cycles ?? []).filter((c) => c.status === "closed");
+  if (closed.length === 0) return { pricedPeriods: null, closedPeriods: null, aprWindowPriced: null, aprWindowTotal: null };
+  const cut = now - (basisDays ?? 7) * 86_400;
+  const inWindow = closed.filter((c) => (c.endTs ?? 0) >= cut);
+  return {
+    pricedPeriods: closed.filter((c) => c.paidUsd !== null).length,
+    closedPeriods: closed.length,
+    aprWindowPriced: inWindow.filter((c) => c.paidUsd !== null).length,
+    aprWindowTotal: inWindow.length,
+  };
+}
+
 /** An empty row: every figure null, so a project with no data renders dashes, never zeroes. */
 function blankRow(project: Project): ProjectRow {
   return {
@@ -97,6 +127,10 @@ function blankRow(project: Project): ProjectRow {
     taxedShare: null,
     paidAllTimeUsd: null,
     paidAllTimeTruncated: false,
+    pricedPeriods: null,
+    closedPeriods: null,
+    aprWindowPriced: null,
+    aprWindowTotal: null,
     paid24hUsd: null,
     paidPerDayUsd: null,
     assets: null,
@@ -122,7 +156,11 @@ function blankRow(project: Project): ProjectRow {
  * cannot describe a rhythm we have not observed.
  */
 function fromSummary(project: Project, t: TokenSummary | undefined, cycles: OuroCycle[] | null, now: number): ProjectRow {
-  const row = { ...blankRow(project), cadence: cadenceStats((cycles ?? []).map((c) => c.endTs ?? c.startTs), now) };
+  const row = {
+    ...blankRow(project),
+    cadence: cadenceStats((cycles ?? []).map((c) => c.endTs ?? c.startTs), now),
+    ...pricingCoverage(cycles, now, t?.yield?.basisDays ?? null),
+  };
   if (!t) return row;
   const m = t.market;
   return {
@@ -180,7 +218,11 @@ function fromOuro(
   cycles: OuroCycle[] | null,
   now: number,
 ): ProjectRow {
-  const row = { ...blankRow(project), cadence: cadenceStats((cycles ?? []).map((c) => c.endTs ?? c.startTs), now) };
+  const row = {
+    ...blankRow(project),
+    cadence: cadenceStats((cycles ?? []).map((c) => c.endTs ?? c.startTs), now),
+    ...pricingCoverage(cycles, now, y?.basisDays ?? null),
+  };
   const priced = cycles?.filter((c) => c.paidUsd !== null) ?? null;
   const allTime = priced && priced.length > 0 ? priced.reduce((sum, c) => sum + (c.paidUsd ?? 0), 0) : null;
 

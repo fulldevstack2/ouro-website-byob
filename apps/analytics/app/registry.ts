@@ -233,9 +233,6 @@ export const PROJECTS: Project[] = [
     operator: "third-party",
     blurb:
       "Taxes its own trades and distributes a basket of ten constituents to holders through a Merkle distributor, one period at a time.",
-    // Backfilling since 2026-09-12. Remove this line when the cursor reaches head; while it is set,
-    // the column head says so once instead of every empty cell repeating it.
-    notIndexedReason: "backfilling its 16.4M-block history — figures cover the periods read so far",
     coverage: {
       price: MARKET_MEASURED,
       marketCap: MARKET_MEASURED,
@@ -248,21 +245,26 @@ export const PROJECTS: Project[] = [
        * are unknown. `/v1/summary` sums `paid_usd` to 0 against four closed periods that paid 576,
        * 602, 676 and 652 wallets. lib/projects.ts withholds that zero rather than publishing it.
        */
+      /**
+       * Fully backfilled on 2026-09-13: 43 periods, all closed. But only 4 of them carry a USD
+       * value — HOOD10 marks payouts to GeckoTerminal daily closes and most of its history cannot
+       * be priced — so the total covers 2,930 of 33,715 recipient payouts. The figure is published
+       * as a floor with its coverage stated rather than withheld, because the wallet counts behind
+       * it are exact and a dash would hide a project that demonstrably pays.
+       */
       paidAllTime: {
         state: "estimated",
-        note: "periods are indexed but their payouts could not be priced — wallet counts are exact, dollars are not available",
+        note: "a floor: most periods have no priceable payout, so the total counts a fraction of the wallets actually paid",
       },
-      paid24h: {
-        state: "estimated",
-        note: "same: the periods are read, the dollar value of their payouts is not",
-      },
+      paid24h: { state: "estimated", note: "same basis — unpriced periods in the window count as nothing" },
       assets: { state: "measured", note: "the ten basket constituents, per period" },
       holders: { state: "measured", note: "replayed from the token's own transfers" },
       recipients: { state: "measured", note: "wallets the last period actually paid" },
-      // Both derive from paid_usd, which is unavailable for the reason above.
-      ratePerLine: { state: "not_indexed", note: "needs a priced payout; see Airdropped" },
-      apr: { state: "not_indexed", note: "needs a priced payout; see Airdropped" },
-      payoutRhythm: { state: "measured", note: "measured from the periods read so far" },
+      // Both divide by a window containing unpriced periods, so both are floors, not estimates
+      // that could fall either way. The cell prints the coverage beside the number.
+      ratePerLine: { state: "estimated", note: "understated wherever a period in the window could not be priced" },
+      apr: { state: "estimated", note: "understated wherever a period in the window could not be priced" },
+      payoutRhythm: { state: "measured", note: "measured from its own periods" },
       lastPaid: { state: "measured" },
       // The one place HOOD10 is better instrumented than INDEX: its hook emits FeeAccrued per swap.
       tax: { state: "measured", note: "exact — the hook emits FeeAccrued per swap" },
