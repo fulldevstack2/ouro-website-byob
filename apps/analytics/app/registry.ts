@@ -90,6 +90,15 @@ export interface Project {
   name: string;
   token: `0x${string}`;
   decimals: number;
+  /**
+   * The pool the trade tax is charged on — the project's canonical venue.
+   *
+   * DexScreener returns this verbatim as a pair's `pairAddress` (these are Uniswap v4 pool ids), so
+   * it is how the taxed share of volume is identified: the canonical pool's 24h volume over the sum
+   * across every pool the token trades in. Everything outside this pool is untaxed — volume that
+   * funds no airdrop.
+   */
+  canonicalPoolId: `0x${string}`;
   /** Trade tax in basis points of the ETH leg. */
   taxBps: number;
   /** The balance a wallet must hold to be paid at all, in whole tokens. */
@@ -117,8 +126,9 @@ export const explorerToken = (address: string) => `${EXPLORER}/token/${address}`
 export const explorerTx = (hash: string) => `${EXPLORER}/tx/${hash}`;
 
 /**
- * Market data comes from GeckoTerminal and does not depend on the indexer, so it stays live even for
- * a project the indexer has never synced.
+ * Price and value come from the indexer's market poller (GeckoTerminal / DexScreener) and do not
+ * depend on the chain replay, so they stay live even for a project the indexer has never synced.
+ * Volume is separate — see VOLUME_MEASURED.
  *
  * Deliberately no `note`. The provenance is identical for every project and every market row, so a
  * per-cell note would repeat the same sentence nine times and teach the reader to ignore notes —
@@ -126,6 +136,15 @@ export const explorerTx = (hash: string) => `${EXPLORER}/tx/${hash}`;
  * once, in the page footer.
  */
 const MARKET_MEASURED: CoverageRecord = { state: "measured" };
+
+/**
+ * Volume is measured for every project, from DexScreener, independently of the indexer.
+ *
+ * It is summed across every pool the token trades in and split against the canonical taxed pool, so
+ * the same figure covers a project the indexer has never seen. $OURO's volume used to read "not
+ * indexed" here purely because `/v1/summary` does not carry it.
+ */
+const VOLUME_MEASURED: CoverageRecord = { state: "measured", note: "summed across every pool the token trades in" };
 
 /**
  * Every metric at once — for a project the indexer has never synced.
@@ -147,6 +166,7 @@ export const PROJECTS: Project[] = [
     name: "The Index",
     token: "0x56910D4409F3a0C78C64DD8D0545FF0705389870",
     decimals: 18,
+    canonicalPoolId: "0x00dd2df2f17d431cf3a0938f06c9cf9abc5e9643b6cc466ca3f71f3af246edf3",
     taxBps: 300,
     dividendLineTokens: 10_000,
     cadenceSec: 3600,
@@ -157,7 +177,7 @@ export const PROJECTS: Project[] = [
     coverage: {
       price: MARKET_MEASURED,
       marketCap: MARKET_MEASURED,
-      volume24h: MARKET_MEASURED,
+      volume24h: VOLUME_MEASURED,
       paidAllTime: { state: "measured", note: "USDG actually spent, per cycle" },
       paid24h: { state: "measured" },
       assets: { state: "measured", note: "the cycle's own stock array" },
@@ -180,6 +200,7 @@ export const PROJECTS: Project[] = [
     name: "OuroLayer",
     token: "0x8ea0eb3505f5b3bd2bbea0febae0ce850cc73ecc",
     decimals: 18,
+    canonicalPoolId: "0x4abc526118181921d76bf184896938ae7c8fc0921abce79ebef3d36a622968a5",
     taxBps: 500,
     dividendLineTokens: 100_000,
     cadenceSec: 7200,
@@ -196,10 +217,7 @@ export const PROJECTS: Project[] = [
         state: "estimated",
         note: "eligible supply at spot, not fully diluted — the summary endpoint does not serve $OURO's FDV",
       },
-      volume24h: {
-        state: "not_indexed",
-        note: "$OURO's pool volume is not carried on the summary endpoint",
-      },
+      volume24h: VOLUME_MEASURED,
       paidAllTime: { state: "measured", note: "from the Airdropper's own events" },
       paid24h: { state: "measured" },
       assets: { state: "measured", note: "per cycle, per asset" },
@@ -226,6 +244,7 @@ export const PROJECTS: Project[] = [
     name: "Robinhood10 Index",
     token: "0x0D257cA40d40090BE60C2d2Ed5bB3535392838cc",
     decimals: 18,
+    canonicalPoolId: "0x2e152bc12f30bd46eb39f0ead2367df62b9572ba3a2d54ea3e3aca43c00ae9f6",
     taxBps: 500,
     dividendLineTokens: 100_000,
     cadenceSec: 10_800,
@@ -236,7 +255,7 @@ export const PROJECTS: Project[] = [
     coverage: {
       price: MARKET_MEASURED,
       marketCap: MARKET_MEASURED,
-      volume24h: MARKET_MEASURED,
+      volume24h: VOLUME_MEASURED,
       /**
        * Indexed, and genuinely NOT valued.
        *
@@ -286,6 +305,7 @@ export const LAUNCHPAD_FIXTURE: Project = {
   name: "Example Index",
   token: "0x0000000000000000000000000000000000000000",
   decimals: 18,
+  canonicalPoolId: "0x0000000000000000000000000000000000000000000000000000000000000000",
   taxBps: 400,
   dividendLineTokens: 50_000,
   cadenceSec: 14_400,

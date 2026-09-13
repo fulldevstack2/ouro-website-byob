@@ -24,6 +24,7 @@ import {
 } from "@ouro/monitor-client";
 
 import { cadenceStats, type CadenceStats } from "~/lib/cadence";
+import { EMPTY_VOLUME, useVolumes, type VolumeBreakdown } from "~/lib/dexscreener";
 import { PROJECTS, type Project, type SortKey } from "~/registry";
 
 /** What every project page and the comparison table read. The future `/v1/projects` row. */
@@ -32,9 +33,14 @@ export interface ProjectRow {
 
   priceUsd: number | null;
   marketCapUsd: number | null;
-  volume24hUsd: number | null;
-  /** Share of all volume that pays the tax, 0–1. Low means most trading happens on untaxed pools. */
-  taxedShare: number | null;
+  /**
+   * 24h volume across every pool the token trades in, and how much of it paid the tax.
+   *
+   * From DexScreener rather than the indexer — see lib/dexscreener.ts. It covers all three projects
+   * uniformly (the indexer does not carry $OURO's), needs no source adapter for a new project, and
+   * agreed with the indexer to a fraction of a percent when checked.
+   */
+  volume: VolumeBreakdown;
 
   paidAllTimeUsd: number | null;
   /**
@@ -123,8 +129,7 @@ function blankRow(project: Project): ProjectRow {
     project,
     priceUsd: null,
     marketCapUsd: null,
-    volume24hUsd: null,
-    taxedShare: null,
+    volume: EMPTY_VOLUME,
     paidAllTimeUsd: null,
     paidAllTimeTruncated: false,
     pricedPeriods: null,
@@ -155,9 +160,16 @@ function blankRow(project: Project): ProjectRow {
  * (never indexed), so its cadence stats come back empty and render as dashes — which is correct: we
  * cannot describe a rhythm we have not observed.
  */
-function fromSummary(project: Project, t: TokenSummary | undefined, cycles: OuroCycle[] | null, now: number): ProjectRow {
+function fromSummary(
+  project: Project,
+  t: TokenSummary | undefined,
+  cycles: OuroCycle[] | null,
+  now: number,
+  volume: VolumeBreakdown,
+): ProjectRow {
   const row = {
     ...blankRow(project),
+    volume,
     cadence: cadenceStats((cycles ?? []).map((c) => c.endTs ?? c.startTs), now),
     ...pricingCoverage(cycles, now, t?.yield?.basisDays ?? null),
   };
@@ -167,8 +179,6 @@ function fromSummary(project: Project, t: TokenSummary | undefined, cycles: Ouro
     ...row,
     priceUsd: m?.price_usd ?? null,
     marketCapUsd: m?.fdv_usd ?? null,
-    volume24hUsd: m?.vol24_all_usd ?? null,
-    taxedShare: m?.taxed_share ?? null,
     /**
      * Zero is a claim about the project; withhold it unless we can stand behind it.
      *
@@ -217,9 +227,11 @@ function fromOuro(
   next: OuroNext | null,
   cycles: OuroCycle[] | null,
   now: number,
+  volume: VolumeBreakdown,
 ): ProjectRow {
   const row = {
     ...blankRow(project),
+    volume,
     cadence: cadenceStats((cycles ?? []).map((c) => c.endTs ?? c.startTs), now),
     ...pricingCoverage(cycles, now, y?.basisDays ?? null),
   };
@@ -300,10 +312,13 @@ export function useProjects(intervalMs = 30_000): ProjectsState {
   const polls = [summary, ouroYield, ouroNext, ouroCycles, indexCycles, hood10Cycles];
   const configured = !polls.some((p) => p.error === "not-configured");
 
+  const volumes = useVolumes(PROJECTS.map((p) => ({ token: p.token, canonicalPoolId: p.canonicalPoolId })));
+
   const now = Math.floor(Date.now() / 1000);
   const rows = PROJECTS.map((project) => {
+    const vol = volumes[project.token.toLowerCase()] ?? EMPTY_VOLUME;
     if (project.key === "ouro") {
-      return fromOuro(project, ouroYield.data, ouroNext.data, ouroCycles.data?.epochs ?? null, now);
+      return fromOuro(project, ouroYield.data, ouroNext.data, ouroCycles.data?.epochs ?? null, now, vol);
     }
     const cycles =
       project.key === "index"
@@ -311,7 +326,7 @@ export function useProjects(intervalMs = 30_000): ProjectsState {
         : project.key === "hood10"
           ? (hood10Cycles.data?.epochs ?? null)
           : null;
-    return fromSummary(project, summary.data?.tokens?.[project.key as "index" | "hood10"], cycles, now);
+    return fromSummary(project, summary.data?.tokens?.[project.key as "index" | "hood10"], cycles, now, vol);
   });
 
   return {

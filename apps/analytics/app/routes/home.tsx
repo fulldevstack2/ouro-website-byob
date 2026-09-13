@@ -40,14 +40,24 @@ function cell(metric: Metric, row: ProjectRow): { value: string | null; extra?: 
         value: row.marketCapUsd === null ? null : fmtUsd(row.marketCapUsd, { compact: true }),
       };
 
-    case "volume24h":
+    case "volume24h": {
+      const v = row.volume;
+      if (v.totalUsd === null) return { value: null };
       return {
-        value: row.volume24hUsd === null ? null : fmtUsd(row.volume24hUsd, { compact: true }),
-        extra:
-          row.taxedShare === null ? undefined : (
-            <span className="basis">{(row.taxedShare * 100).toFixed(1)}% of it taxed</span>
-          ),
+        value: fmtUsd(v.totalUsd, { compact: true }),
+        extra: (
+          <span className="basis">
+            {v.taxedShare === null
+              ? // No canonical pool in the response: the share is unknown, not zero.
+                `across ${v.pools ?? "?"} pools · taxed share unavailable`
+              : `${(v.taxedShare * 100).toFixed(1)}% taxed across ${v.pools} pools · ${fmtUsd(
+                  v.totalUsd - (v.canonicalUsd ?? 0),
+                  { compact: true },
+                )} untaxed`}
+          </span>
+        ),
       };
+    }
 
     case "paidAllTime": {
       const { pricedPeriods: pr, closedPeriods: cl } = row;

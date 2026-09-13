@@ -58,11 +58,12 @@ export const PROTOCOL_CONTRACTS: AddressEntry[] = [
   { name: "Airdrop ETH reserve (3-of-3 Safe, tops up the payout wallet)", address: "0x9EF77382E25334c7952a643286a98178514eECf2" },
   { name: "Airdrop distributor", address: "0x0bd09D209292c3359885adDBF9CF94A7AEcC369F" },
   { name: "Team vest (Sablier Lockup, stream 156)", address: "0x548129a58bC230549DF7F9e33f27E77F6779ff0f" },
-  // Custody moved on 2026-09-11 from the funding EOA 0xa2d45d2454B4029be1a0c33ae9f5cb1b5dc6C84D, which
-  // minted the positions by hand and now holds none. That wallet still appears in the Ledger's position
-  // history and in the two `transfer_in` transactions, so it is kept here for anyone reconciling them.
+  // Custody moved to the 3-of-3 Safe 0xc8BF917136cEd0126f8cDe688CE0d2ff146Af33E on 2026-09-11 and came
+  // back here on 2026-09-12: three signatures per fee collection cost more than the arrangement bought.
+  // The Safe holds none now. It still appears in the Ledger's position history as two `transfer_out` /
+  // `transfer_in` pairs, so it is named here for anyone reconciling those four transactions.
   // The Ledger's own "Wallet that holds them" row reads `lp` from /v1/reserve and needs no address here.
-  { name: "Reserve (holds the protocol-owned liquidity · 3-of-3 Safe)", address: "0xc8BF917136cEd0126f8cDe688CE0d2ff146Af33E" },
+  { name: "Reserve (holds the protocol-owned liquidity)", address: "0xa2d45d2454B4029be1a0c33ae9f5cb1b5dc6C84D" },
 ];
 
 /**
