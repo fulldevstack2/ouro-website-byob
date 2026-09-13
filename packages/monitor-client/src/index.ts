@@ -220,6 +220,27 @@ export interface Reserve {
   positions: ReservePosition[];
   gas: { eth: number | null; usd: number | null };
   history: ReserveSnapshot[];
+  /**
+   * Positions the Reserve holds in venues the indexer does not read, so the page can say what
+   * `totals` leaves out instead of presenting a partial treasury as a whole one.
+   *
+   * Empty means nothing is missing. `count: null` means the venue could not be read — NOT that it is
+   * empty. Nothing here is valued: a count with no USD beside it is the honest statement, and
+   * inventing a value for an unindexed position is the one thing this field must not lead to.
+   */
+  unindexed: UnindexedHolding[];
+}
+
+/** One venue the Reserve holds liquidity in that the Ledger does not index. */
+export interface UnindexedHolding {
+  /** e.g. "Uniswap v4". */
+  label: string;
+  /** The ERC-721 that custodies those positions. */
+  positionManager: string;
+  /** Why it is not indexed, in the page's voice — render it, do not summarise it. */
+  note: string;
+  /** Positions held across every Reserve wallet; null when the count could not be read. */
+  count: number | null;
 }
 
 export type ReserveEventKind = "mint" | "increase" | "decrease" | "collect" | "transfer_in" | "transfer_out";

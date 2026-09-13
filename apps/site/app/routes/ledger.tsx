@@ -211,10 +211,24 @@ export default function Ledger() {
   const events = useMonitor<{ events: ReserveEvent[] }>(MONITOR_API ? "/v1/reserve/events?limit=12" : null, 60_000);
   const nowSec = reserve.data ? Math.floor(Date.now() / 1000) : 0;
   const status = pageStatus(reserve, nowSec);
-  const sb = STATUS_BADGE[status];
   const d = reserve.data;
   const t = d?.totals;
   const explorer = d?.chain.explorer ?? (site.links.explorer !== "#" ? site.links.explorer : null);
+  /**
+   * Venues holding Reserve liquidity that the Monitor does not index. A venue reporting zero is not
+   * news; a venue it could not read (`count === null`) is, because that is coverage we cannot claim.
+   *
+   * This exists because on 2026-09-13 the Reserve opened a Uniswap v4 position and this page said
+   * nothing at all — the totals stayed confident and simply excluded it. A silent omission reads as
+   * a complete figure, which is the one thing the Ledger must never publish.
+   */
+  const unindexed = (d?.unindexed ?? []).filter((u) => u.count === null || u.count > 0);
+  const unindexedTotal = unindexed.some((u) => u.count === null) ? null : unindexed.reduce((n, u) => n + (u.count ?? 0), 0);
+  /**
+   * "No positions yet" is a claim about the treasury, not about our coverage. With liquidity sitting
+   * in a venue we do not read, that claim is simply false — so the badge narrows to what was checked.
+   */
+  const sb = status === "empty" && unindexed.length > 0 ? { ...STATUS_BADGE[status], label: "No v3 positions" } : STATUS_BADGE[status];
 
   /**
    * One bar per UTC day, from the last snapshot of that day, over a fixed 30-day window ending today.
@@ -279,9 +293,16 @@ export default function Ledger() {
         </Callout>
       )}
       {status === "empty" && (
-        <Callout tone="caution" title="The Reserve holds no positions yet" style={{ marginTop: 32 }}>
-          The monitor has read the chain up to block {fmtNum(d?.indexedTo ?? null)} and finds no protocol-owned liquidity at{" "}
-          <code style={mono}>{d?.lp}</code>. Every figure below stays a dash until the LP leg of the tax opens a position.
+        <Callout
+          tone="caution"
+          title={unindexed.length > 0 ? "The Reserve holds no positions this page can read" : "The Reserve holds no positions yet"}
+          style={{ marginTop: 32 }}
+        >
+          The monitor has read the chain up to block {fmtNum(d?.indexedTo ?? null)} and finds no Uniswap v3 liquidity at{" "}
+          <code style={mono}>{d?.lp}</code>.{" "}
+          {unindexed.length > 0
+            ? "That is not the same as an empty treasury — it holds liquidity elsewhere, counted above and valued nowhere on this page."
+            : "Every figure below stays a dash until the LP leg of the tax opens a position."}
         </Callout>
       )}
       {t && t.priced === false && (
@@ -291,8 +312,30 @@ export default function Ledger() {
         </Callout>
       )}
 
+      {unindexed.length > 0 && (
+        <Callout tone="caution" title="The Reserve holds liquidity this page does not value" style={{ marginTop: 32 }}>
+          {unindexed.map((u) => (
+            <div key={u.positionManager} style={{ marginBottom: 10 }}>
+              <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
+                {u.count === null ? `${u.label}: the number of positions could not be read.` : `${fmtNum(u.count)} position${u.count === 1 ? "" : "s"} in ${u.label}.`}
+              </span>{" "}
+              {u.note}
+            </div>
+          ))}
+          Every figure below counts the Uniswap v3 positions only, so the treasury is larger than it reads here. These are left out rather than
+          estimated: a number this page cannot read from the chain is not one it will guess at.
+        </Callout>
+      )}
+
       <Grid cols="repeat(4, 1fr)" gap={24} className="grid--2col-md" style={{ margin: "40px 0 48px", padding: "28px 0", borderTop: hairline, borderBottom: hairline }}>
-        <Stat label="Treasury NAV" value={fmtUsd(t?.navUsd, { compact: true })} footnote={`Owned liquidity, marked to market · ${fmtNum(t?.positions ?? null)} position${t?.positions === 1 ? "" : "s"}`} />
+        <Stat
+          label="Treasury NAV"
+          value={fmtUsd(t?.navUsd, { compact: true })}
+          footnote={
+            `Owned liquidity, marked to market · ${fmtNum(t?.positions ?? null)} position${t?.positions === 1 ? "" : "s"}` +
+            (unindexed.length === 0 ? "" : unindexedTotal === null ? " · excludes liquidity held in an unread venue" : ` · excludes ${fmtNum(unindexedTotal)} held elsewhere`)
+          }
+        />
         <Stat
           label="Fees earned"
           value={fmtUsd(t?.feesTotalUsd)}

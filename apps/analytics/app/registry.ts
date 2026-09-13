@@ -259,24 +259,18 @@ export const PROJECTS: Project[] = [
        * 602, 676 and 652 wallets. lib/projects.ts withholds that zero rather than publishing it.
        */
       /**
-       * Fully backfilled on 2026-09-13: 43 periods, all closed. But only 4 of them carry a USD
-       * value — HOOD10 marks payouts to GeckoTerminal daily closes and most of its history cannot
-       * be priced — so the total covers 2,930 of 33,715 recipient payouts. The figure is published
-       * as a floor with its coverage stated rather than withheld, because the wallet counts behind
-       * it are exact and a dash would hide a project that demonstrably pays.
+       * Fully priced as of 2026-09-13. It was a floor of $34,247 over 4 of 43 periods until the
+       * indexer's price loader was fixed — it had been choosing DELTA's deepest pool, which was
+       * newer than its second-deepest and carried one day of candles, and one unpriced leg nulls a
+       * whole period. All 43 now carry a value and the total is $353,751.
        */
-      paidAllTime: {
-        state: "estimated",
-        note: "a floor: most periods have no priceable payout, so the total counts a fraction of the wallets actually paid",
-      },
-      paid24h: { state: "estimated", note: "same basis — unpriced periods in the window count as nothing" },
+      paidAllTime: { state: "measured" },
+      paid24h: { state: "measured" },
       assets: { state: "measured", note: "the ten basket constituents, per period" },
       holders: { state: "measured", note: "replayed from the token's own transfers" },
       recipients: { state: "measured", note: "wallets the last period actually paid" },
-      // Both divide by a window containing unpriced periods, so both are floors, not estimates
-      // that could fall either way. The cell prints the coverage beside the number.
-      ratePerLine: { state: "estimated", note: "understated wherever a period in the window could not be priced" },
-      apr: { state: "estimated", note: "understated wherever a period in the window could not be priced" },
+      ratePerLine: { state: "measured" },
+      apr: { state: "measured", basisDays: 7 },
       payoutRhythm: { state: "measured", note: "measured from its own periods" },
       lastPaid: { state: "measured" },
       // The one place HOOD10 is better instrumented than INDEX: its hook emits FeeAccrued per swap.

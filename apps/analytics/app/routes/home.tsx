@@ -279,10 +279,18 @@ function Panels({
  * page whose claim is even-handedness, a two-of-three chart is worse than no chart.
  */
 function ChartSection() {
-  const { tax, recipients, loading } = useSeries(PROJECTS.map((p) => ({ key: p.key, symbol: p.symbol })));
+  const { paid, tax, recipients, loading } = useSeries(PROJECTS.map((p) => ({ key: p.key, symbol: p.symbol })));
   if (loading) return null;
   return (
     <section className="container section">
+      <Panels
+        title="Airdropped, per day"
+        lede="What each project actually paid out to holders, by UTC day. HOOD10's history only became chartable once its indexer stopped valuing a whole period at nothing because one of its ten basket tokens had no price."
+        series={paid}
+        format={fmtUsdAxis}
+        unit="US dollars airdropped per day"
+      />
+      <div style={{ height: 28 }} />
       <Panels
         title="Tax collected, per day"
         lede="What each project's trade tax brought in, by UTC day. This is the money the airdrops are paid out of. Days with no trading are omitted rather than drawn as zero."

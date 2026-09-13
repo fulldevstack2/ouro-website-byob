@@ -1,19 +1,25 @@
 /**
- * The two historical series this page can chart honestly.
+ * The historical series this page can chart honestly, for every project.
  *
- * Both were chosen by auditing what the indexer actually holds rather than what it nominally
- * exposes. `/v1/{token}/daily?days=400` returns 400 rows for every project, but most are zero-filled
- * — the real coverage is much narrower, and differs per project and per field:
+ * Chosen by auditing what the indexer actually holds rather than what it nominally exposes.
+ * `/v1/{token}/daily?days=400` returns 400 rows for every project, but most are zero-filled — the
+ * real coverage is much narrower and differs per project and per field:
  *
  *                         INDEX   OURO   HOOD10
+ *     paid_usd / day        63 d   11 d     17 d   ← charted
  *     tax_usd / day         71 d   12 d     21 d   ← charted
  *     epochs.recipients      200     94       43   ← charted
- *     paid_usd / day        63 d   11 d      2 d   HOOD10 unusable (one unpriced basket leg)
  *     epochs.holders         200      0       43   $OURO records none
  *     price / taxed share   10 d    0 d     10 d   market snapshots only, nothing for $OURO
  *
- * So: tax collected and wallets paid. Everything else is a two-of-three chart, which on a page whose
- * whole claim is even-handedness is worse than no chart.
+ * Airdropped-per-day joined the list on 2026-09-13. It had been two days for HOOD10, because one of
+ * its ten basket constituents had no price and a period is valued all-or-nothing, so 39 of its 43
+ * periods carried no dollars; fixing the indexer's pool choice for that one token took it to
+ * seventeen.
+ *
+ * What is still out: holders over time, which $OURO's source computes and never stores, and price
+ * and volume history, which runs to ten days and none of it $OURO's. On a page whose claim is
+ * even-handedness a two-of-three chart is worse than no chart.
  */
 import { useEffect, useState } from "react";
 
@@ -45,6 +51,7 @@ async function getJson<T>(path: string): Promise<T | null> {
 interface DailyRow {
   day: number;
   tax_usd: number | null;
+  paid_usd: number | null;
 }
 interface EpochRow {
   epoch: number;
@@ -96,7 +103,27 @@ export async function fetchRecipientsPerCycle(keys: { key: string; symbol: strin
   return out;
 }
 
+/**
+ * Dollars airdropped per day.
+ *
+ * Only chartable for all three since 2026-09-13. HOOD10 had two usable days before its indexer's
+ * price loader was fixed — a single basket constituent without a price nulled 39 of its 43 periods,
+ * and a period is valued all-or-nothing. It has seventeen now.
+ */
+export async function fetchPaidPerDay(keys: { key: string; symbol: string }[], days = 90): Promise<Series[]> {
+  return Promise.all(
+    keys.map(async ({ key, symbol }) => {
+      const d = await getJson<{ days: DailyRow[] }>(`/v1/${key}/daily?days=${days}`);
+      const points = (d?.days ?? [])
+        .filter((r) => typeof r.paid_usd === "number" && r.paid_usd > 0)
+        .map((r) => ({ t: r.day, v: r.paid_usd as number }));
+      return { key, symbol, points };
+    }),
+  );
+}
+
 export interface SeriesState {
+  paid: Series[];
   tax: Series[];
   recipients: Series[];
   loading: boolean;
@@ -104,14 +131,18 @@ export interface SeriesState {
 
 /** Both series, fetched once on mount. History moves slowly; there is nothing to poll for. */
 export function useSeries(keys: { key: string; symbol: string }[]): SeriesState {
-  const [state, setState] = useState<SeriesState>({ tax: [], recipients: [], loading: true });
+  const [state, setState] = useState<SeriesState>({ paid: [], tax: [], recipients: [], loading: true });
   const signature = keys.map((k) => k.key).join(",");
 
   useEffect(() => {
     let alive = true;
     void (async () => {
-      const [tax, recipients] = await Promise.all([fetchTaxPerDay(keys), fetchRecipientsPerCycle(keys)]);
-      if (alive) setState({ tax, recipients, loading: false });
+      const [paid, tax, recipients] = await Promise.all([
+        fetchPaidPerDay(keys),
+        fetchTaxPerDay(keys),
+        fetchRecipientsPerCycle(keys),
+      ]);
+      if (alive) setState({ paid, tax, recipients, loading: false });
     })();
     return () => {
       alive = false;
