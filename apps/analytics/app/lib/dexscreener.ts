@@ -1,5 +1,5 @@
 /**
- * Trading volume, and how much of it pays the tax, from DexScreener.
+ * Market data — price, value, volume and how much of that volume pays the tax — from DexScreener.
  *
  * ── Why not the indexer ──
  * ouro-monitor derives the taxed share by counting swaps on the hook pool and comparing them to
@@ -35,7 +35,9 @@ export const DEXSCREENER_CHAIN = "robinhood";
 /** Long enough that a page full of projects costs one request each; short enough to feel live. */
 export const CACHE_MS = 30_000;
 
-export interface VolumeBreakdown {
+export interface TokenMarket {
+  /** Spot price from the deepest pool. */
+  priceUsd: number | null;
   /** Summed 24h volume across every pool the token trades in. */
   totalUsd: number | null;
   /** 24h volume on the taxed pool alone. */
@@ -47,13 +49,21 @@ export interface VolumeBreakdown {
   taxedShare: number | null;
   /** How many pools the token trades in. Context for the share. */
   pools: number | null;
-  /** Fully diluted value from the deepest pool, since it comes in the same payload. */
+  /**
+   * Fully diluted value, from the deepest pool.
+   *
+   * Taken from the same payload as `priceUsd` deliberately. FDV is price x supply, so sourcing the
+   * two from different providers lets a reader divide one by the other and derive a supply neither
+   * provider believes. The indexer does not serve $OURO's FDV at all, which is why that cell used to
+   * show the eligible supply at spot — a smaller number under a heading that names a larger one.
+   */
   fdvUsd: number | null;
   /** Summed USD liquidity across all pools. */
   liquidityUsd: number | null;
 }
 
-export const EMPTY_VOLUME: VolumeBreakdown = {
+export const EMPTY_MARKET: TokenMarket = {
+  priceUsd: null,
   totalUsd: null,
   canonicalUsd: null,
   taxedShare: null,
@@ -64,6 +74,7 @@ export const EMPTY_VOLUME: VolumeBreakdown = {
 
 interface Pair {
   pairAddress?: string;
+  priceUsd?: string | number;
   volume?: { h24?: number };
   liquidity?: { usd?: number };
   fdv?: number;
@@ -78,19 +89,19 @@ interface Pair {
  */
 interface Entry {
   at: number;
-  value: VolumeBreakdown;
+  value: TokenMarket;
 }
 const cache = new Map<string, Entry>();
-const inflight = new Map<string, Promise<VolumeBreakdown>>();
+const inflight = new Map<string, Promise<TokenMarket>>();
 
 /** Exported for tests, and so a long-lived tab can be made to refetch on demand. */
-export function clearVolumeCache(): void {
+export function clearMarketCache(): void {
   cache.clear();
   inflight.clear();
 }
 
-function summarise(pairs: Pair[], canonicalPoolId: string): VolumeBreakdown {
-  if (pairs.length === 0) return EMPTY_VOLUME;
+function summarise(pairs: Pair[], canonicalPoolId: string): TokenMarket {
+  if (pairs.length === 0) return EMPTY_MARKET;
   const canon = canonicalPoolId.toLowerCase();
 
   let totalUsd = 0;
@@ -98,6 +109,7 @@ function summarise(pairs: Pair[], canonicalPoolId: string): VolumeBreakdown {
   let liquidityUsd = 0;
   let deepest = -1;
   let fdvUsd: number | null = null;
+  let priceUsd: number | null = null;
   let sawCanonical = false;
 
   for (const p of pairs) {
@@ -108,9 +120,10 @@ function summarise(pairs: Pair[], canonicalPoolId: string): VolumeBreakdown {
       liquidityUsd += liq;
       // FDV is a per-pair figure derived from that pair's price; take the deepest pool's, which is
       // the least susceptible to a thin market's last trade.
-      if (liq > deepest && Number.isFinite(Number(p.fdv))) {
+      if (liq > deepest) {
         deepest = liq;
-        fdvUsd = Number(p.fdv);
+        fdvUsd = Number.isFinite(Number(p.fdv)) ? Number(p.fdv) : null;
+        priceUsd = Number.isFinite(Number(p.priceUsd)) ? Number(p.priceUsd) : null;
       }
     }
     if ((p.pairAddress ?? "").toLowerCase() === canon) {
@@ -120,6 +133,7 @@ function summarise(pairs: Pair[], canonicalPoolId: string): VolumeBreakdown {
   }
 
   return {
+    priceUsd,
     totalUsd,
     canonicalUsd: sawCanonical ? canonicalUsd : null,
     // A share needs both halves. No canonical pool in the response means we cannot say what fraction
@@ -131,7 +145,7 @@ function summarise(pairs: Pair[], canonicalPoolId: string): VolumeBreakdown {
   };
 }
 
-export async function fetchVolume(token: string, canonicalPoolId: string, now = Date.now()): Promise<VolumeBreakdown> {
+export async function fetchMarket(token: string, canonicalPoolId: string, now = Date.now()): Promise<TokenMarket> {
   const key = token.toLowerCase();
   const hit = cache.get(key);
   if (hit && now - hit.at < CACHE_MS) return hit.value;
@@ -149,7 +163,7 @@ export async function fetchVolume(token: string, canonicalPoolId: string, now = 
       return value;
     } catch {
       // Keep whatever was last known good rather than blanking the row on one failed poll.
-      return cache.get(key)?.value ?? EMPTY_VOLUME;
+      return cache.get(key)?.value ?? EMPTY_MARKET;
     } finally {
       inflight.delete(key);
     }
@@ -159,9 +173,9 @@ export async function fetchVolume(token: string, canonicalPoolId: string, now = 
   return run;
 }
 
-/** Volume for several tokens at once, keyed by lowercased token address. */
-export function useVolumes(tokens: { token: string; canonicalPoolId: string }[]): Record<string, VolumeBreakdown> {
-  const [out, setOut] = useState<Record<string, VolumeBreakdown>>({});
+/** Market data for several tokens at once, keyed by lowercased token address. */
+export function useMarkets(tokens: { token: string; canonicalPoolId: string }[]): Record<string, TokenMarket> {
+  const [out, setOut] = useState<Record<string, TokenMarket>>({});
   // The set of tokens is the registry and does not change between renders; key on it so a stable
   // list does not restart the interval on every paint.
   const signature = tokens.map((t) => t.token).join(",");
@@ -170,7 +184,7 @@ export function useVolumes(tokens: { token: string; canonicalPoolId: string }[])
     let alive = true;
     const load = async () => {
       const entries = await Promise.all(
-        tokens.map(async (t) => [t.token.toLowerCase(), await fetchVolume(t.token, t.canonicalPoolId)] as const),
+        tokens.map(async (t) => [t.token.toLowerCase(), await fetchMarket(t.token, t.canonicalPoolId)] as const),
       );
       if (alive) setOut(Object.fromEntries(entries));
     };

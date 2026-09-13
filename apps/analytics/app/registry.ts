@@ -210,13 +210,7 @@ export const PROJECTS: Project[] = [
       "Taxes its own trades and splits the proceeds: half to holders as an airdrop, half into liquidity the protocol keeps and earns fees on.",
     coverage: {
       price: MARKET_MEASURED,
-      // NOT a fully diluted value. /v1/summary carries FDV for INDEX and HOOD10 but does not cover
-      // $OURO, so this cell is the eligible supply marked at spot — what the yield is a yield ON,
-      // which is a smaller number than FDV and a different claim. Marked rather than quietly shown.
-      marketCap: {
-        state: "estimated",
-        note: "eligible supply at spot, not fully diluted — the summary endpoint does not serve $OURO's FDV",
-      },
+      marketCap: MARKET_MEASURED,
       volume24h: VOLUME_MEASURED,
       paidAllTime: { state: "measured", note: "from the Airdropper's own events" },
       paid24h: { state: "measured" },

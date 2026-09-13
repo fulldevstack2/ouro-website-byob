@@ -15,16 +15,14 @@
  */
 import {
   useMonitor,
-  type Liveness,
   type OuroCycle,
-  type OuroNext,
   type OuroYield,
   type Summary,
   type TokenSummary,
 } from "@ouro/monitor-client";
 
 import { cadenceStats, type CadenceStats } from "~/lib/cadence";
-import { EMPTY_VOLUME, useVolumes, type VolumeBreakdown } from "~/lib/dexscreener";
+import { EMPTY_MARKET, useMarkets, type TokenMarket } from "~/lib/dexscreener";
 import { PROJECTS, type Project, type SortKey } from "~/registry";
 
 /** What every project page and the comparison table read. The future `/v1/projects` row. */
@@ -40,7 +38,7 @@ export interface ProjectRow {
    * uniformly (the indexer does not carry $OURO's), needs no source adapter for a new project, and
    * agreed with the indexer to a fraction of a percent when checked.
    */
-  volume: VolumeBreakdown;
+  volume: TokenMarket;
 
   paidAllTimeUsd: number | null;
   /**
@@ -65,13 +63,11 @@ export interface ProjectRow {
   aprWindowPriced: number | null;
   aprWindowTotal: number | null;
   paid24hUsd: number | null;
-  paidPerDayUsd: number | null;
   /** Distinct assets the last cycle paid out, for the "tokens paid" cell. */
   assets: { address: string; symbol: string | null }[] | null;
 
   holdersAboveLine: number | null;
   recipientsLast: number | null;
-  eligibleTokens: number | null;
 
   /** What one dividend line earns per day. Needs no token price: cycles allocate pro-rata. */
   ratePerLineUsdPerDay: number | null;
@@ -81,9 +77,6 @@ export interface ProjectRow {
   /** Total history behind that window, which is the other half of the same caveat. */
   aprHistoryDays: number | null;
 
-  lastPayoutTs: number | null;
-  nextPayoutTs: number | null;
-  liveness: Liveness;
   /**
    * How often this project actually pays, measured from its own cycles.
    *
@@ -129,7 +122,7 @@ function blankRow(project: Project): ProjectRow {
     project,
     priceUsd: null,
     marketCapUsd: null,
-    volume: EMPTY_VOLUME,
+    volume: EMPTY_MARKET,
     paidAllTimeUsd: null,
     paidAllTimeTruncated: false,
     pricedPeriods: null,
@@ -137,18 +130,13 @@ function blankRow(project: Project): ProjectRow {
     aprWindowPriced: null,
     aprWindowTotal: null,
     paid24hUsd: null,
-    paidPerDayUsd: null,
     assets: null,
     holdersAboveLine: null,
     recipientsLast: null,
-    eligibleTokens: null,
     ratePerLineUsdPerDay: null,
     aprPct: null,
     aprBasisDays: null,
     aprHistoryDays: null,
-    lastPayoutTs: null,
-    nextPayoutTs: null,
-    liveness: "unknown",
     cadence: cadenceStats([], Math.floor(Date.now() / 1000)),
   };
 }
@@ -165,7 +153,7 @@ function fromSummary(
   t: TokenSummary | undefined,
   cycles: OuroCycle[] | null,
   now: number,
-  volume: VolumeBreakdown,
+  volume: TokenMarket,
 ): ProjectRow {
   const row = {
     ...blankRow(project),
@@ -177,8 +165,10 @@ function fromSummary(
   const m = t.market;
   return {
     ...row,
-    priceUsd: m?.price_usd ?? null,
-    marketCapUsd: m?.fdv_usd ?? null,
+    // Price and FDV come from `volume`'s payload, set on the row above — not from the indexer's
+    // market row, so all three projects report the same quantity from the same source.
+    priceUsd: volume.priceUsd,
+    marketCapUsd: volume.fdvUsd,
     /**
      * Zero is a claim about the project; withhold it unless we can stand behind it.
      *
@@ -196,18 +186,13 @@ function fromSummary(
      */
     paidAllTimeUsd: unvaluedZero(t.indexedTo, t.paid?.all),
     paid24hUsd: unvaluedZero(t.indexedTo, t.paid?.h24),
-    paidPerDayUsd: t.yield?.paidUsdPerDay ?? null,
     assets: t.lastEpoch?.assets?.map((a) => ({ address: a.address, symbol: a.symbol })) ?? null,
     holdersAboveLine: t.holders?.aboveLine ?? null,
     recipientsLast: t.holders?.recipientsLast ?? null,
-    eligibleTokens: t.eligibleTokens ?? null,
     ratePerLineUsdPerDay: t.yield?.perLineUsdPerDay ?? null,
     aprPct: t.yield?.aprPct ?? null,
     aprBasisDays: t.yield?.basisDays ?? null,
     aprHistoryDays: null,
-    lastPayoutTs: t.liveness?.lastTs ?? null,
-    nextPayoutTs: t.liveness?.dueTs ?? null,
-    liveness: t.liveness?.status ?? "unknown",
   };
 }
 
@@ -224,10 +209,9 @@ const OURO_CYCLE_PAGE = 200;
 function fromOuro(
   project: Project,
   y: OuroYield | null,
-  next: OuroNext | null,
   cycles: OuroCycle[] | null,
   now: number,
-  volume: VolumeBreakdown,
+  volume: TokenMarket,
 ): ProjectRow {
   const row = {
     ...blankRow(project),
@@ -245,15 +229,13 @@ function fromOuro(
   const lastCycle = cycles?.[0] ?? null;
   return {
     ...row,
-    priceUsd: y?.priceUsd ?? null,
-    // The eligible supply at spot — what the yield is a yield ON. It is not the same thing as the
-    // fully diluted value the other two report, so the table labels this cell for what it is.
-    marketCapUsd: y?.eligibleValueUsd ?? null,
+    priceUsd: volume.priceUsd,
+    // A real fully diluted value now, rather than the eligible supply at spot standing in for one.
+    marketCapUsd: volume.fdvUsd,
     paidAllTimeUsd: allTime,
     // A full page means there may be more behind it; 86 cycles today, but the guard is the point.
     paidAllTimeTruncated: (cycles?.length ?? 0) >= OURO_CYCLE_PAGE,
     paid24hUsd: paid24h,
-    paidPerDayUsd: y?.paidUsdPerDay ?? null,
     assets: lastCycle?.assets?.map((a) => ({ address: a.address, symbol: a.symbol })) ?? null,
     /**
      * NOT the recipient count.
@@ -267,14 +249,10 @@ function fromOuro(
      */
     holdersAboveLine: null,
     recipientsLast: lastCycle?.recipients ?? null,
-    eligibleTokens: y?.eligibleTokens ?? null,
     ratePerLineUsdPerDay: y?.perLineUsdPerDay ?? null,
     aprPct: y?.aprPct ?? null,
     aprBasisDays: y?.basisDays ?? null,
     aprHistoryDays: y?.historyDays ?? null,
-    lastPayoutTs: next?.lastTs ?? null,
-    nextPayoutTs: next?.dueTs ?? null,
-    liveness: next?.status ?? "unknown",
   };
 }
 
@@ -298,7 +276,6 @@ export interface ProjectsState {
 export function useProjects(intervalMs = 30_000): ProjectsState {
   const summary = useMonitor<Summary>("/v1/summary", intervalMs);
   const ouroYield = useMonitor<OuroYield>("/v1/ouro/yield?days=7", intervalMs);
-  const ouroNext = useMonitor<OuroNext>("/v1/ouro/next", intervalMs);
   const ouroCycles = useMonitor<{ epochs: OuroCycle[] }>("/v1/ouro/epochs?limit=200", intervalMs);
   /**
    * INDEX's own cycles, for its measured cadence. A fifth request purely to avoid describing a
@@ -309,16 +286,16 @@ export function useProjects(intervalMs = 30_000): ProjectsState {
   /** HOOD10's periods, live since its backfill was re-enabled on 2026-09-12. */
   const hood10Cycles = useMonitor<{ epochs: OuroCycle[] }>("/v1/hood10/epochs?limit=200", intervalMs);
 
-  const polls = [summary, ouroYield, ouroNext, ouroCycles, indexCycles, hood10Cycles];
+  const polls = [summary, ouroYield, ouroCycles, indexCycles, hood10Cycles];
   const configured = !polls.some((p) => p.error === "not-configured");
 
-  const volumes = useVolumes(PROJECTS.map((p) => ({ token: p.token, canonicalPoolId: p.canonicalPoolId })));
+  const markets = useMarkets(PROJECTS.map((p) => ({ token: p.token, canonicalPoolId: p.canonicalPoolId })));
 
   const now = Math.floor(Date.now() / 1000);
   const rows = PROJECTS.map((project) => {
-    const vol = volumes[project.token.toLowerCase()] ?? EMPTY_VOLUME;
+    const market = markets[project.token.toLowerCase()] ?? EMPTY_MARKET;
     if (project.key === "ouro") {
-      return fromOuro(project, ouroYield.data, ouroNext.data, ouroCycles.data?.epochs ?? null, now, vol);
+      return fromOuro(project, ouroYield.data, ouroCycles.data?.epochs ?? null, now, market);
     }
     const cycles =
       project.key === "index"
@@ -326,7 +303,7 @@ export function useProjects(intervalMs = 30_000): ProjectsState {
         : project.key === "hood10"
           ? (hood10Cycles.data?.epochs ?? null)
           : null;
-    return fromSummary(project, summary.data?.tokens?.[project.key as "index" | "hood10"], cycles, now, vol);
+    return fromSummary(project, summary.data?.tokens?.[project.key as "index" | "hood10"], cycles, now, market);
   });
 
   return {
