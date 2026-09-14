@@ -7,6 +7,7 @@ import { useCollapse } from "~/hooks/useCollapse";
 import { useOuroTicker } from "~/hooks/useOuroTicker";
 import { fmtUsd } from "@ouro/monitor-client";
 import { Container } from "./Container";
+import { SocialLinks } from "./SocialLinks";
 import { Wordmark } from "./Wordmark";
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -112,6 +113,7 @@ export function SiteNav() {
             <Button size="sm" href={site.links.buy} onClick={close} {...externalLinkProps(site.links.buy)}>
               Buy {site.ticker} ↗
             </Button>
+            <SocialLinks className="nav-social" />
           </span>
         </div>
       </Container>

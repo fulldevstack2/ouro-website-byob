@@ -1,16 +1,15 @@
 import { Suspense, lazy, useEffect, useState } from "react";
+import { Link } from "react-router";
 
 import type { Route } from "./+types/vaults";
 import { Badge, Callout, LedgerTable, type LedgerColumn } from "@ouro/ds";
-import { AddressCell, Container, PageHeader, SectionHead, fitTable, mono } from "~/components/site";
+import { Container, PageHeader, SectionHead, body14, fitTable, mono } from "~/components/site";
 import { VaultsStatic } from "~/components/vaults/VaultFrame";
 import { LINE_TOKENS } from "~/content/protocol";
 import { site } from "~/content/site";
-import { LIVE_VAULTS, PAYOUT_TOKENS, TERMS, TOKENS } from "~/content/vaults";
+import { TERMS } from "~/content/vaults";
 import { pageMeta } from "~/lib/meta";
 import { fmtNum } from "@ouro/monitor-client";
-
-const OURO = TOKENS.find((t) => t.key === "ouro")!;
 
 /**
  * The wallet half of the page, loaded on the client only. The prerender (a real render pass in node)
@@ -66,19 +65,6 @@ const PARAM_ROWS = [
   ["Deployed", "2026-09-08 · blocks 57,376,688 to 57,376,793"],
 ].map(([p, val]) => ({ p, v: <span style={{ ...mono, fontSize: 12 }}>{val}</span> }));
 
-const ADDR_COLS: LedgerColumn[] = [
-  { key: "c", label: "Contract" },
-  { key: "a", label: "Address", align: "right" },
-];
-const ADDR_ROWS = [
-  ...LIVE_VAULTS.map((v) => ({ c: `${v.token.symbol} → ${v.payoutSymbol} vault (${v.entry.shareSymbol})`, a: <AddressCell address={v.entry.address} /> })),
-  { c: "OURO token", a: <AddressCell address={OURO.address} /> },
-  { c: "OURO pool hook (charges the 5% tax)", a: <AddressCell address={OURO.hook.address} /> },
-  { c: "Swap venue", a: <AddressCell address={TERMS.venue.address} /> },
-  { c: PAYOUT_TOKENS.weth.symbol, a: <AddressCell address={PAYOUT_TOKENS.weth.address} /> },
-  { c: PAYOUT_TOKENS.usdg.symbol, a: <AddressCell address={PAYOUT_TOKENS.usdg.address} /> },
-];
-
 export default function Vaults() {
   return (
     <Container className="page">
@@ -124,8 +110,16 @@ export default function Vaults() {
         <div className="table-scroll">
           <LedgerTable compact style={fitTable} columns={PARAM_COLS} rows={PARAM_ROWS} />
         </div>
-        <div className="table-scroll">
-          <LedgerTable compact style={fitTable} columns={ADDR_COLS} rows={ADDR_ROWS} />
+        {/* The addresses live in the docs, which is the one page that publishes every address on this
+            site. A second copy here was a second thing to keep right. */}
+        <div style={{ ...body14, paddingTop: 4 }}>
+          <p style={{ margin: 0 }}>
+            The three vault contracts, the swap venue and the payout tokens are published with every other Ouro address in the docs, each one linked to the
+            explorer.
+          </p>
+          <p style={{ margin: "12px 0 0" }}>
+            <Link to="/docs/#d09">Read the addresses →</Link>
+          </p>
         </div>
       </div>
     </Container>

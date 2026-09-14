@@ -3,10 +3,11 @@ import { Link } from "react-router";
 
 import type { Route } from "./+types/home";
 import { Badge, Button, Callout, Card, LedgerTable, Stat, type BadgeTone, type LedgerColumn } from "@ouro/ds";
-import { AirdropCalc, Container, LoopPlate, MicroLabel, SectionHead, TokenIcon, body14, mono } from "~/components/site";
-import { LINE_TOKENS, PROTOCOL_CONTRACTS, TOKEN_ICONS, explorerAddressUrl, shortAddress } from "~/content/protocol";
+import { AirdropCalc, Container, LoopPlate, MicroLabel, SectionHead, SplitBar, SplitRows, TokenIcon, body14, legRows, legWedges, mono } from "~/components/site";
+import { FEE_SPLIT, FEE_SPLIT_LABEL, LINE_TOKENS, PROTOCOL_CONTRACTS, TAX_SPLIT, TOKEN_ICONS, TRADE_TAX_PCT, explorerAddressUrl, shortAddress } from "~/content/protocol";
 import { externalLinkProps, site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
+import { navWithV4, useReserveV4, type ReserveV4Row } from "~/hooks/useReserveV4";
 import { pageMeta } from "~/lib/meta";
 import {
   MONITOR_API,
@@ -45,6 +46,7 @@ export default function Home() {
       <Hero />
       <LineBand />
       <LoopSection />
+      <SplitSection />
       <ReserveSection />
       <DifferenceSection />
       <AirdropCalc />
@@ -116,26 +118,32 @@ function allTime(days: DailyRow[] | undefined) {
  */
 function HeroCard() {
   const clock = useClock();
+  const v4 = useReserveV4();
   const reserve = useMonitor<Reserve>(MONITOR_API ? "/v1/reserve?hours=25" : null, 300_000);
   const daily = useMonitor<{ token: string; days: DailyRow[] }>(MONITOR_API ? "/v1/ouro/daily?days=366" : null, 300_000);
   const epochs = useMonitor<{ token: string; epochs: OuroCycle[] }>(MONITOR_API ? "/v1/ouro/epochs?limit=5" : null, 120_000);
 
   const d = reserve.data;
   const t = d?.totals;
-  const nav = t?.navUsd ?? null;
+  // The headline counts the Uniswap v4 position the monitor cannot value; the change over the day
+  // stays on the monitor's own figure, because its 24 hour baseline is that figure and no other.
+  const monitorNav = t?.navUsd ?? null;
+  const nav = navWithV4(monitorNav, v4.rows);
   const delta = (() => {
     const first = (d?.history ?? []).find((s) => s.nav_usd !== null && s.nav_usd > 0);
-    if (!d || !first || nav === null || first.nav_usd === null) return null;
+    if (!d || !first || monitorNav === null || first.nav_usd === null) return null;
     if ((d.generatedAt - first.ts) / 3600 < 20) return null;
-    return (nav - first.nav_usd) / first.nav_usd;
+    return (monitorNav - first.nav_usd) / first.nav_usd;
   })();
   const unindexed = (d?.unindexed ?? []).reduce((n, u) => n + (u.count ?? 0), 0);
+  const unvalued = Math.max(0, unindexed - v4.rows.length);
   const all = allTime(daily.data?.days);
   const last = (epochs.data?.epochs ?? []).find((c) => (c.status === "closed" || c.status === "aborted") && c.paidUsd !== null) ?? null;
 
+  const positions = (t?.positions ?? 0) + v4.rows.length;
   const navNote = t
-    ? `Marked to market · ${fmtNum(t.positions)} ${t.positions === 1 ? "position" : "positions"}${delta !== null ? " · past 24 hours" : ""}${
-        unindexed > 0 ? ` · ${fmtNum(unindexed)} more in Uniswap v4, not valued` : ""
+    ? `Marked to market · ${fmtNum(positions)} ${positions === 1 ? "position" : "positions"}${delta !== null ? " · past 24 hours" : ""}${
+        unvalued > 0 ? ` · ${fmtNum(unvalued)} more in Uniswap v4, not valued` : ""
       }`
     : "Marked to market, from the Reserve's positions";
 
@@ -144,7 +152,7 @@ function HeroCard() {
       <Stat size="xl" label="Protocol-owned liquidity" value={fmtUsd(nav)} delta={delta === null ? null : fmtPctSigned(delta, 1)} footnote={navNote} />
       <div className="hero__pair">
         <Stat size="sm" label="Airdropped to holders" value={fmtUsd(all?.paidUsd)} footnote={all ? `${fmtNum(all.cycles)} cycles${all.since ? ` since ${all.since}` : ""}` : "Every cycle, valued when sent"} />
-        <Stat size="sm" label="Last cycle" value={fmtUsd(last?.paidUsd)} footnote={last ? `${fmtWhen(last.endTs ?? last.startTs)} · ${fmtNum(last.recipients)} wallets` : "Every two hours"} />
+        <Stat size="sm" label="Airdrop every 2 hours" value={fmtUsd(last?.paidUsd)} footnote={last ? `${fmtWhen(last.endTs ?? last.startTs)} · ${fmtNum(last.recipients)} wallets` : "Every two hours"} />
       </div>
       <div className="hero__links">
         <Link to="/ledger/">Open the ledger →</Link>
@@ -162,15 +170,53 @@ function LineBand() {
       <Container className="band__inner">
         <div className="band__text">
           Hold <span style={{ ...mono, fontWeight: 600, color: "var(--text-primary)" }}>{fmtNum(LINE_TOKENS)}+</span> $OURO in your wallet and the airdrop
-          lands every two hours. Nothing to stake or claim. <Link to="/vaults/">Under the line? Pool in a vault →</Link>
+          lands every two hours. Nothing to stake or claim.
         </div>
-        <div className="band__pills">
-          <span className="pill">Tax 5%</span>
-          <span className="pill">Airdrop 2 · LP 2 · Ops 1</span>
-          <span className="pill">Pool fees 80 / 20</span>
+        {/* The link is left unclassed so it takes the site's underlined link treatment; the wrapper
+            carries the size and keeps it on one line, as the section heads do with their action. */}
+        <div className="band__action">
+          <Link to="/vaults/">Under the line? Pool in a vault →</Link>
         </div>
       </Container>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------- The split */
+
+/**
+ * The two splits the whole protocol runs on, as bars: what the 5% tax buys, and what a collection of
+ * pool fees pays. The figures come from content/protocol, which the docs and the parameter table read
+ * too, so the three places the site states them cannot drift apart.
+ */
+function SplitSection() {
+  return (
+    <Container id="split" className="home-section">
+      <SectionHead
+        kicker="The split"
+        title="Where every trade goes."
+        sub="Two splits, and both are published. One divides the tax a trade pays, the other divides what the Reserve earns."
+        action={<Link to="/docs/#d02">The method →</Link>}
+      />
+      <div className="cols-2">
+        <div>
+          <div className="split-block__head">
+            <span className="split-block__figure">{TRADE_TAX_PCT}%</span>
+            <span className="split-block__note">of every buy and sell, in ETH. Fixed in letscash&apos;s hook at launch, so nobody can change it.</span>
+          </div>
+          <SplitBar wedges={legWedges(TAX_SPLIT)} />
+          <SplitRows rows={legRows(TAX_SPLIT)} />
+        </div>
+        <div>
+          <div className="split-block__head">
+            <span className="split-block__figure">{FEE_SPLIT_LABEL}</span>
+            <span className="split-block__note">of every fee the Reserve collects, once the accrued fees are worth a collection.</span>
+          </div>
+          <SplitBar wedges={legWedges(FEE_SPLIT)} />
+          <SplitRows rows={legRows(FEE_SPLIT)} />
+        </div>
+      </div>
+    </Container>
   );
 }
 
@@ -265,31 +311,66 @@ function poolRow(p: ReservePosition) {
   };
 }
 
+/**
+ * The v4 row, which comes from the chain rather than the monitor (hooks/useReserveV4). It carries a
+ * value and a range and nothing else: fees and the mark against holding both need a position's
+ * history, which only the monitor keeps, and it keeps it for Uniswap v3 only. A dash is that gap
+ * stated, never a zero.
+ */
+function v4PoolRow(r: ReserveV4Row) {
+  const sym = r.entry.token.symbol;
+  return {
+    pool: (
+      <span className="pair-cell">
+        <TokenIcon symbol={sym} src={TOKEN_ICONS[sym]} size={20} />
+        <span className="pair-cell__name">
+          {sym} / {r.entry.quote.symbol}
+        </span>
+        <span className="pair-cell__sub">{fmtFeeTier(r.feeBps)} · v4</span>
+      </span>
+    ),
+    val: <span style={{ fontSize: 13, fontWeight: 600 }}>{fmtUsd(r.valueUsd)}</span>,
+    fees: <span style={{ fontSize: 13, color: "var(--text-faint)" }}>—</span>,
+    net: <span style={{ fontSize: 13, color: "var(--text-faint)" }}>—</span>,
+    range: (
+      <Badge tone={r.inRange ? "positive" : "caution"} dot>
+        {r.inRange ? "In range" : "Out of range"}
+      </Badge>
+    ),
+  };
+}
+
 function ReserveSection() {
   const reserve = useMonitor<Reserve>(MONITOR_API ? "/v1/reserve?hours=1" : null, 120_000);
+  const v4 = useReserveV4();
   const d = reserve.data;
   const held = (d?.positions ?? []).filter((p) => p.held);
+  const rows = [...held.map(poolRow), ...v4.rows.map(v4PoolRow)];
   let empty: ReactNode = null;
   if (!MONITOR_API) empty = "The monitor's origin is not set for this build, so the positions cannot be read.";
   else if (!d && reserve.error) empty = "The monitor did not answer. The positions appear as soon as it does.";
   else if (!d) empty = "Reading the chain…";
   else if (d.indexedTo === null) empty = "The monitor is still reading the Reserve's history.";
-  else if (held.length === 0) empty = "No positions held yet.";
+  else if (rows.length === 0) empty = v4.loading ? "Reading the chain…" : "No positions held yet.";
 
   return (
     <Container id="reserve" className="home-section">
       <SectionHead
         kicker="The Reserve"
-        title="It starts with CASHCAT and PONS."
+        title="CASHCAT, PONS and microduck."
         sub="Protocol-owned positions in the chain's deepest pools. Never handed out."
         action={<Link to="/ledger/">Full ledger →</Link>}
       />
       <div className="table-scroll">
-        <LedgerTable columns={POOL_COLS} rows={held.map(poolRow)} />
+        <LedgerTable columns={POOL_COLS} rows={rows} />
       </div>
       {empty && <div style={{ ...body14, fontStyle: "italic", padding: "12px 0" }}>{empty}</div>}
       <div className="cols-2 cols-2--tight" style={{ marginTop: 24 }}>
-        <div style={body14}>Each name is capped at 20–25% of the treasury, building toward five. Adds and retirements happen by public governance, on-chain.</div>
+        <div style={body14}>
+          Each name is capped at 20–25% of the treasury, building toward five. The microduck position is in a Uniswap v4 pool and its row is read straight from
+          the chain: the monitor indexes v3 only, so its fees and its mark against holding stay blank until it does. Adds and retirements happen by public
+          governance, on-chain.
+        </div>
         <Callout tone="caution" title="The pools can lose value">
           Constituents are volatile tokens, not stocks, and any of them can fail. Owned liquidity can lose to simply holding. Nothing here is a promise of
           returns.
@@ -364,8 +445,18 @@ const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] 
       </>
     ),
   },
-  { n: "02", horizon: "Medium term", title: "Own the trading rails", body: "Leave letscash so less of each trade leaks to untaxed pools." },
-  { n: "03", horizon: "Long term", title: "Multichain", body: "The same machine on other chains. One holder base." },
+  {
+    n: "02",
+    horizon: "Medium term",
+    title: "Build the Reserve up",
+    body: "Keep buying protocol-owned liquidity with every trade. Deeper positions earn more fees, and 80% of those fees is what the airdrop pays.",
+  },
+  {
+    n: "03",
+    horizon: "Long term",
+    title: "Our own DEX",
+    body: "Run the venue rather than trade on someone else's, so the protocol earns the DEX revenue instead of paying it away. That revenue buys $OURO back and burns it.",
+  },
 ];
 
 function RoadmapSection() {

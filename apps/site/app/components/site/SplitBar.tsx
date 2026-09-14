@@ -1,4 +1,6 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { legPct, type SplitLeg } from "~/content/protocol";
+import { KVRow } from "./KVRow";
 import { micro } from "./text";
 
 export interface Wedge {
@@ -30,3 +32,37 @@ export function SplitBar({ wedges, left, right, style }: { wedges: Wedge[]; left
     </div>
   );
 }
+
+export interface SplitRow {
+  label: ReactNode;
+  value: ReactNode;
+  /** The bronze figure: the share the protocol keeps. */
+  accent?: boolean;
+}
+
+/**
+ * The hairline rows that read out a bar: label left, share right. The bar above them is decorative,
+ * so this is where the figures are actually stated, on the home page and in the docs alike.
+ */
+export function SplitRows({ rows, style }: { rows: SplitRow[]; style?: CSSProperties }) {
+  return (
+    <div className="split-rows" style={style}>
+      {rows.map((r, i) => (
+        <KVRow
+          key={i}
+          py={10}
+          border={i === rows.length - 1 ? "none" : "bottom"}
+          label={r.label}
+          value={r.value}
+          valueStyle={{ fontWeight: 600, color: r.accent ? "var(--bronze-700)" : undefined }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** A split's legs as the bar's wedges, in the order they are declared. */
+export const legWedges = (legs: SplitLeg[]): Wedge[] => legs.map((l) => ({ weight: l.pct, tone: l.tone }));
+
+/** The same legs as the rows under it, so the bar and the figures cannot disagree. */
+export const legRows = (legs: SplitLeg[]): SplitRow[] => legs.map((l) => ({ label: l.label, value: legPct(l), accent: l.tone === "accent" }));

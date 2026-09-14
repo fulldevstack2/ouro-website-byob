@@ -3,9 +3,21 @@ import { Link } from "react-router";
 
 import type { Route } from "./+types/docs";
 import { Callout, LedgerTable, type LedgerColumn } from "@ouro/ds";
-import { AddressCell, Container, KVRow, MicroLabel, PageHeader, PendingCell, SplitBar, fitTable, mono } from "~/components/site";
-import { COLLECTION_SPLIT_USD, COLLECT_THRESHOLD_USD, INFRASTRUCTURE, PARAMETERS, PROTOCOL_CONTRACTS, VENUE, type AddressEntry } from "~/content/protocol";
+import { AddressCell, Container, MicroLabel, PageHeader, PendingCell, SplitBar, SplitRows, fitTable, legRows, legWedges, mono } from "~/components/site";
+import {
+  COLLECTION_SPLIT_USD,
+  COLLECT_THRESHOLD_USD,
+  FEE_SPLIT,
+  INFRASTRUCTURE,
+  PARAMETERS,
+  PROTOCOL_CONTRACTS,
+  TAX_SPLIT,
+  TRADE_TAX_PCT,
+  VENUE,
+  type AddressEntry,
+} from "~/content/protocol";
 import { site } from "~/content/site";
+import { VAULT_CONTRACTS } from "~/content/vaults";
 import { pageMeta } from "~/lib/meta";
 import { smoothScrollNextNavigation } from "~/lib/scroll";
 
@@ -106,24 +118,6 @@ function P({ children }: { children: ReactNode }) {
   return <div className="doc__text">{children}</div>;
 }
 
-/** The split tables under a bar (§02, §03, §05): label, figure, the bronze one being what the protocol keeps. */
-function Rows({ rows }: { rows: { label: string; value: string; accent?: boolean }[] }) {
-  return (
-    <div className="doc__rows">
-      {rows.map((r, i) => (
-        <KVRow
-          key={r.label}
-          py={10}
-          border={i === rows.length - 1 ? "none" : "bottom"}
-          label={r.label}
-          value={r.value}
-          valueStyle={{ fontWeight: 600, color: r.accent ? "var(--bronze-700)" : undefined }}
-        />
-      ))}
-    </div>
-  );
-}
-
 const usd0 = (n: number) => `$${n.toLocaleString("en-US")}`;
 
 /* ------------------------------------------------------------------ page */
@@ -154,33 +148,22 @@ export default function Docs() {
           </Doc>
 
           <Doc id="d02" n="02" title="The tax">
-            <P>5% in ETH on every buy and sell, fixed in letscash&apos;s hook at launch. Nobody can change it.</P>
-            <SplitBar wedges={[{ weight: 20, tone: "ink" }, { weight: 20, tone: "accent" }, { weight: 7, tone: "soft" }, { weight: 3, tone: "faint" }]} />
-            <Rows
-              rows={[
-                { label: "Airdrop: buys tokens and hands them to holders", value: "2%" },
-                { label: "LP: buys the Reserve and keeps it", value: "2%", accent: true },
-                { label: "Ops: gas, infra, listings", value: "0.7%" },
-                { label: "letscash: the launchpad's platform fee", value: "0.3%" },
-              ]}
-            />
+            <P>{TRADE_TAX_PCT}% in ETH on every buy and sell, fixed in letscash&apos;s hook at launch. Nobody can change it.</P>
+            <SplitBar wedges={legWedges(TAX_SPLIT)} />
+            <SplitRows rows={legRows(TAX_SPLIT)} />
           </Doc>
 
           <Doc id="d03" n="03" title="The Loop">
             <P>Each cycle deploys the accumulated tax on the split above and collects fees from the Reserve. Those fees split again:</P>
-            <SplitBar wedges={[{ weight: 80, tone: "ink" }, { weight: 20, tone: "accent" }]} />
-            <Rows
-              rows={[
-                { label: "Holders: airdropped to every wallet above the line, as earned", value: "80%" },
-                { label: "Reserve: tops up the positions, so the next cycle earns more", value: "20%", accent: true },
-              ]}
-            />
+            <SplitBar wedges={legWedges(FEE_SPLIT)} />
+            <SplitRows rows={legRows(FEE_SPLIT)} />
           </Doc>
 
           <Doc id="d04" n="04" title="The Reserve">
             <P>
-              Protocol-owned LP in liquid Robinhood Chain tokens. It opens with <strong>CASHCAT</strong> and <strong>PONS</strong>, building toward five, each
-              capped at 20–25% of the treasury. The tradeoff against holding is divergence; the <Link to="/ledger/">Ledger</Link> publishes both.
+              Protocol-owned LP in liquid Robinhood Chain tokens. It opened with <strong>CASHCAT</strong> and <strong>PONS</strong>, and{" "}
+              <strong>microduck</strong> is the third, held as an ETH pair in a Uniswap v4 pool, which the <Link to="/ledger/">Ledger</Link> reads straight from
+              the chain. It builds toward five, each capped at 20–25% of the treasury. The tradeoff against holding is divergence; the Ledger publishes both.
             </P>
           </Doc>
 
@@ -189,7 +172,7 @@ export default function Docs() {
               Two legs: the tax leg, bought at market, and 80% of Reserve fees, passed through as the pools earned them. Hold at least 100,000 $OURO in your own
               wallet. Nothing to stake, lock or claim.
             </P>
-            <Rows
+            <SplitRows
               rows={[
                 { label: "The line", value: "100,000 OURO · 0.01% of supply" },
                 { label: "Cadence", value: "Every 2 hours" },
@@ -241,7 +224,10 @@ export default function Docs() {
           </Doc>
 
           <Doc id="d09" n="09" title="Addresses" wide>
-            <P>On-chain and readable. Team vest: Sablier, uncancellable; cliff Mar 2027, ends Sep 2027.</P>
+            <P>
+              On-chain and readable. Team vest: Sablier, uncancellable; cliff Mar 2027, ends Sep 2027. The vault contracts are here too, which is where the{" "}
+              <Link to="/vaults/">vaults page</Link> sends anyone looking for them.
+            </P>
             <div className="stack stack--wide" style={{ marginTop: 14 }}>
               <div className="table-scroll">
                 <LedgerTable compact style={fitTable} columns={addrCols("Protocol contract")} rows={addressRows(PROTOCOL_CONTRACTS)} />
@@ -250,12 +236,16 @@ export default function Docs() {
                 <LedgerTable compact style={fitTable} columns={addrCols("Trading venue")} rows={addressRows(VENUE)} />
               </div>
               <div className="table-scroll">
+                <LedgerTable compact style={fitTable} columns={addrCols("Vault contract")} rows={addressRows(VAULT_CONTRACTS)} />
+              </div>
+              <div className="table-scroll">
                 <LedgerTable compact style={fitTable} columns={addrCols("Canonical infrastructure")} rows={addressRows(INFRASTRUCTURE)} />
               </div>
             </div>
             <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text-muted)", marginTop: 12, maxWidth: 640 }}>
-              The ETH/OURO pool is a Uniswap v4 pool, an id inside the PoolManager rather than a contract of its own, so it is the one row without an explorer
-              link.
+              The ETH/OURO pool is a Uniswap v4 pool, an id inside the PoolManager rather than a contract of its own, so it is the one row here without an
+              explorer link. The Reserve&apos;s ETH / microduck pool is an id of the same kind, and is listed with the other pools on the{" "}
+              <Link to="/ledger/">Ledger</Link>.
             </div>
           </Doc>
 

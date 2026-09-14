@@ -11,6 +11,7 @@ const OURO_ADDRESS = PROTOCOL_CONTRACTS[0]!.address!;
 
 const ELSEWHERE = [
   { label: `X · ${site.xHandle} ↗`, href: site.links.x },
+  { label: `Telegram · ${site.tgHandle} ↗`, href: site.links.telegram },
   { label: "Buy on letscash ↗", href: site.links.buy },
   { label: "Explorer ↗", href: site.links.explorer },
 ];

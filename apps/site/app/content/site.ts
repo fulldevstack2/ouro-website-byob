@@ -6,6 +6,7 @@
  * that reads them updates in one place.
  */
 const xHandle = "@ourolayer";
+const tgHandle = "@ourolayer";
 
 export const site = {
   /** Public origin, resolved at build time (scripts/site-url.mjs). No trailing slash. */
@@ -17,6 +18,7 @@ export const site = {
   description:
     "Every $OURO trade buys protocol-owned liquidity in the top Robinhood Chain tokens. The fees those pools earn are airdropped to holders every two hours.",
   xHandle,
+  tgHandle,
   /**
    * Every public Robinhood Chain endpoint that works, in the order they are tried. All keyless, so
    * they ship in the client bundle by design; they back the wallet connection (app/lib/wagmi.ts) and
@@ -55,6 +57,7 @@ export const site = {
   auditPublished: false,
   links: {
     x: `https://x.com/${xHandle.replace(/^@/, "")}`,
+    telegram: `https://t.me/${tgHandle.replace(/^@/, "")}`,
     /** Where $OURO trades. The token is a letscash launchpad token, so buying happens there. */
     buy: "https://www.letscash.fun/token/0x8ea0eb3505f5b3bd2bbea0febae0ce850cc73ecc",
     /** Block explorer for Robinhood Chain (address and transaction links everywhere). */

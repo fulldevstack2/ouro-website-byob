@@ -46,7 +46,7 @@ export const TOKENS: IndexToken[] = [
     siteUrl: "/",
     docsUrl: "/docs/",
     taxLine: "5% of the ETH leg on every buy and sell",
-    dividend: "Ouro's airdrop: the Reserve basket (CASHCAT, PONS and AI today), in kind",
+    dividend: "Ouro's airdrop: the Reserve basket (CASHCAT, PONS, AI and microduck today), in kind",
     cadence: "Every two hours, each collection streamed over two days",
     threshold: "100,000 OURO (0.01% of supply)",
     thresholdTokens: 100_000,
@@ -221,3 +221,18 @@ export const TERMS = {
   /** The vault app is the /vaults page itself: connect a wallet there to deposit, withdraw and claim. */
   appUrl: "/vaults/",
 };
+
+/**
+ * The vault addresses, for the docs' address tables (§09), which is where every address on this site
+ * is published. The /vaults page used to carry its own copy of this table and now links to that one
+ * instead: one page owns the addresses, and the rest point at it.
+ *
+ * Only what is particular to the vaults. The OURO token, its pool hook and WETH are already rows in
+ * the docs' protocol, venue and infrastructure tables, and a second printing of an address is a
+ * second thing to keep right.
+ */
+export const VAULT_CONTRACTS: { name: string; address: `0x${string}` }[] = [
+  ...LIVE_VAULTS.map((v) => ({ name: `${v.token.symbol} → ${v.payoutSymbol} vault (${v.entry.shareSymbol})`, address: v.entry.address })),
+  { name: `Swap venue (${TERMS.venue.name})`, address: TERMS.venue.address },
+  { name: `${PAYOUT_TOKENS.usdg.symbol} (what the dollars vault pays)`, address: PAYOUT_TOKENS.usdg.address },
+];
