@@ -11,6 +11,7 @@ import {
   INFRASTRUCTURE,
   PARAMETERS,
   PROTOCOL_CONTRACTS,
+  RESERVE_POOLS,
   TAX_SPLIT,
   TRADE_TAX_PCT,
   VENUE,
@@ -225,8 +226,9 @@ export default function Docs() {
 
           <Doc id="d09" n="09" title="Addresses" wide>
             <P>
-              On-chain and readable. Team vest: Sablier, uncancellable; cliff Mar 2027, ends Sep 2027. The vault contracts are here too, which is where the{" "}
-              <Link to="/vaults/">vaults page</Link> sends anyone looking for them.
+              On-chain and readable. Team vest: Sablier, uncancellable; cliff Mar 2027, ends Sep 2027. The pools the Reserve is an LP in and the vault
+              contracts are here too, which is where the <Link to="/ledger/">Ledger</Link> and the <Link to="/vaults/">vaults page</Link> send anyone looking
+              for them.
             </P>
             <div className="stack stack--wide" style={{ marginTop: 14 }}>
               <div className="table-scroll">
@@ -236,6 +238,9 @@ export default function Docs() {
                 <LedgerTable compact style={fitTable} columns={addrCols("Trading venue")} rows={addressRows(VENUE)} />
               </div>
               <div className="table-scroll">
+                <LedgerTable compact style={fitTable} columns={addrCols("Pools the Reserve is an LP in")} rows={addressRows(RESERVE_POOLS)} />
+              </div>
+              <div className="table-scroll">
                 <LedgerTable compact style={fitTable} columns={addrCols("Vault contract")} rows={addressRows(VAULT_CONTRACTS)} />
               </div>
               <div className="table-scroll">
@@ -243,8 +248,8 @@ export default function Docs() {
               </div>
             </div>
             <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text-muted)", marginTop: 12, maxWidth: 640 }}>
-              The ETH/OURO pool is a Uniswap v4 pool, an id inside the PoolManager rather than a contract of its own, so it is the one row here without an
-              explorer link. The Reserve&apos;s ETH / microduck pool is an id of the same kind, and is listed with the other pools on the{" "}
+              The ETH/OURO pool and the Reserve&apos;s ETH / microduck pool are Uniswap v4 pools, ids inside the PoolManager rather than contracts of their
+              own, so they are the two rows here without an explorer link. What the Reserve holds in those pools, and what it has earned there, is on the{" "}
               <Link to="/ledger/">Ledger</Link>.
             </div>
           </Doc>

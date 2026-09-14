@@ -118,7 +118,9 @@ export const PROTOCOL_CONTRACTS: AddressEntry[] = [
 
 /**
  * The pools the Reserve is an LP in — the positions the Ledger reports, and the addresses anyone can
- * check them against. Uniswap v3 pools are real contracts, unlike the v4 pool $OURO itself trades in.
+ * check them against. Published in the docs' address tables (§09), which is where every address on
+ * this site is published; the Ledger used to carry its own copy and now links to that one instead.
+ * Uniswap v3 pools are real contracts, unlike the v4 pool $OURO itself trades in.
  *
  * Both v3 pools run `feeProtocol = 102`: the pool skims 1/6 of each side's fee for the v3 factory
  * owner (`0x05C420bC4823e039AA4dA645eDde743486dAAA25`, not us), so the Reserve nets **0.25% of a

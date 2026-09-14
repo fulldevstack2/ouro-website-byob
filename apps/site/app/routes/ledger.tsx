@@ -2,8 +2,8 @@ import { Link } from "react-router";
 
 import type { Route } from "./+types/ledger";
 import { Badge, Callout, Card, LedgerTable, Stat, type BadgeTone, type LedgerColumn } from "@ouro/ds";
-import { AddressCell, Bars, Container, KVRow, MicroLabel, PageHeader, PendingCell, SectionHead, body14, fitTable, mono } from "~/components/site";
-import { COLLECTION_SPLIT_USD, COLLECT_THRESHOLD_USD, INFRASTRUCTURE, PROTOCOL_CONTRACTS, RESERVE_POOLS, type AddressEntry } from "~/content/protocol";
+import { AddressCell, Bars, Container, KVRow, MicroLabel, PageHeader, SectionHead, body14, mono } from "~/components/site";
+import { COLLECTION_SPLIT_USD, COLLECT_THRESHOLD_USD } from "~/content/protocol";
 import { externalLinkProps, site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
 import { navWithV4, useReserveV4, type ReserveV4Row } from "~/hooks/useReserveV4";
@@ -73,22 +73,6 @@ function TxLink({ explorer, tx }: { explorer: string | null; tx: string }) {
   );
 }
 
-function addressRows(entries: AddressEntry[]) {
-  return entries.map((e) => ({ c: e.name, a: e.address ? <AddressCell address={e.address} linked={!e.poolId} /> : <PendingCell>Publishes at launch</PendingCell> }));
-}
-
-const ADDR_COLS: LedgerColumn[] = [
-  { key: "c", label: "Protocol contract" },
-  { key: "a", label: "Address", align: "right" },
-];
-const INFRA_COLS: LedgerColumn[] = [
-  { key: "c", label: "Canonical infrastructure" },
-  { key: "a", label: "Address", align: "right" },
-];
-const POOL_COLS: LedgerColumn[] = [
-  { key: "c", label: "Pools the Reserve is an LP in" },
-  { key: "a", label: "Address", align: "right" },
-];
 const EVENT_COLS: LedgerColumn[] = [
   { key: "when", label: "When", nowrap: true },
   { key: "what", label: "What the Reserve did" },
@@ -491,19 +475,16 @@ export default function Ledger() {
         </Card>
       </div>
 
-      <SectionHead kicker="Addresses" title="Verify everything." size="sub" style={{ margin: "64px 0 28px" }} />
-      <div className="cols-2 cols-2--tight">
-        <div className="table-scroll">
-          <LedgerTable compact style={fitTable} columns={ADDR_COLS} rows={addressRows(PROTOCOL_CONTRACTS)} />
-        </div>
-        <div className="stack stack--wide">
-          <div className="table-scroll">
-            <LedgerTable compact style={fitTable} columns={POOL_COLS} rows={addressRows(RESERVE_POOLS)} />
-          </div>
-          <div className="table-scroll">
-            <LedgerTable compact style={fitTable} columns={INFRA_COLS} rows={addressRows(INFRASTRUCTURE)} />
-          </div>
-        </div>
+      {/* The addresses live in the docs, which is the one page that publishes every address on this
+          site. A second copy here was a second thing to keep right. */}
+      <div style={{ ...body14, marginTop: 40, maxWidth: 620 }}>
+        <p style={{ margin: 0 }}>
+          The Reserve wallet, the pools it is an LP in and the contracts behind them are published with every other Ouro address in the docs, each one linked
+          to the explorer.
+        </p>
+        <p style={{ margin: "12px 0 0" }}>
+          <Link to="/docs/#d09">Read the addresses →</Link>
+        </p>
       </div>
     </Container>
   );

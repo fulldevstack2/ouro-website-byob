@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "pnpm --filter @ouro/site dev",
     "dev:analytics": "pnpm --filter @ouro/analytics dev",
-    "build": "pnpm --recursive --filter './apps/*' build",
+    "build": "pnpm --recursive --filter \"./apps/*\" build",
     "build:site": "pnpm --filter @ouro/site build",
     "build:analytics": "pnpm --filter @ouro/analytics build",
     "typecheck": "pnpm --recursive typecheck"
