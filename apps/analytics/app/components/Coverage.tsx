@@ -16,17 +16,27 @@
  *     colour-vision separation against one another (deutan ΔE 3.0 for red↔amber), so a traffic
  *     light here would be unreadable for some readers and meaningless in greyscale or print.
  */
+import { useChanged } from "~/lib/motion";
 import type { CoverageRecord } from "~/registry";
 
 /** The em-dash a withheld figure renders as. Never "0", never "—" without a reason beside it. */
 export const DASH = "—";
 
-export function CoverageMark({ coverage, hasValue = true }: { coverage: CoverageRecord; hasValue?: boolean }) {
+export function CoverageMark({
+  coverage,
+  hasValue = true,
+  hideNote = false,
+}: {
+  coverage: CoverageRecord;
+  hasValue?: boolean;
+  /** Set when this row's cells all carry the same note and it has been hoisted to the row label. */
+  hideNote?: boolean;
+}) {
   if (coverage.state === "measured") {
     // No mark. A note still shows where it says something non-obvious about THIS figure — but only
     // once there is a figure: beside a dash that is merely still loading, a provenance note reads
     // as an explanation for absence, which is not what it says.
-    return coverage.note && hasValue ? <span className="mark-note">{coverage.note}</span> : null;
+    return coverage.note && hasValue && !hideNote ? <span className="mark-note">{coverage.note}</span> : null;
   }
 
   const label = coverage.state === "estimated" ? "Estimated" : "Not indexed";
@@ -62,12 +72,25 @@ export function Basis({ basisDays, historyDays }: { basisDays: number | null; hi
 }
 
 /** A figure, or a dash. `null` means unknown — it is never rendered as zero. */
-export function Figure({ value, coverage }: { value: string | null; coverage: CoverageRecord }) {
+export function Figure({
+  value,
+  coverage,
+  hideNote = false,
+}: {
+  value: string | null;
+  coverage: CoverageRecord;
+  hideNote?: boolean;
+}) {
   const missing = value === null || coverage.state === "not_indexed";
+  // A figure that just moved says so for a moment. This is the page's only ambient motion that is
+  // driven by the data rather than by a timer: when nothing on chain changed, nothing here flashes.
+  const ticked = useChanged(missing ? null : value);
   return (
     <>
-      <span className={missing ? "cell dash" : "cell"}>{missing ? DASH : value}</span>
-      <CoverageMark coverage={coverage} hasValue={!missing} />
+      <span className={missing ? "cell dash" : "cell"} data-tick={ticked ? "on" : undefined}>
+        {missing ? DASH : value}
+      </span>
+      <CoverageMark coverage={coverage} hasValue={!missing} hideNote={hideNote} />
     </>
   );
 }

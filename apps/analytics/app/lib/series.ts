@@ -122,6 +122,38 @@ export async function fetchPaidPerDay(keys: { key: string; symbol: string }[], d
   );
 }
 
+/**
+ * The last `days` of a series, or all of it when `days` is null.
+ *
+ * The window control exists because the three projects have wildly different histories: INDEX has
+ * 63 charted days against $OURO's 12, so "all" draws $OURO as a burst at the right-hand edge of a
+ * panel that is mostly empty. Being able to pull the window in to 14 days is what makes the three
+ * panels comparable at all.
+ */
+export function withinDays(points: Point[], days: number | null): Point[] {
+  if (days === null) return points;
+  const cut = Date.now() / 1000 - days * 86_400;
+  return points.filter((p) => p.t >= cut);
+}
+
+/**
+ * Every project's daily figures, added together.
+ *
+ * For the headline band only, and only for dollars airdropped: a day is the same unit for all three
+ * projects, so summing is meaningful in a way that summing their per-cycle figures would not be. A
+ * project with no value for a day contributes nothing to it rather than a zero, which is the same
+ * rule every cell on the page follows.
+ */
+export function combineDaily(series: Series[], days: number | null = null): Point[] {
+  const byDay = new Map<number, number>();
+  for (const s of series) {
+    for (const p of withinDays(s.points, days)) {
+      byDay.set(p.t, (byDay.get(p.t) ?? 0) + p.v);
+    }
+  }
+  return [...byDay.entries()].map(([t, v]) => ({ t, v })).sort((a, b) => a.t - b.t);
+}
+
 export interface SeriesState {
   paid: Series[];
   tax: Series[];
