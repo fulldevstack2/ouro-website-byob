@@ -1,11 +1,10 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 
 import { Badge, Button, Card, Stat } from "@ouro/ds";
-import { AddressCell, ConnectBar, Grid, HelpTip, KVRow, TokenIcon, body14, hairline, micro, mono } from "~/components/site";
+import { KVRow, MicroLabel, TokenIcon } from "~/components/site";
 import { revealRow, useCollapse } from "~/hooks/useCollapse";
-import { FLOATING_SUPPLY_TOKENS } from "~/content/protocol";
-import { LIVE_VAULTS, TERMS, type LiveVault } from "~/content/vaults";
-import { fmtNum } from "@ouro/monitor-client";
+import { useEqualCardBodies } from "~/hooks/useEqualCardBodies";
+import { LIVE_VAULTS, type LiveVault } from "~/content/vaults";
 
 /* ────────────────────────────────────────────────────────────────────────────
    The vaults section's layout, with no wallet code in it.
@@ -16,274 +15,171 @@ import { fmtNum } from "@ouro/monitor-client";
    client only) mounts the wallet tree and reads the chain. Keeping wagmi and RainbowKit out of this
    file keeps them out of the server bundle, which is what lets the prerender stay fast.
 
-   SHAPE. Each vault is one accordion row: a header that is always visible, carrying the name, TVL and
-   the yield, over a body holding everything else, the deposit and withdraw panel included. Side by
-   side the three cards ran past 800px tall, which is more than a screen and far more than a phone, so
-   the figures could not be read across and the form sat below the fold. Closed, a row is one line.
-
-   One row is open at a time (useOpenVault). A closed body stays mounted rather than being unmounted, so
-   a half-typed amount and a chosen tab survive closing the row; it opens and closes by animating its
-   height (useCollapse) and is `visibility: hidden` once closed, which takes it out of the tab order
-   and the accessibility tree. Opening also brings the row up under the sticky nav when the card does
-   not already fit on screen, which on a phone is always: without it the panel unfolds below the fold
-   and the tap looks like it did nothing.
-
-   The three headers share one column template (.vault-head in styles/site.css), so TVL and the yield
-   line up down the page. On a phone the header drops to two lines, name over figures, and the
-   payout's `short` line stands in for its `summary`; the body reorders so the deposit and withdraw
-   panel comes FIRST, since that is what the tap was for, with the figures and then the prose under it
-   (.vault-body__content's grid areas).
+   SHAPE. One card per vault, three across: the pair it turns (OURO into OURO, ETH or dollars), what
+   is pooled and the rate with its basis, three rows of the vault's own figures, and the two or three
+   buttons. Deposit and Withdraw open the panel inside the card, under the buttons, on that tab;
+   Collect (payout vaults) claims straight away. The panel opens by animated height (useCollapse) and
+   is visibility:hidden once closed, which takes it out of the tab order.
    ──────────────────────────────────────────────────────────────────────────── */
 
-export interface StatBandProps {
-  /** Deposits across the vaults, in dollars, with the OURO total as the footnote. */
-  tvl: ReactNode;
-  tvlNote: ReactNode;
-  /** How much of the floating supply sits in the vaults, as a percentage. */
-  pooledShare: ReactNode;
-  pooledShareNote: ReactNode;
-  /** Measured airdrop APR (`/v1/ouro/yield`), with its basis caveat. */
-  apr: ReactNode;
-  aprNote: ReactNode;
-}
-
 /**
- * The band above the rows: TVL, the share of supply pooled, airdrop APR, performance fee.
- *
- * Descriptions live in a "?" tip next to each label (mouse-following on desktop, tap on mobile).
- * Phone keeps all four in a 2×2 grid.
+ * The row of cards. It owns the height matching (hooks/useEqualCardBodies), which is why the grid is
+ * a component rather than a bare div in each of the two renderings.
  */
-export function StatBand({ tvl, tvlNote, pooledShare, pooledShareNote, apr, aprNote }: StatBandProps) {
-  const feeNote = `Of harvest gains only, and no deposit or withdrawal fee. ${TERMS.feeSplit.airdrops}% of the gain funds more airdrops, ${TERMS.feeSplit.ops}% covers ops`;
-  return (
-    <Grid cols="repeat(4, 1fr)" gap={24} className="grid--2col-md stat-band">
-      <Stat label={<StatLabel text="TVL" tip={tvlNote} />} value={tvl} />
-      <Stat className="cell-rule" label={<StatLabel text="Supply pooled" tip={pooledShareNote} />} value={pooledShare} />
-      <Stat className="cell-rule" label={<StatLabel text="Airdrop APR" tip={aprNote} />} value={apr} />
-      <Stat className="cell-rule" label={<StatLabel text="Performance fee" tip={feeNote} />} value={`${TERMS.performanceFeePct}%`} />
-    </Grid>
-  );
-}
-
-function StatLabel({ text, tip }: { text: string; tip: ReactNode }) {
-  return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-      {text}
-      <HelpTip follow>{tip}</HelpTip>
-    </span>
-  );
-}
-
-export const STATIC_BAND: StatBandProps = {
-  tvl: "—",
-  tvlNote: "Deposits across the three vaults, priced in dollars from the chain and the monitor",
-  pooledShare: "—",
-  pooledShareNote: `OURO in the three vaults as a share of the ${fmtNum(FLOATING_SUPPLY_TOKENS)} floating supply, which is the billion minted less what is still locked in the team vest`,
-  apr: "—",
-  aprNote: "What a wallet above the line earns from payouts actually made, annualised, before any vault fee",
-};
-
-/** The rows, stacked. */
 export function VaultList({ children }: { children: ReactNode }) {
-  return <div className="vault-list">{children}</div>;
-}
-
-/** One row open at a time, keyed by vault address; clicking the open row closes it. */
-export function useOpenVault() {
-  const [open, setOpen] = useState<string | null>(null);
-  return {
-    isOpen: (id: string) => open === id,
-    toggle: (id: string) => setOpen((current) => (current === id ? null : id)),
-  };
-}
-
-/** The figures a closed row shows. */
-export interface VaultSummary {
-  /** Deposits in dollars, or the token amount while there is no price. */
-  tvl: ReactNode;
-  /** "APY" on the compounding vault, "APR" on the payout ones. */
-  yieldLabel: string;
-  yieldValue: ReactNode;
-  /**
-   * What the reader holds here, with what the vault owes them under it. It goes last, after the
-   * vault's own two figures, so those keep their place whether or not a wallet is connected. Set for
-   * every row or for none: the three headers share one column template, so a column one row had and
-   * another lacked would put TVL in a different place down the page.
-   */
-  mine?: { deposit: ReactNode; claim?: ReactNode };
-}
-
-function Figure({ label, value, note }: { label: ReactNode; value: ReactNode; note?: ReactNode }) {
+  const grid = useEqualCardBodies<HTMLDivElement>();
   return (
-    <span className="vault-head__fig">
-      <span className="vault-head__fig-label" style={{ ...micro, fontSize: 10, color: "var(--text-muted)" }}>
-        {label}
-      </span>
-      <span style={{ ...mono, fontSize: 15, fontWeight: 600, color: "var(--text-primary)", overflowWrap: "anywhere" }}>{value}</span>
-      {/* Bronze, like the claim panel's label: it is the one figure on a closed row that is waiting to
-          be acted on. */}
-      {note && <span className="vault-head__fig-note" style={{ ...mono, fontSize: 11, fontWeight: 600, color: "var(--bronze-700)" }}>{note}</span>}
-    </span>
+    <div className="vgrid" ref={grid}>
+      {children}
+    </div>
   );
+}
+
+/** The bar over the cards: the app's name and the pooled total on the left, the wallet on the right. */
+export function VaultBar({ pooled, share, right }: { pooled: ReactNode; share: ReactNode; right: ReactNode }) {
+  return (
+    <div className="vbar">
+      <div className="vbar__title">
+        <span className="vbar__name">Ouro Vaults</span>
+        <span className="vbar__pooled">
+          {pooled} OURO pooled · {share} of floating supply
+        </span>
+      </div>
+      <div className="vbar__wallet">{right}</div>
+    </div>
+  );
+}
+
+export interface VaultCardProps {
+  n: string;
+  vault: LiveVault;
+  /** What is pooled, as a token amount, and the line under it (its dollar value, or why there is none). */
+  pooled: ReactNode;
+  pooledNote: ReactNode;
+  /** The rate, "APY" on the compounding vault and "APR" on the payout ones, with where it comes from. */
+  yieldLabel: "APY" | "APR";
+  yieldValue: ReactNode;
+  yieldNote: ReactNode;
+  /** The vault's own figures, as KVRows. */
+  rows: ReactNode;
+  /** Deposits closed. */
+  paused?: boolean;
+  /** The buttons. */
+  actions: ReactNode;
+  /** The deposit and withdraw panel, mounted whether or not it is open so a half-typed amount survives. */
+  panel?: ReactNode;
+  open?: boolean;
 }
 
 /**
- * The two tokens a row is about: what you put in, and what it pays.
- *
- * Side by side rather than overlapped, which is the usual way to draw a pair but wrong for these
- * marks: all three are a single glyph centred on a disc (see public/tokens), so a front disc laid
- * over a third of the one behind ate the glyph that identifies it and OURO's "O" came out as a "C".
- *
- * One mark, not two, on the compounding vault: it pays the token it holds, so the same disc twice
- * would look like a rendering bug rather than a fact.
+ * The two tokens a card is about: what you put in, and what it pays. One mark on the compounding
+ * vault, which pays the token it holds.
  */
 function TokenPair({ vault }: { vault: LiveVault }) {
   const { token, payoutIcon, payoutSymbol } = vault;
   return (
-    <span className="vault-head__marks">
-      <TokenIcon symbol={token.symbol} src={token.icon} size={22} />
-      {payoutIcon && <TokenIcon symbol={payoutSymbol} src={payoutIcon} size={22} />}
+    <span className="vcard__pair">
+      <span className="vcard__marks">
+        <TokenIcon symbol={token.symbol} src={token.icon} size={26} />
+        {payoutIcon && (
+          <>
+            <span className="vcard__arrow" aria-hidden="true">
+              →
+            </span>
+            <TokenIcon symbol={payoutSymbol} src={payoutIcon} size={26} />
+          </>
+        )}
+      </span>
+      <span className="vcard__title">{vault.payout.summary(token)}</span>
     </span>
   );
 }
 
-function Chevron() {
+export function VaultCard({ n, vault, pooled, pooledNote, yieldLabel, yieldValue, yieldNote, rows, paused = false, actions, panel, open = false }: VaultCardProps) {
+  const box = useRef<HTMLDivElement>(null);
+  const collapse = useCollapse(open, { onOpened: () => revealRow(box.current) });
+  const label = `${n} · ${vault.payout.short(vault.token)}`;
   return (
-    <svg className="vault-head__chev" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-      <path d="M4.5 7L9 11.5L13.5 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-export interface FrameProps {
-  vault: LiveVault;
-  /** What the header carries whether the row is open or closed. */
-  summary: VaultSummary;
-  /** Where the yield figure comes from: small print under the figures. */
-  note: ReactNode;
-  /** The vault's own figures, as KVRows. */
-  rows: ReactNode;
-  /** Deposits closed. Said in the header because the panel that also says it is hidden when closed. */
-  paused?: boolean;
-  open: boolean;
-  onToggle: () => void;
-  /** The deposit and withdraw panel. */
-  children: ReactNode;
-}
-
-/** One vault as an accordion row. */
-export function Frame({ vault, summary, note, rows, paused = false, open, onToggle, children }: FrameProps) {
-  const { token, payout, entry } = vault;
-  const bodyId = `vault-${entry.address}`;
-  const head = useRef<HTMLButtonElement>(null);
-  const body = useCollapse(open, { onOpened: () => revealRow(head.current?.closest("section") ?? null) });
-  return (
-    <Card padding={0} className="vault-card">
-      <button
-        type="button"
-        ref={head}
-        className="vault-head"
-        data-mine={summary.mine ? "true" : undefined}
-        aria-expanded={open}
-        aria-controls={bodyId}
-        onClick={onToggle}
-      >
-        <span className="vault-head__name">
-          <span style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+    <div ref={box} className="vcard-wrap">
+      {/* The card's own `label` and `action` props are not used: everything except the panel has to
+          sit inside `.vcard__body`, which is the box whose height is matched across the row. */}
+      <Card className="vcard">
+        <div className="vcard__body">
+          <div className="vcard__head">
+            <MicroLabel>{label}</MicroLabel>
+            {paused && <Badge tone="caution">Deposits paused</Badge>}
+          </div>
+          <div className="vcard__top">
             <TokenPair vault={vault} />
-            {/* Explicit on purpose: "OURO → USDG" reads like a swap, which is the single most common
-                misreading of this page. Deposit / Earn says what actually happens. */}
-            <span className="vault-head__title">
-              Deposit {token.symbol} · Earn {vault.payoutSymbol}
-            </span>
-            {paused ? <Badge tone="caution">Deposits paused</Badge> : (
-              <Badge tone="positive" dot>
-                Live
-              </Badge>
-            )}
-          </span>
-          {/* The same fact at two lengths: the stylesheet shows whichever one fits the viewport. */}
-          <span className="vault-head__sub vault-head__sub--long">{payout.summary(token)}</span>
-          <span className="vault-head__sub vault-head__sub--short">{payout.short(token)}</span>
-        </span>
-        <span className="vault-head__figs">
-          <Figure label="TVL" value={summary.tvl} />
-          <Figure label={summary.yieldLabel} value={summary.yieldValue} />
-          {summary.mine && <Figure label="Your deposit" value={summary.mine.deposit} note={summary.mine.claim} />}
-        </span>
-        <Chevron />
-      </button>
-
-      {/* The height is animated on .vault-body, which also clips; the padding and the divider sit on
-          __content, because a padded, bordered box is never really zero-height. */}
-      <div id={bodyId} className="vault-body" data-open={open ? "true" : "false"} ref={body.ref} onTransitionEnd={body.onTransitionEnd}>
-        <div className="vault-body__content">
-          <Card tone="tint" padding={20} className="vault-part vault-part--panel">
-            {children}
-          </Card>
-
-          <div className="vault-part vault-part--figs">{rows}</div>
-
-          <div className="vault-part vault-part--note">
-            <span style={{ ...micro, fontSize: 10, color: "var(--text-muted)", flex: "none" }}>{summary.yieldLabel}</span>
-            <span style={{ minWidth: 0 }}>{note}</span>
-          </div>
-
-          <div className="vault-part vault-part--about">
-            <div style={body14}>{payout.text(token)}</div>
-            <div style={{ marginTop: 10, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", ...mono, fontSize: 12, color: "var(--text-faint)" }}>
-              <span>{entry.shareSymbol}</span>
-              <AddressCell address={entry.address} />
+            <div className="vcard__figures">
+              <Stat label="Pooled" value={pooled} unit={vault.token.symbol} footnote={pooledNote} />
+              <Stat className="cell-rule" label={yieldLabel} value={yieldValue} footnote={yieldNote} />
             </div>
+            <div className="vcard__rows">{rows}</div>
           </div>
+          <div className="vcard__actions">{actions}</div>
         </div>
-      </div>
-    </Card>
+        {panel !== undefined && (
+          <div className="vpanel" data-open={open ? "true" : "false"} ref={collapse.ref} onTransitionEnd={collapse.onTransitionEnd}>
+            <div className="vpanel__content">{panel}</div>
+          </div>
+        )}
+      </Card>
+    </div>
   );
 }
 
-/** The body's figures before the chain has been read. */
-export function StaticStats({ vault }: { vault: LiveVault }) {
+/** The card's figures before the chain has been read. */
+export function StaticRows({ vault }: { vault: LiveVault }) {
   const compounding = vault.kind === "compounding";
   return (
     <>
-      <KVRow label="Pooled" value={`— ${vault.token.symbol}`} />
-      <KVRow
-        label={compounding ? `1 ${vault.token.symbol} deposited is now worth` : `${vault.payoutSymbol} earned so far`}
-        value={`— ${compounding ? vault.token.symbol : vault.payoutSymbol}`}
-      />
-      <KVRow label={compounding ? "Arriving over the next day" : "Paid out over the next day"} value="—" />
-      <KVRow label="Your deposit" value="—" />
-      <KVRow label="To collect" value={compounding ? `Nothing \u2014 your ${vault.token.symbol} just grows` : "—"} border="none" />
+      {compounding ? (
+        <KVRow label={`1 ${vault.token.symbol} deposited is now worth`} value={`— ${vault.token.symbol}`} />
+      ) : (
+        <KVRow label={`${vault.payoutSymbol} earned so far`} value={`— ${vault.payoutSymbol}`} />
+      )}
+      <KVRow label={compounding ? "Arriving over the next day" : "Streaming"} value="—" />
+      <KVRow label="Your deposit" value="—" border="none" />
     </>
   );
 }
 
-/** The prerendered section: same rows, figures pending, wallet button disabled. */
+export const CARD_INDEX = ["01", "02", "03", "04", "05", "06"];
+
+/** The prerendered section: same cards, figures pending, every button disabled. */
 export function VaultsStatic() {
-  const { isOpen, toggle } = useOpenVault();
   return (
     <>
-      <StatBand {...STATIC_BAND} />
-      <ConnectBar title="Ouro Vaults" right={<Button disabled>Connect wallet</Button>} />
+      <VaultBar pooled="—" share="—" right={<Button size="sm" disabled>Connect wallet</Button>} />
       <VaultList>
-        {LIVE_VAULTS.map((v) => (
-          <Frame
+        {LIVE_VAULTS.map((v, i) => (
+          <VaultCard
             key={v.entry.address}
+            n={CARD_INDEX[i] ?? String(i + 1)}
             vault={v}
-            open={isOpen(v.entry.address)}
-            onToggle={() => toggle(v.entry.address)}
-            summary={{ tvl: "—", yieldLabel: v.kind === "compounding" ? "APY" : "APR", yieldValue: "—" }}
-            note="Reading the chain and the monitor."
-            rows={<StaticStats vault={v} />}
-          >
-            <div style={body14}>Connect a wallet to deposit, withdraw{v.kind === "payout" ? " and claim" : ""}.</div>
-            <div className="vault-cta" style={{ marginTop: 12 }}>
-              <Button size="lg" disabled>
-                Connect wallet
-              </Button>
-            </div>
-          </Frame>
+            pooled="—"
+            pooledNote="Reading the chain"
+            yieldLabel={v.kind === "compounding" ? "APY" : "APR"}
+            yieldValue="—"
+            yieldNote="Reading the chain and the monitor"
+            rows={<StaticRows vault={v} />}
+            actions={
+              <>
+                <Button size="sm" disabled>
+                  Deposit
+                </Button>
+                <Button size="sm" variant="secondary" disabled>
+                  Withdraw
+                </Button>
+                {v.kind === "payout" && (
+                  <Button size="sm" variant="secondary" disabled>
+                    Collect
+                  </Button>
+                )}
+              </>
+            }
+          />
         ))}
       </VaultList>
     </>

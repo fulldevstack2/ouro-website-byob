@@ -8,7 +8,7 @@ import "./app.css";
 
 export const links: Route.LinksFunction = () => [
   { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
-  // Self-hosted fonts (app/styles/fonts.css); the two used above the fold are preloaded.
+  // Self-hosted fonts (packages/ds fonts.css); the two used above the fold are preloaded.
   { rel: "preload", as: "font", type: "font/woff2", href: "/fonts/public-sans.woff2", crossOrigin: "anonymous" },
   { rel: "preload", as: "font", type: "font/woff2", href: "/fonts/source-serif-4-600.woff2", crossOrigin: "anonymous" },
 ];
@@ -47,7 +47,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#EEEBE5" />
+        <meta name="theme-color" content="#FFFFFF" />
         <Meta />
         <Links />
         <GoogleAnalytics id={GA_MEASUREMENT_ID} />
@@ -83,12 +83,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   }
 
   return (
-    <Container style={{ paddingTop: 64, minHeight: 480 }}>
+    <Container className="page" style={{ minHeight: 480 }}>
       <MicroLabel tone="accent">{code}</MicroLabel>
-      <h1 className="page-title" style={{ margin: "14px 0 0" }}>
-        {title}
-      </h1>
-      <p style={{ margin: "14px 0 0", fontSize: 16, color: "var(--text-secondary)", maxWidth: 560 }}>{details}</p>
+      <h1 className="page-title">{title}</h1>
+      <p className="page-head__lede">{details}</p>
       <div style={{ marginTop: 28 }}>
         <Button variant="secondary" arrow to="/">
           Back to the overview

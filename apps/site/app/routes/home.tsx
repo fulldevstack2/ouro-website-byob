@@ -2,11 +2,28 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 
 import type { Route } from "./+types/home";
-import { Badge, Button, Callout, Card, Stat } from "@ouro/ds";
-import { AprHeadline, AirdropCalc, Container, CrankFeed, Grid, HelpTip, HeroRing, KVRow, LoopRing, MicroLabel, NumberedRow, SectionHead, body14, display, hairline, PayoutCadence } from "~/components/site";
-import { site } from "~/content/site";
-import { TERMS } from "~/content/vaults";
+import { Badge, Button, Callout, Card, LedgerTable, Stat, type BadgeTone, type LedgerColumn } from "@ouro/ds";
+import { AirdropCalc, Container, LoopPlate, MicroLabel, SectionHead, SplitBar, SplitRows, TokenIcon, body14, legRows, legWedges, mono } from "~/components/site";
+import { FEE_SPLIT, FEE_SPLIT_LABEL, LINE_TOKENS, PROTOCOL_CONTRACTS, TAX_SPLIT, TOKEN_ICONS, TRADE_TAX_PCT, explorerAddressUrl, shortAddress } from "~/content/protocol";
+import { externalLinkProps, site } from "~/content/site";
+import { useClock } from "~/hooks/useClock";
+import { navWithV4, useReserveV4, type ReserveV4Row } from "~/hooks/useReserveV4";
 import { pageMeta } from "~/lib/meta";
+import {
+  MONITOR_API,
+  fmtDay,
+  fmtFeeTier,
+  fmtNum,
+  fmtPctSigned,
+  fmtUsd,
+  fmtUsdSigned,
+  fmtWhen,
+  useMonitor,
+  type DailyRow,
+  type OuroCycle,
+  type Reserve,
+  type ReservePosition,
+} from "@ouro/monitor-client";
 
 export function meta({ location }: Route.MetaArgs) {
   return pageMeta({
@@ -21,341 +38,392 @@ export function meta({ location }: Route.MetaArgs) {
   });
 }
 
+const OURO_ADDRESS = PROTOCOL_CONTRACTS[0]!.address!;
+
 export default function Home() {
   return (
     <>
       <Hero />
-      <ProofBand />
-      <WhatYouDoSection />
+      <LineBand />
       <LoopSection />
+      <SplitSection />
+      <ReserveSection />
       <DifferenceSection />
-      <BasketSection />
-      <YieldSection />
       <AirdropCalc />
-      <LiveProofSection />
       <RoadmapSection />
-      <LockSection />
     </>
   );
 }
 
 /* ------------------------------------------------------------------ Hero */
 
-/** Second beat of the tagline on its own line, in bronze italic; falls back to plain text if the copy changes. */
-function Tagline() {
-  const em = "Get paid.";
-  const i = site.tagline.indexOf(em);
-  if (i < 0) return <>{site.tagline}</>;
-  return (
-    <>
-      {site.tagline.slice(0, i)}
-      <br />
-      <em className="hero-em">{em}</em>
-    </>
-  );
-}
-
 function Hero() {
+  const ouroUrl = explorerAddressUrl(OURO_ADDRESS);
   return (
-    <div className="hero">
-      <Container style={{ paddingTop: 72, paddingBottom: 80 }}>
-        <Grid cols="1.05fr 0.95fr" gap={64} align="center">
-          <div>
-            <MicroLabel tone="accent" className="hero-in">
-              {site.chain.name}
-            </MicroLabel>
-            <h1 className="hero-title hero-in" style={{ margin: "20px 0 0" }}>
-              <Tagline />
-            </h1>
-            <p className="hero-in" style={{ margin: "22px 0 0", fontSize: 17, lineHeight: 1.65, color: "var(--text-secondary)", maxWidth: 460 }}>
-              Hold 100,000+ $OURO and airdrops land in your wallet. No stake. No claim. Holding less? Pool with others so you still get paid.
-            </p>
-            <p className="hero-in" style={{ margin: "12px 0 0", fontSize: 14, lineHeight: 1.6, color: "var(--text-muted)", maxWidth: 460 }}>
-              Every trade pays a 5% tax: 2% airdropped to holders, 2% into LP the protocol keeps so those pools pay you again, 0.7% ops, 0.3% the
-              letscash platform.
-            </p>
-            <AprHeadline />
-            <div className="cta-row hero-in" style={{ display: "flex", gap: 12, marginTop: 28, flexWrap: "wrap" }}>
-              <Button size="lg" arrow href={site.links.buy} target="_blank" rel="noreferrer">
-                Buy {site.ticker}
-              </Button>
-              <Button size="lg" variant="secondary" href="#calc">
-                Calculate your airdrop
-              </Button>
-              <Button size="lg" variant="ghost" href="#start">
-                How it works
-              </Button>
-            </div>
-            <div className="hero-in" style={{ marginTop: 24, maxWidth: 420 }}>
-              <PayoutCadence />
-            </div>
-          </div>
-
-          {/* The ouroboros itself: a bronze ring turning, the four steps of the loop riding it. Drag to turn. */}
-          <HeroRing />
-        </Grid>
-      </Container>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------ Proof band */
-
-function ProofBand() {
-  return (
-    <div style={{ borderTop: hairline, borderBottom: hairline, background: "var(--surface-tint)" }}>
-      <Container style={{ paddingTop: 32, paddingBottom: 32 }}>
-        <Grid cols="repeat(4, 1fr)" gap={24} className="grid--2col-md">
-          <Stat label="Trade tax" value="5%" footnote="In ETH, every buy and sell" />
-          <Stat className="cell-rule" label="Tax split" value="2 / 2 / 0.7" footnote="Airdrop · LP · ops (+0.3% launchpad)" />
-          <Stat className="cell-rule" label="LP fee split" value="80 / 20" footnote="To holders · back into LP" />
-          <Stat className="cell-rule" label="Supply" value="1,000,000,000" unit="OURO" />
-        </Grid>
-      </Container>
-    </div>
-  );
-}
-
-/* ---------------------------------------------------------- What you do */
-
-function WhatYouDoSection() {
-  return (
-    <Container id="start" style={{ paddingTop: 96 }}>
-      <SectionHead kicker="Start here" title="Three moves." sub="That is the whole product." />
-      <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md">
+    <Container className="hero">
+      <div className="hero__grid">
         <div>
-          <MicroLabel>01</MicroLabel>
-          <div style={{ fontSize: 16, fontWeight: 600, marginTop: 8 }}>Buy $OURO</div>
-          <div style={{ ...body14, marginTop: 6 }}>
-            <a href={site.links.buy} target="_blank" rel="noreferrer" style={{ color: "var(--text-accent)" }}>
-              On letscash →
+          <MicroLabel tone="accent">
+            {site.chain.name} · {site.chain.id}
+          </MicroLabel>
+          <h1 className="hero-title" style={{ marginTop: 20 }}>
+            {site.tagline}
+          </h1>
+          <p className="hero__lede">{site.description}</p>
+          <div className="hero__ctas">
+            <Button size="lg" arrow href={site.links.buy} {...externalLinkProps(site.links.buy)}>
+              Buy {site.ticker}
+            </Button>
+            <Button size="lg" variant="secondary" to="/ledger/">
+              See the pools
+            </Button>
+          </div>
+          <div className="hero__note">
+            Every figure on this page is read from the chain.{" "}
+            <a href={ouroUrl} {...externalLinkProps(ouroUrl)} className="mono-link">
+              OURO {shortAddress(OURO_ADDRESS)} ↗
             </a>
           </div>
         </div>
-        <div className="cell-rule">
-          <MicroLabel>02</MicroLabel>
-          <div style={{ fontSize: 16, fontWeight: 600, marginTop: 8 }}>Hold 100,000+ $OURO</div>
-          <div style={{ ...body14, marginTop: 6 }}>
-            Or{" "}
-            <Link to="/vaults/" style={{ color: "var(--text-accent)" }}>
-              pool with others
-            </Link>{" "}
-            if you hold less.
-          </div>
-        </div>
-        <div className="cell-rule">
-          <MicroLabel>03</MicroLabel>
-          <div style={{ fontSize: 16, fontWeight: 600, marginTop: 8 }}>Get paid</div>
-          <div style={{ ...body14, marginTop: 6 }}>Tokens land in your wallet. Nothing to claim.</div>
-        </div>
-      </Grid>
+        <HeroCard />
+      </div>
     </Container>
   );
 }
 
-/* -------------------------------------------------------------- The Loop */
+/** Every day's payouts summed: what the airdrop has paid all time, how many cycles, and when the first one was. */
+function allTime(days: DailyRow[] | undefined) {
+  if (!days) return null;
+  let paid = 0;
+  let priced = true;
+  let cycles = 0;
+  let firstDay: number | null = null;
+  for (const d of days) {
+    if (d.epochs === 0) continue;
+    cycles += d.epochs;
+    if (firstDay === null) firstDay = d.day;
+    if (d.paid_usd === null) priced = false;
+    else paid += d.paid_usd;
+  }
+  // The window reaches back past the first cycle only if it opens on a quiet day; otherwise the first
+  // cycle may be older than the window and "since" would be wrong.
+  const opensBeforeStart = days.length > 0 && days[0]!.epochs === 0;
+  return { paidUsd: priced ? paid : null, cycles, since: opensBeforeStart && firstDay !== null ? fmtDay(firstDay) : null };
+}
 
-function Step({ n, title, children }: { n: string; title: string; children: ReactNode }) {
+/**
+ * The figures beside the headline, read from the chain through ouro-monitor: what the protocol owns
+ * in liquidity, what it has paid holders, and the last cycle. A dash while a read is in flight; the
+ * change over the day appears only once the window actually covers a day.
+ */
+function HeroCard() {
+  const clock = useClock();
+  const v4 = useReserveV4();
+  const reserve = useMonitor<Reserve>(MONITOR_API ? "/v1/reserve?hours=25" : null, 300_000);
+  const daily = useMonitor<{ token: string; days: DailyRow[] }>(MONITOR_API ? "/v1/ouro/daily?days=366" : null, 300_000);
+  const epochs = useMonitor<{ token: string; epochs: OuroCycle[] }>(MONITOR_API ? "/v1/ouro/epochs?limit=5" : null, 120_000);
+
+  const d = reserve.data;
+  const t = d?.totals;
+  // The headline counts the Uniswap v4 position the monitor cannot value; the change over the day
+  // stays on the monitor's own figure, because its 24 hour baseline is that figure and no other.
+  const monitorNav = t?.navUsd ?? null;
+  const nav = navWithV4(monitorNav, v4.rows);
+  const delta = (() => {
+    const first = (d?.history ?? []).find((s) => s.nav_usd !== null && s.nav_usd > 0);
+    if (!d || !first || monitorNav === null || first.nav_usd === null) return null;
+    if ((d.generatedAt - first.ts) / 3600 < 20) return null;
+    return (monitorNav - first.nav_usd) / first.nav_usd;
+  })();
+  const unindexed = (d?.unindexed ?? []).reduce((n, u) => n + (u.count ?? 0), 0);
+  const unvalued = Math.max(0, unindexed - v4.rows.length);
+  const all = allTime(daily.data?.days);
+  const last = (epochs.data?.epochs ?? []).find((c) => (c.status === "closed" || c.status === "aborted") && c.paidUsd !== null) ?? null;
+
+  const positions = (t?.positions ?? 0) + v4.rows.length;
+  const navNote = t
+    ? `Marked to market · ${fmtNum(positions)} ${positions === 1 ? "position" : "positions"}${delta !== null ? " · past 24 hours" : ""}${
+        unvalued > 0 ? ` · ${fmtNum(unvalued)} more in Uniswap v4, not valued` : ""
+      }`
+    : "Marked to market, from the Reserve's positions";
+
   return (
-    <NumberedRow n={n} py={18}>
-      <div style={{ fontSize: 16, fontWeight: 600 }}>{title}</div>
-      <div style={{ ...body14, marginTop: 4, maxWidth: 440 }}>{children}</div>
-    </NumberedRow>
+    <Card label="Read from the chain" action={<span style={{ ...mono, fontSize: 11, color: "var(--text-faint)" }}>{clock ? `Updated ${clock}` : ""}</span>} padding={28}>
+      <Stat size="xl" label="Protocol-owned liquidity" value={fmtUsd(nav)} delta={delta === null ? null : fmtPctSigned(delta, 1)} footnote={navNote} />
+      <div className="hero__pair">
+        <Stat size="sm" label="Airdropped to holders" value={fmtUsd(all?.paidUsd)} footnote={all ? `${fmtNum(all.cycles)} cycles${all.since ? ` since ${all.since}` : ""}` : "Every cycle, valued when sent"} />
+        <Stat size="sm" label="Airdrop every 2 hours" value={fmtUsd(last?.paidUsd)} footnote={last ? `${fmtWhen(last.endTs ?? last.startTs)} · ${fmtNum(last.recipients)} wallets` : "Every two hours"} />
+      </div>
+      <div className="hero__links">
+        <Link to="/ledger/">Open the ledger →</Link>
+        <Link to="/airdrops/">Every payout →</Link>
+      </div>
+    </Card>
   );
 }
 
+/* --------------------------------------------------------- The line, once */
+
+function LineBand() {
+  return (
+    <div className="band">
+      <Container className="band__inner">
+        <div className="band__text">
+          Hold <span style={{ ...mono, fontWeight: 600, color: "var(--text-primary)" }}>{fmtNum(LINE_TOKENS)}+</span> $OURO in your wallet and the airdrop
+          lands every two hours. Nothing to stake or claim.
+        </div>
+        {/* The link is left unclassed so it takes the site's underlined link treatment; the wrapper
+            carries the size and keeps it on one line, as the section heads do with their action. */}
+        <div className="band__action">
+          <Link to="/vaults/">Under the line? Pool in a vault →</Link>
+        </div>
+      </Container>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------- The split */
+
+/**
+ * The two splits the whole protocol runs on, as bars: what the 5% tax buys, and what a collection of
+ * pool fees pays. The figures come from content/protocol, which the docs and the parameter table read
+ * too, so the three places the site states them cannot drift apart.
+ */
+function SplitSection() {
+  return (
+    <Container id="split" className="home-section">
+      <SectionHead
+        kicker="The split"
+        title="Where every trade goes."
+        sub="Two splits, and both are published. One divides the tax a trade pays, the other divides what the Reserve earns."
+        action={<Link to="/docs/#d02">The method →</Link>}
+      />
+      <div className="cols-2">
+        <div>
+          <div className="split-block__head">
+            <span className="split-block__figure">{TRADE_TAX_PCT}%</span>
+            <span className="split-block__note">of every buy and sell, in ETH. Fixed in letscash&apos;s hook at launch, so nobody can change it.</span>
+          </div>
+          <SplitBar wedges={legWedges(TAX_SPLIT)} />
+          <SplitRows rows={legRows(TAX_SPLIT)} />
+        </div>
+        <div>
+          <div className="split-block__head">
+            <span className="split-block__figure">{FEE_SPLIT_LABEL}</span>
+            <span className="split-block__note">of every fee the Reserve collects, once the accrued fees are worth a collection.</span>
+          </div>
+          <SplitBar wedges={legWedges(FEE_SPLIT)} />
+          <SplitRows rows={legRows(FEE_SPLIT)} />
+        </div>
+      </div>
+    </Container>
+  );
+}
+
+/* -------------------------------------------------------------- The loop */
+
+const STEPS: { n: string; title: string; text: string }[] = [
+  { n: "01", title: "Trade", text: "Every $OURO swap pays a 5% tax, in ETH." },
+  { n: "02", title: "Buy", text: "2% buys tokens for holders. 2% buys liquidity in the chain's deepest pools." },
+  { n: "03", title: "Own", text: "That liquidity is the Reserve. The protocol keeps it." },
+  { n: "04", title: "Yield", text: "The Reserve earns swap fees. 80% is airdropped, 20% compounds." },
+];
+
+/** The same four, for the plate: it takes them as a prop so the figure and the list cannot disagree. */
+const PLATE_STEPS = STEPS.map((s) => ({ n: s.n, title: s.title })) as [
+  { n: string; title: string },
+  { n: string; title: string },
+  { n: string; title: string },
+  { n: string; title: string },
+];
+
 function LoopSection() {
   return (
-    <Container id="loop" style={{ paddingTop: 96 }}>
-      <SectionHead kicker="The mechanism" title="Where the money goes." sub="One loop. Four steps." />
-      <Grid cols="1fr 1.1fr" gap={72} align="center">
-        <LoopRing />
-        <div>
-          <Step n="01" title="Trade">
-            Every ETH/OURO swap pays a 5% tax in ETH into the treasury.
-          </Step>
-          <Step n="02" title="Buy">
-            That tax buys chain tokens: 2% of the trade airdropped to holders, 2% kept as LP. The last 1% covers ops and the launchpad.
-          </Step>
-          <Step n="03" title="Own">
-            The kept 2% becomes LP the protocol owns forever (the Reserve). Never handed out.
-          </Step>
-          <Step n="04" title="Yield">
-            Those pools earn fees. Each cycle: 80% airdropped to holders, 20% back into the Reserve.
-          </Step>
+    <Container id="loop" className="home-section">
+      <SectionHead kicker="The mechanism" title="One loop. Four steps." style={{ marginBottom: 40 }} />
+      <div className="loop">
+        <div className="loop__ring-wrap">
+          <LoopPlate steps={PLATE_STEPS} />
         </div>
-      </Grid>
+        <div>
+          {STEPS.map((s) => (
+            <div key={s.n} className="loop__step">
+              <span className="row-index">{s.n}</span>
+              <div>
+                <div className="loop__step-title">{s.title}</div>
+                <div className="loop__step-text">{s.text}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Container>
+  );
+}
+
+/* ----------------------------------------------------------- The Reserve */
+
+const POOL_COLS: LedgerColumn[] = [
+  { key: "pool", label: "Pool" },
+  { key: "val", label: "Position value", align: "right", numeric: true, nowrap: true },
+  { key: "fees", label: "Fees earned", align: "right", numeric: true, nowrap: true },
+  { key: "net", label: "Net vs holding", align: "right", numeric: true, nowrap: true },
+  { key: "range", label: "Range", align: "right", nowrap: true },
+];
+
+function rangeBadge(p: ReservePosition): { tone: BadgeTone; label: string } {
+  if (!p.held) return { tone: "neutral", label: "No longer held" };
+  if (p.inRange === null) return { tone: "neutral", label: "Not polled yet" };
+  return p.inRange ? { tone: "positive", label: "In range" } : { tone: "caution", label: "Out of range" };
+}
+
+function poolRow(p: ReservePosition) {
+  // The basket token first, WETH second, whatever order the pool sorts them in.
+  const [tok, quote] = p.side0.symbol === "WETH" ? [p.side1, p.side0] : [p.side0, p.side1];
+  const sym = tok.symbol ?? "?";
+  const fees = p.uncollectedFeesUsd === null || p.collectedFeesUsd === null ? null : p.uncollectedFeesUsd + p.collectedFeesUsd;
+  const net = p.netVsHoldingUsd;
+  const pct = net === null || p.hodlUsd === null || p.hodlUsd <= 0 ? null : net / p.hodlUsd;
+  const badge = rangeBadge(p);
+  return {
+    pool: (
+      <span className="pair-cell">
+        <TokenIcon symbol={sym} src={TOKEN_ICONS[sym]} size={20} />
+        <span className="pair-cell__name">
+          {sym} / {quote.symbol ?? "?"}
+        </span>
+        <span className="pair-cell__sub">{fmtFeeTier(p.feeBps)}</span>
+      </span>
+    ),
+    val: <span style={{ fontSize: 13, fontWeight: 600 }}>{fmtUsd(p.valueUsd)}</span>,
+    fees: <span style={{ fontSize: 13 }}>{fmtUsd(fees)}</span>,
+    net: (
+      <span style={{ fontSize: 13, fontWeight: 600, color: net === null ? "var(--text-faint)" : net < 0 ? "var(--text-negative)" : "var(--text-positive)" }}>
+        {fmtUsdSigned(net)}
+        {pct === null ? "" : ` · ${fmtPctSigned(pct)}`}
+      </span>
+    ),
+    range: (
+      <Badge tone={badge.tone} dot>
+        {badge.label}
+      </Badge>
+    ),
+  };
+}
+
+/**
+ * The v4 row, which comes from the chain rather than the monitor (hooks/useReserveV4). It carries a
+ * value and a range and nothing else: fees and the mark against holding both need a position's
+ * history, which only the monitor keeps, and it keeps it for Uniswap v3 only. A dash is that gap
+ * stated, never a zero.
+ */
+function v4PoolRow(r: ReserveV4Row) {
+  const sym = r.entry.token.symbol;
+  return {
+    pool: (
+      <span className="pair-cell">
+        <TokenIcon symbol={sym} src={TOKEN_ICONS[sym]} size={20} />
+        <span className="pair-cell__name">
+          {sym} / {r.entry.quote.symbol}
+        </span>
+        <span className="pair-cell__sub">{fmtFeeTier(r.feeBps)} · v4</span>
+      </span>
+    ),
+    val: <span style={{ fontSize: 13, fontWeight: 600 }}>{fmtUsd(r.valueUsd)}</span>,
+    fees: <span style={{ fontSize: 13, color: "var(--text-faint)" }}>—</span>,
+    net: <span style={{ fontSize: 13, color: "var(--text-faint)" }}>—</span>,
+    range: (
+      <Badge tone={r.inRange ? "positive" : "caution"} dot>
+        {r.inRange ? "In range" : "Out of range"}
+      </Badge>
+    ),
+  };
+}
+
+function ReserveSection() {
+  const reserve = useMonitor<Reserve>(MONITOR_API ? "/v1/reserve?hours=1" : null, 120_000);
+  const v4 = useReserveV4();
+  const d = reserve.data;
+  const held = (d?.positions ?? []).filter((p) => p.held);
+  const rows = [...held.map(poolRow), ...v4.rows.map(v4PoolRow)];
+  let empty: ReactNode = null;
+  if (!MONITOR_API) empty = "The monitor's origin is not set for this build, so the positions cannot be read.";
+  else if (!d && reserve.error) empty = "The monitor did not answer. The positions appear as soon as it does.";
+  else if (!d) empty = "Reading the chain…";
+  else if (d.indexedTo === null) empty = "The monitor is still reading the Reserve's history.";
+  else if (rows.length === 0) empty = v4.loading ? "Reading the chain…" : "No positions held yet.";
+
+  return (
+    <Container id="reserve" className="home-section">
+      <SectionHead
+        kicker="The Reserve"
+        title="CASHCAT, PONS and microduck."
+        sub="Protocol-owned positions in the chain's deepest pools. Never handed out."
+        action={<Link to="/ledger/">Full ledger →</Link>}
+      />
+      <div className="table-scroll">
+        <LedgerTable columns={POOL_COLS} rows={rows} />
+      </div>
+      {empty && <div style={{ ...body14, fontStyle: "italic", padding: "12px 0" }}>{empty}</div>}
+      <div className="cols-2 cols-2--tight" style={{ marginTop: 24 }}>
+        <div style={body14}>
+          Each name is capped at 20–25% of the treasury, building toward five. The microduck position is in a Uniswap v4 pool and its row is read straight from
+          the chain: the monitor indexes v3 only, so its fees and its mark against holding stay blank until it does. Adds and retirements happen by public
+          governance, on-chain.
+        </div>
+        <Callout tone="caution" title="The pools can lose value">
+          Constituents are volatile tokens, not stocks, and any of them can fail. Owned liquidity can lose to simply holding. Nothing here is a promise of
+          returns.
+        </Callout>
+      </div>
     </Container>
   );
 }
 
 /* --------------------------------------------------------- The difference */
 
-interface CompareRow {
-  label: string;
-  tip: string;
-  tipPlacement?: "below" | "above";
-  hood10: ReactNode;
-  index: ReactNode;
-  ouro: ReactNode;
-}
+const CMP_HEAD: { label: string; sym: string | null; ouro?: boolean }[] = [
+  { label: "HOOD10", sym: "HOOD10" },
+  { label: "The Index", sym: "INDEX" },
+  { label: "Ouro", sym: "OURO", ouro: true },
+];
 
-const COMPARE_ROWS: CompareRow[] = [
-  {
-    label: "What the tax buys",
-    tip: "Others hand out every tax point. Ouro airdrops 2% of a trade and keeps another 2% as fee-earning LP.",
-    hood10: "All handed out",
-    index: "All handed out",
-    ouro: "2% out, 2% kept as LP",
-  },
-  {
-    label: "Liquidity the protocol owns",
-    tip: "LP bought with tax and held by the treasury. Airdrop-only models build none.",
-    hood10: "None",
-    index: "None",
-    ouro: "Kept forever, earns fees",
-  },
-  {
-    label: "Holders are paid from",
-    tip: "Others: tax only. Ouro: tax plus fees from owned pools.",
-    hood10: "The tax",
-    index: "The tax",
-    ouro: "Tax + pool fees",
-  },
-  {
-    label: "Parallel pools",
-    tip: "Untaxed volume. Measured 26–28 Aug 2026. Ouro sealed 16 venues at deploy.",
-    hood10: "~36% volume taxed",
-    index: "~6% volume taxed",
-    ouro: "16 venues sealed",
-  },
-  {
-    label: "When volume cools",
-    tip: "Tax payouts shrink with volume. Owned pools can keep earning. Yield never guaranteed.",
-    tipPlacement: "above",
-    hood10: "Payouts stop",
-    index: "Payouts stop",
-    ouro: "Pools keep earning",
-  },
+const CMP_ROWS: [string, string, string, string][] = [
+  ["What the tax buys", "All handed out", "All handed out", "2% out, 2% kept as LP"],
+  ["Holders are paid from", "The tax", "The tax", "Tax + pool fees"],
+  ["When volume cools", "Payouts stop", "Payouts stop", "Pools keep earning"],
 ];
 
 function DifferenceSection() {
   return (
-    <Container id="difference" style={{ paddingTop: 96 }}>
-      <SectionHead
-        kicker="The difference"
-        title="They spend the tax. We keep half working."
-        sub="We pay you from the tax, then keep equal LP that pays you again."
-      />
-      {/* Desktop: a 4-column grid. ≤860px: each row becomes a block: the label as a heading, then the
-          three values stacked with their column name (from data-col), Ouro's highlighted. See site.css → "Comparison table". */}
+    <Container id="difference" className="home-section">
+      <SectionHead kicker="The difference" title="They spend the tax. Ouro keeps half working." />
       <div className="cmp">
-        <div className="cmp-grid">
-          <div className="cmp-head" aria-hidden="true" />
-          <div className="cmp-head">HOOD10</div>
-          <div className="cmp-head">The Index</div>
-          <div className="cmp-head cmp-head--ouro">
-            <span className="cmp-wordmark">Ouro</span>
-            <Badge tone="accent">Owns the pools</Badge>
+        <div className="cmp-head cmp-head--blank" aria-hidden="true" />
+        {CMP_HEAD.map((h) => (
+          <div key={h.label} className={h.ouro ? "cmp-head cmp-head--ouro" : "cmp-head"}>
+            {h.sym && <TokenIcon symbol={h.sym} src={TOKEN_ICONS[h.sym]} size={20} />}
+            <span>{h.label}</span>
           </div>
-          {COMPARE_ROWS.map((r) => (
-            <div key={r.label} className="cmp-row">
-              <div className="cmp-label">
-                <span className="cmp-label__text">{r.label}</span>
-                <HelpTip placement={r.tipPlacement}>{r.tip}</HelpTip>
-              </div>
-              <div className="cmp-cell" data-col="HOOD10">
-                {r.hood10}
-              </div>
-              <div className="cmp-cell" data-col="The Index">
-                {r.index}
-              </div>
-              <div className="cmp-cell cmp-cell--ouro" data-col="Ouro">
-                {r.ouro}
-              </div>
+        ))}
+        {CMP_ROWS.map(([label, a, b, ouro]) => (
+          <div key={label} className="cmp-row">
+            <div className="cmp-cell cmp-cell--label">{label}</div>
+            <div className="cmp-cell" data-col="HOOD10">
+              {a}
             </div>
-          ))}
-        </div>
+            <div className="cmp-cell" data-col="The Index">
+              {b}
+            </div>
+            <div className="cmp-cell cmp-cell--ouro" data-col="Ouro">
+              {ouro}
+            </div>
+          </div>
+        ))}
       </div>
       <div style={{ marginTop: 16, fontSize: 13, color: "var(--text-muted)" }}>
-        Onchain, 26–28 Aug 2026. Method in the <Link to="/docs/">docs</Link>.
+        Yield varies with markets and is never guaranteed. Method in the <Link to="/docs/">docs</Link>.
       </div>
-    </Container>
-  );
-}
-
-/* -------------------------------------------------------------- The pools */
-
-const RULES: { n: string; lead: string; text: string }[] = [
-  { n: "01", lead: "Bluechip and liquid.", text: " Deepest high-turnover pools on the chain." },
-  { n: "02", lead: "Capped.", text: " Max 20–25% of treasury per name." },
-  { n: "03", lead: "Wherever the liquidity is.", text: " Uniswap v3 or v4, depending on the token." },
-  { n: "04", lead: "Governed in public.", text: " Adds or retires only by onchain governance." },
-];
-
-function BasketSection() {
-  return (
-    <Container id="basket" style={{ paddingTop: 96 }}>
-      <SectionHead
-        kicker="The pools"
-        title="It starts with CASHCAT and PONS."
-        sub="The Reserve is protocol-owned LP in deep markets. Never handed out."
-      />
-      <Grid cols="1.1fr 0.9fr" gap={64} align="start">
-        <div>
-          {RULES.map((r, i) => (
-            <NumberedRow key={r.n} n={r.n} py={16} borderBottom={i === RULES.length - 1}>
-              <div style={body14}>
-                <strong style={{ color: "var(--text-primary)" }}>{r.lead}</strong>
-                {r.text}
-              </div>
-            </NumberedRow>
-          ))}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <Callout title="What these pools earn">
-            Swap fees: 80% airdropped to holders, 20% compounds back into LP. That second leg can keep paying when volume cools.{" "}
-            <Link to="/docs/#d07">Compounding</Link>.
-          </Callout>
-        </div>
-      </Grid>
-    </Container>
-  );
-}
-
-/* ------------------------------------------------------------- Real yield */
-
-function YieldSection() {
-  const col = (label: string, text: string, rule: boolean) => (
-    <div className={rule ? "cell-rule" : undefined}>
-      <MicroLabel>{label}</MicroLabel>
-      <div style={{ ...body14, marginTop: 8 }}>{text}</div>
-    </div>
-  );
-  return (
-    <Container id="yield" style={{ paddingTop: 96 }}>
-      <SectionHead kicker="Real yield" title="Two paychecks. One wallet." sub="Nothing to stake or claim." />
-      <Grid cols="repeat(3, 1fr)" gap={24} className="grid--2col-md">
-        {col("Hold", "≥ 100,000 $OURO in your wallet. Or pool with others if you hold less.", false)}
-        {col("Tax leg", "Part of each trade's 5% tax buys tokens and sends them to you. Tracks volume.", true)}
-        {col("Pool leg", "80% of fees from protocol-owned LP. The other 20% compounds.", true)}
-      </Grid>
-      <div style={{ marginTop: 28, display: "flex", gap: 24, alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap" }}>
-        <Button variant="secondary" arrow to="/docs/#d05">
-          How the airdrop works
-        </Button>
-      </div>
-    </Container>
-  );
-}
-
-/* ------------------------------------------------------------- Live proof */
-
-function LiveProofSection() {
-  return (
-    <Container id="proof" style={{ paddingTop: 96 }}>
-      <SectionHead kicker="Live proof" title="Recent payouts." sub="Onchain. Newest first. If the site and chain disagree, the chain is right." />
-      <CrankFeed footer="Each payment links to its transaction on the airdrops page." />
     </Container>
   );
 }
@@ -363,12 +431,8 @@ function LiveProofSection() {
 /* ---------------------------------------------------------------- Roadmap */
 
 /**
- * What is being built next, in the order it is being built.
- *
- * Deliberately three items and no dates. A roadmap is the one part of a site like this that cannot
- * be read off the chain, so it says the least it can get away with: what the work is, why it is
- * worth doing, and which of them is nearest. Anything more specific would be a promise the
- * contracts cannot keep, on a page whose whole argument is that they can.
+ * What is being built next, in the order it is being built. Three items and no dates: a roadmap is
+ * the one part of a site like this that cannot be read off the chain, so it says the least it can.
  */
 const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] = [
   {
@@ -377,76 +441,40 @@ const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] 
     title: "The vaults",
     body: (
       <>
-        Holding under 100,000 $OURO? Pool with others and still earn. {TERMS.performanceFeePct}% of profit (
-        {TERMS.feeSplit.airdrops}/{TERMS.feeSplit.ops} airdrops/ops). Paid in OURO, WETH, or USDG.{" "}
-        <Link to="/vaults/">Open vaults</Link>.
+        Pool under the line and still get paid, in OURO, ETH or dollars. <Link to="/vaults/">Open the vaults →</Link>
       </>
     ),
   },
   {
     n: "02",
     horizon: "Medium term",
-    title: "Own the trading rails",
-    body: (
-      <>
-        Leave letscash so less of each trade leaks to the launchpad or untaxed pools. <Link to="/docs/">Docs</Link>.
-      </>
-    ),
+    title: "Build the Reserve up",
+    body: "Keep buying protocol-owned liquidity with every trade. Deeper positions earn more fees, and 80% of those fees is what the airdrop pays.",
   },
   {
     n: "03",
     horizon: "Long term",
-    title: "Multichain",
-    body: <>Same machine on other chains. One holder base, not a new token each time.</>,
+    title: "Our own DEX",
+    body: "Run the venue rather than trade on someone else's, so the protocol earns the DEX revenue instead of paying it away. That revenue buys $OURO back and burns it.",
   },
 ];
 
 function RoadmapSection() {
   return (
-    <Container id="roadmap" style={{ paddingTop: 96 }}>
-      <SectionHead kicker="Roadmap" title="Three things, in order." sub="Not a schedule. No dates." />
+    <Container id="roadmap" className="home-section">
+      <SectionHead kicker="Roadmap" title="Three things, in order." sub="No dates." style={{ marginBottom: 24 }} />
       <div>
-        {ROADMAP.map((r, i) => (
-          <NumberedRow key={r.n} n={r.n} py={20} borderBottom={i === ROADMAP.length - 1}>
-            <MicroLabel className="roadmap-horizon" style={{ whiteSpace: "nowrap" }}>
-              {r.horizon}
-            </MicroLabel>
-            <div style={{ fontSize: 16, fontWeight: 600 }}>{r.title}</div>
-            <div style={{ ...body14, marginTop: 6, maxWidth: 620 }}>{r.body}</div>
-          </NumberedRow>
-        ))}
-      </div>
-    </Container>
-  );
-}
-
-/* --------------------------------------------------------------- The lock */
-
-function LockSection() {
-  return (
-    <Container id="lock" style={{ paddingTop: 96 }}>
-      <Card tone="inverse" padding={0}>
-        <Grid cols="1.1fr 0.9fr" gap={64} className="lock-grid">
-          <div>
-            <Badge tone="accent">What the contract fixes</Badge>
-            <h2 style={{ margin: "20px 0 0", ...display, fontSize: 34, lineHeight: 1.15, color: "#FFFFFF" }}>Fixed supply. Public rules.</h2>
-            <p style={{ margin: "16px 0 0", fontSize: 15, lineHeight: 1.65, color: "var(--text-inverse-muted)", maxWidth: 440 }}>
-              No mint function. Tax changes only by public governance. Your wallet can never be blocked.
-            </p>
-            <div style={{ marginTop: 28 }}>
-              <Button variant="inverse" arrow to="/docs/#d08">
-                Read the parameters
-              </Button>
+        {ROADMAP.map((r) => (
+          <div key={r.n} className="road">
+            <span className="row-index">{r.n}</span>
+            <span className="road__horizon">{r.horizon}</span>
+            <div className="road__body">
+              <div className="road__title">{r.title}</div>
+              <div className="road__text">{r.body}</div>
             </div>
           </div>
-          <div style={{ alignSelf: "center" }}>
-            <KVRow inverse py={13} border="top" label="Total supply" value="Fixed · no mint" />
-            <KVRow inverse py={13} border="top" label="Trade tax" value="5% · in ETH" />
-            <KVRow inverse py={13} border="top" label="Your wallet" value="Never blockable" />
-            <KVRow inverse py={13} border="top" label="Every fee cycle" value="80% to holders" />
-          </div>
-        </Grid>
-      </Card>
+        ))}
+      </div>
     </Container>
   );
 }

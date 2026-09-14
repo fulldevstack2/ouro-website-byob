@@ -13,8 +13,8 @@ export interface KVRowProps {
   valueStyle?: CSSProperties;
 }
 
-/** Label-left / figure-right hairline row. */
-export function KVRow({ label, value, py = 12, border = "bottom", inverse = false, labelStyle, valueStyle }: KVRowProps) {
+/** Label-left / figure-right hairline row: a 14px label in the secondary ink, a 13px mono figure. */
+export function KVRow({ label, value, py = 11, border = "bottom", inverse = false, labelStyle, valueStyle }: KVRowProps) {
   const line = inverse ? "1px solid var(--neutral-700)" : hairline;
   return (
     <div
@@ -28,9 +28,27 @@ export function KVRow({ label, value, py = 12, border = "bottom", inverse = fals
         borderBottom: border === "bottom" ? line : undefined,
       }}
     >
-      {/* Label yields width first so a long caption wraps instead of digit-breaking "$1234" into "$123" / "4". */}
-      <span style={{ flex: 1, minWidth: 0, fontSize: 13, color: inverse ? "var(--text-inverse-muted)" : "var(--text-muted)", ...labelStyle }}>{label}</span>
-      <span style={{ ...mono, flex: "none", fontSize: 13, color: inverse ? "#FFFFFF" : undefined, whiteSpace: "nowrap", ...valueStyle }}>{value}</span>
+      {/* The label takes whatever is left and wraps; the figure never shrinks below its own width
+          (shrinking it is how "2%" came out as "2" over "%"), and a long figure wraps at its spaces
+          inside the right-hand 62% of the row. */}
+      <span style={{ flex: "1 1 0%", minWidth: 0, fontSize: 14, lineHeight: 1.5, color: inverse ? "var(--text-inverse-muted)" : "var(--text-secondary)", ...labelStyle }}>
+        {label}
+      </span>
+      <span
+        style={{
+          ...mono,
+          flex: "0 0 auto",
+          maxWidth: "62%",
+          fontSize: 13,
+          lineHeight: 1.5,
+          textAlign: "right",
+          overflowWrap: "break-word",
+          color: inverse ? "#FFFFFF" : "var(--text-primary)",
+          ...valueStyle,
+        }}
+      >
+        {value}
+      </span>
     </div>
   );
 }

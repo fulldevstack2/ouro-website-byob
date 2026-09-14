@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef } from "react";
 import { type Family, traceStep, tracePathData, tracePoint, tracePoints } from "~/lib/guilloche";
 
 /* --------------------------------------------------------------- The plate */
@@ -27,12 +27,29 @@ const RULES: { r: number; w: number; a: number }[] = [
   { r: 0.232, w: 0.6, a: 0.38 },
 ];
 
-/** Radius of the plate as a fraction of half the stage; the rest is the numerals' margin. */
+/** Radius of the plate as a fraction of half the stage; the rest is the margin the names sit in. */
 const PLATE = 0.88;
-/** Seconds per lap of the tracer: the same 12 s cycle as the LoopRing further down the page. */
+/** Seconds per lap of the tracer. One lap is one turn of the Loop. */
 const CYCLE_S = 12;
-/** The four stations, clockwise from the top — the Loop's four steps. */
-const STATIONS = ["01", "02", "03", "04"];
+
+/**
+ * The four stations sit on the DIAGONALS, not at the compass points, and each one points at its name
+ * in the corner of the square the plate is inscribed in.
+ *
+ * A circle in a square leaves its four corners empty, and that is the only room on this figure for a
+ * name at a legible size: the plate's own margin is 12% of half the stage, about 27px, which takes a
+ * numeral and nothing more. Setting the names at north and south and east and west instead would mean
+ * either shrinking the lace to a third of the frame to clear them, or reserving 70px gutters that a
+ * phone has not got. On the diagonals the names cost nothing: at the height they are set the circle
+ * is not there at all.
+ *
+ * Clockwise from the top left, which is both reading order and the order the tracer arrives in.
+ */
+const STATION_ANGLES = [-Math.PI * 0.75, -Math.PI * 0.25, Math.PI * 0.25, Math.PI * 0.75];
+/** How near, in radians, the tracer has to be for a station to count as the one it is at. */
+const LIT_ARC = 0.55;
+/** Below this a station is only warming up, and the name it belongs to stays quiet. */
+const LIT_ON = 0.3;
 
 /** Samples per trace: enough that a 13-lobed figure has no visible facets at 520 px. */
 const SAMPLES = 720;
@@ -93,7 +110,9 @@ function readInk(): Ink {
     collar: tok("--bronze-700", "#6A4E19"),
     tracer: tok("--bronze-800", "#4F3A13"),
     tracerHalo: tok("--bronze-400", "#BC9848"),
-    paper: tok("--page", "#EEEBE5"),
+    // The page ground, for the pip under the tracer's head. White here, since the redesign's paper is
+    // flat white; read from the token so it follows if that ever changes.
+    paper: tok("--page", "#FFFFFF"),
     station: tok("--bronze-600", "#86641F"),
   };
 }
@@ -125,11 +144,12 @@ function cutPlate(amount: number): Plate {
       const sa = Math.sin(a);
       const p = new Path2D();
       for (let k = 0; k <= SAMPLES; k++) {
-        const x = base[k * 2];
-        const y = base[k * 2 + 1];
+        const x = base[k * 2]!;
+        const y = base[k * 2 + 1]!;
         const rx = x * ca - y * sa;
         const ry = x * sa + y * ca;
-        k === 0 ? p.moveTo(rx, ry) : p.lineTo(rx, ry);
+        if (k === 0) p.moveTo(rx, ry);
+        else p.lineTo(rx, ry);
       }
       p.closePath();
       paths.push(p);
@@ -161,7 +181,8 @@ interface Pose {
 /** The inner plate turns against the outer one — the two gears of the lathe, and the loop feeding itself. */
 const INNER_RATIO = -0.62;
 
-function draw(stage: Stage, plate: Plate, pose: Pose) {
+/** Draws a frame and returns the station the tracer is at, or -1 between stations. */
+function draw(stage: Stage, plate: Plate, pose: Pose): number {
   const { ctx, width, height, radius, ink } = stage;
   ctx.clearRect(0, 0, width, height);
   const cx = width / 2;
@@ -188,7 +209,7 @@ function draw(stage: Stage, plate: Plate, pose: Pose) {
   // followable by eye, or the lace is only a texture.
   ctx.lineWidth = 1.1 / radius;
   ctx.strokeStyle = rgba(ink.line, 0.62);
-  ctx.stroke(plate.outer[0]);
+  ctx.stroke(plate.outer[0]!);
 
   // The tracer: one lit segment of a single trace, lapping the plate for ever. It rides the outer
   // plate, so it stays on the line it is cutting.
@@ -244,17 +265,32 @@ function draw(stage: Stage, plate: Plate, pose: Pose) {
   ctx.fillStyle = ink.tracer;
   ctx.fill();
 
+  // The four stations, and a short leader from each out towards the name in its corner. No numerals
+  // on the plate any more: the names carry them, and drawing both would number every step twice.
   const headAngle = Math.atan2(hy - cy, hx - cx);
-  ctx.font = `600 10px "JetBrains Mono", "SF Mono", Menlo, monospace`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  for (let i = 0; i < STATIONS.length; i++) {
-    const a = -Math.PI / 2 + (i * Math.PI) / 2;
+  let at = -1;
+  let best = LIT_ON;
+  for (let i = 0; i < STATION_ANGLES.length; i++) {
+    const a = STATION_ANGLES[i]!;
     // How near the tracer is, in angle: the station lights as it arrives and fades as it leaves.
-    let delta = Math.abs(((headAngle - a + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
-    const lit = Math.max(0, 1 - delta / 0.55);
-    const sx = cx + radius * 1.0 * Math.cos(a);
-    const sy = cy + radius * 1.0 * Math.sin(a);
+    const delta = Math.abs(((headAngle - a + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+    const lit = Math.max(0, 1 - delta / LIT_ARC);
+    if (lit > best) {
+      best = lit;
+      at = i;
+    }
+    const ca = Math.cos(a);
+    const sa = Math.sin(a);
+    const sx = cx + radius * ca;
+    const sy = cy + radius * sa;
+
+    ctx.strokeStyle = rgba(ink.station, 0.18 + 0.4 * lit);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx + radius * 1.02 * ca, cy + radius * 1.02 * sa);
+    ctx.lineTo(cx + radius * (1.09 + 0.03 * lit) * ca, cy + radius * (1.09 + 0.03 * lit) * sa);
+    ctx.stroke();
+
     ctx.beginPath();
     ctx.arc(sx, sy, 3 + 2.5 * lit, 0, Math.PI * 2);
     ctx.fillStyle = rgba(ink.tracerHalo, 0.45 * lit);
@@ -263,32 +299,42 @@ function draw(stage: Stage, plate: Plate, pose: Pose) {
     ctx.arc(sx, sy, 2.2, 0, Math.PI * 2);
     ctx.fillStyle = rgba(ink.station, 0.6 + 0.4 * lit);
     ctx.fill();
-    // 1.07 keeps the numeral inside the canvas box; PLATE leaves exactly that much margin.
-    const lx = cx + radius * 1.07 * Math.cos(a);
-    const ly = cy + radius * 1.07 * Math.sin(a);
-    ctx.fillStyle = rgba(ink.station, 0.5 + 0.5 * lit);
-    ctx.fillText(STATIONS[i], lx, ly);
   }
+  return at;
 }
 
 /* ------------------------------------------------------------- Component */
 
-export interface HeroRingProps {
-  /** Corner captions (top-left, top-right, bottom-left, bottom-right). */
-  captions?: [ReactNode, ReactNode, ReactNode, ReactNode];
+export interface LoopStep {
+  /** "01"… */
+  n: string;
+  title: string;
+}
+
+export interface LoopPlateProps {
+  /**
+   * The Loop's four steps, clockwise from the top left. Passed in rather than held here, so the plate
+   * and the list of steps beside it cannot come to disagree.
+   */
+  steps: [LoopStep, LoopStep, LoopStep, LoopStep];
   className?: string;
 }
 
 /**
- * Ouro's plate: guilloché engraved live. Two families of lathe traces turn against each other while
- * one lit line laps the outer figure for ever, lighting the Loop's four stations as it passes.
- * Dragging works the lathe — sideways turns the plate, up and down changes the depth of cut.
+ * Ouro's plate, and the home page's drawing of the Loop: guilloché engraved live, the engine-turned
+ * line work of a share certificate. Two families of lathe traces turn against each other while one
+ * lit line laps the outer figure for ever, lighting the Loop's four stations as it passes. Dragging
+ * works the lathe: sideways turns the plate, up and down changes the depth of cut.
+ *
+ * It replaced a thin four-node ring in the same slot. The argument for it is the brand's, not
+ * decoration: the ouroboros is one closed line with no beginning and no end, which is what a
+ * guilloché figure is and what the four steps beside it describe.
  *
  * Ships a static SVG in the prerendered HTML (visible before hydration and with JS off), draws a
  * single still under prefers-reduced-motion, and sleeps while off screen or in a hidden tab.
- * See site.css → "Hero plate".
+ * See site.css → "The plate".
  */
-export function HeroRing({ captions, className }: HeroRingProps) {
+export function LoopPlate({ steps, className }: LoopPlateProps) {
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -322,11 +368,20 @@ export function HeroRing({ captions, className }: HeroRingProps) {
       t: (Math.PI * 2 * t) / CYCLE_S,
     });
 
+    /** The station last reported to the DOM, so the attribute is written on arrival and not per frame. */
+    let litAt = -1;
+
     const render = () => {
       if (!stage) return;
       const p = pose();
       if (Math.abs(p.amount - plate.amount) > 0.004) plate = cutPlate(p.amount);
-      draw(stage, plate, p);
+      const at = draw(stage, plate, p);
+      if (at !== litAt) {
+        litAt = at;
+        // The name in the corner lights with the station the tracer has reached; see site.css.
+        if (at < 0) delete host.dataset.lit;
+        else host.dataset.lit = String(at);
+      }
       if (!ready) {
         ready = true;
         host.dataset.ready = "true";
@@ -384,9 +439,12 @@ export function HeroRing({ captions, className }: HeroRingProps) {
     rebuild();
     if (document.fonts?.load) {
       // The station numerals are set in the mono face; redraw once it is in.
-      document.fonts.load('600 10px "JetBrains Mono"').then(() => {
-        if (!disposed && !raf) render();
-      }, () => {});
+      document.fonts.load('600 10px "JetBrains Mono"').then(
+        () => {
+          if (!disposed && !raf) render();
+        },
+        () => {},
+      );
     }
 
     const ro = new ResizeObserver(() => rebuild());
@@ -470,21 +528,17 @@ export function HeroRing({ captions, className }: HeroRingProps) {
     };
   }, []);
 
-  const [tl, tr, bl, br] = captions ?? [
-    "LP fees · 80% to holders",
-    "Ouroboros · the Loop",
-    "Drag to turn",
-    <em key="br">20% compounds, forever</em>,
-  ];
+  const spoken = steps.map((s) => `${s.n} ${s.title.toLowerCase()}`).join(", ");
 
   return (
-    <div
-      ref={stageRef}
-      className={className ? `hero-stage ${className}` : "hero-stage"}
-      role="img"
-      aria-label="Ouro's plate: guilloché line work engraved as one continuous closed line, turning past the Loop's four stations. The pools earn an LP fee on every swap; 80% of it goes to holders and 20% compounds back into the pools."
-    >
-      <svg className="hero-still" viewBox="-100 -100 200 200" aria-hidden="true" focusable="false">
+    <div className={className ? `plate-frame ${className}` : "plate-frame"}>
+      <div
+        ref={stageRef}
+        className="plate"
+        role="img"
+        aria-label={`The Loop, drawn as guilloché: one continuous closed line engraved as it turns, passing the four stations ${spoken}, and returning to the first.`}
+      >
+      <svg className="plate__still" viewBox="-100 -100 200 200" aria-hidden="true" focusable="false">
         <defs>
           <path id="ouro-plate-outer" d={STILL.outer.d} />
           <path id="ouro-plate-inner" d={STILL.inner.d} />
@@ -505,11 +559,19 @@ export function HeroRing({ captions, className }: HeroRingProps) {
           ))}
         </g>
       </svg>
-      <canvas ref={canvasRef} className="hero-canvas" aria-hidden="true" />
-      <span className="hero-cap hero-cap--tl">{tl}</span>
-      <span className="hero-cap hero-cap--tr">{tr}</span>
-      <span className="hero-cap hero-cap--bl">{bl}</span>
-      <span className="hero-cap hero-cap--br">{br}</span>
+        <canvas ref={canvasRef} className="plate__canvas" aria-hidden="true" />
+        {/* One name per corner, each opposite the station that points at it. `aria-hidden`, because the
+            plate's own label already reads the four in order and the list beside it gives them in full. */}
+        {steps.map((s, i) => (
+          <span key={s.n} className={`plate-step plate-step--${i}`} aria-hidden="true">
+            <span className="plate-step__n">{s.n}</span> {s.title}
+          </span>
+        ))}
+      </div>
+      <div className="plate-foot">
+        <em>and again, forever</em>
+        <span className="plate-foot__hint">Drag to turn</span>
+      </div>
     </div>
   );
 }

@@ -1,14 +1,12 @@
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useSearchParams } from "react-router";
 import { getAddress, isAddress, type Address, type Hex } from "viem";
 import { useAccount } from "wagmi";
 
 import { Callout } from "@ouro/ds";
-import { ConnectBar } from "~/components/site";
 import {
-  BAR_TITLE,
   OURO,
   PortfolioBody,
+  PortfolioHeader,
   PortfolioStatic,
   STATIC_VIEW,
   ViewingNote,
@@ -19,6 +17,7 @@ import {
   type VaultRowView,
 } from "~/components/portfolio/PortfolioFrame";
 import { ShareCardTrigger } from "~/components/portfolio/ShareCard";
+import { WalletButton } from "~/components/wallet/WalletButton";
 import { WalletProvider } from "~/components/wallet/WalletProvider";
 import { BASKET_TOKENS, shortAddress } from "~/content/protocol";
 import { canonicalPath } from "~/lib/meta";
@@ -35,10 +34,9 @@ import { fmtAmount } from "~/lib/vaultChain";
    server bundle or the prerender.
 
    WHOSE. The connected wallet's. An address in `?address=` takes over when there is one, so a link
-   to another wallet's page shows that wallet to everyone who opens it; the page does not offer that
-   anywhere (see the note at the top of PortfolioFrame), and an address that is not one is simply
-   ignored. The query string is only read here, after hydration: the route is prerendered and there
-   is no query string at build time.
+   to another wallet's page shows that wallet to everyone who opens it; an address that is not one is
+   simply ignored. The query string is only read here, after hydration: the route is prerendered and
+   there is no query string at build time.
 
    Reading needs no wallet. Everything on the page comes from ouro-monitor's portfolio endpoints
    (hooks/usePortfolio.ts): one summary payload, polled, and the payments a page at a time. The
@@ -78,32 +76,31 @@ function LiveSection() {
 
   return (
     <>
-      {viewing && summary.error && (
-        <Callout tone="caution" title="ouro-monitor is not answering" style={{ marginBottom: 24 }}>
-          {p ? "Showing its last good read. " : "Every figure stays a dash until it does; nothing here is cached or estimated. "}It said: {summary.error}
-        </Callout>
-      )}
-      {viewing && p?.liveError && (
-        <Callout tone="caution" title={`${site.chain.name} did not answer the monitor`} style={{ marginBottom: 24 }}>
-          What the wallet holds and its vault deposits stay a dash until it does. The monitor said: {p.liveError}
-        </Callout>
-      )}
-      {viewing && p && p.blocksBehind !== null && p.blocksBehind > STALE_BLOCKS && (
-        <Callout tone="caution" title="The monitor's holder snapshot is behind the chain" style={{ marginBottom: 24 }}>
-          By {fmtNum(p.blocksBehind)} blocks, about {ago(p.blocksBehind / 10)}. The balance, the standing and the share come from that snapshot; what the wallet
-          holds is read live.
-        </Callout>
-      )}
-      <ConnectBar
-        title={BAR_TITLE}
+      <PortfolioHeader
         note={viewing && !mine ? <ViewingNote address={viewing} /> : undefined}
         right={
           <>
             {share && <ShareCardTrigger card={share.card} holdingRow={share.holdingRow} fileStem={share.fileStem} />}
-            <ConnectButton showBalance={false} chainStatus="icon" accountStatus="address" />
+            <WalletButton />
           </>
         }
       />
+      {viewing && summary.error && (
+        <Callout tone="caution" title="ouro-monitor is not answering" style={{ marginTop: 28 }}>
+          {p ? "Showing its last good read. " : "Every figure stays a dash until it does; nothing here is cached or estimated. "}It said: {summary.error}
+        </Callout>
+      )}
+      {viewing && p?.liveError && (
+        <Callout tone="caution" title={`${site.chain.name} did not answer the monitor`} style={{ marginTop: 28 }}>
+          What the wallet holds and its vault deposits stay a dash until it does. The monitor said: {p.liveError}
+        </Callout>
+      )}
+      {viewing && p && p.blocksBehind !== null && p.blocksBehind > STALE_BLOCKS && (
+        <Callout tone="caution" title="The monitor's holder snapshot is behind the chain" style={{ marginTop: 28 }}>
+          By {fmtNum(p.blocksBehind)} blocks, about {ago(p.blocksBehind / 10)}. The balance, the standing and the share come from that snapshot; what the wallet
+          holds is read live.
+        </Callout>
+      )}
       <PortfolioBody view={view} historyKey={viewing ?? "none"} />
     </>
   );
@@ -145,24 +142,9 @@ function amountUsd(amountF: number, symbol: string, usd: number | null): string 
 const hex = (s: string): Hex | null => (/^0x[0-9a-fA-F]{64}$/.test(s) ? (s as Hex) : null);
 
 /**
- * The card behind the Share button, for whichever wallet is on screen.
- *
- * It is offered whenever there is a wallet to describe, paid or not (owner's call, 2026-09-11): a
- * holder who has just crossed the line has something worth posting too, and the card says plainly
- * that nothing has been paid yet. The only figure it will not print is one it does not have, so an
- * unvalued total falls back to the count of payments rather than to a dash where the hero goes.
- *
- * THE CODE OPENS THIS WALLET'S PORTFOLIO. Same decision: the card exists to be scanned into
- * /portfolio/?address=…, which is how one holder shows another what the airdrop has actually paid.
- * So the address is on the card in plain type as well as inside the code, because a card carrying an
- * address it does not name is the worse of the two.
- *
- * STILL LEFT OFF. The wallet balance, which is offered behind a toggle in the dialog rather than
- * assumed. Vault deposits print when present. Lifetime vault rewards ("Received from the vaults")
- * print when the monitor has priced claimed + claimable; otherwise claimable-only shows as
- * "Vaults to collect". Shortfall stays off the card — nothing to share there. And "at the current
- * rate", a projection the monitor currently puts at about twice what this wallet's own payments
- * come to, which has no business on an image that carries none of the page's caveats.
+ * The card behind the Share button, for whichever wallet is on screen: offered paid or not, its code
+ * opens this wallet's own portfolio, and the address is printed beside the code. The balance is
+ * offered behind a toggle in the dialog; the projected rate stays off it.
  */
 function shareCard(p: PortfolioSummary): { card: ShareCardData; holdingRow: ShareCardRow | null; fileStem: string } {
   const excluded = p.eligible && p.excluded !== null;
@@ -171,17 +153,11 @@ function shareCard(p: PortfolioSummary): { card: ShareCardData; holdingRow: Shar
   const address = getAddress(p.address);
 
   const vaultPositions = Array.isArray(p.vaults) ? p.vaults : [];
-  const vaultOuro = vaultPositions.reduce(
-    (sum, v) => sum + (v.depositSymbol === OURO.symbol && v.assetsF > 0 ? v.assetsF : 0),
-    0,
-  );
+  const vaultOuro = vaultPositions.reduce((sum, v) => sum + (v.depositSymbol === OURO.symbol && v.assetsF > 0 ? v.assetsF : 0), 0);
   const claimable = vaultPositions.filter((v) => v.earnedF !== null && v.earnedF > 0);
   const claimableRow = vaultClaimableRow(claimable);
   const vaultEarnedRow = vaultEarnedShareRow(p);
 
-  // At most three, so the optional wallet-balance row never makes a fourth into a fifth: the
-  // figures block is anchored to its foot and a fifth row would run up into the badge. Vault rows
-  // sit first when present so a emptied-into-vaults wallet does not look empty on the card.
   const rows: ShareCardRow[] = [];
   if (vaultOuro > 0) rows.push({ label: "In the vaults", value: `${fmtTokens(vaultOuro)} OURO` });
   if (vaultEarnedRow) rows.push(vaultEarnedRow);
@@ -220,11 +196,7 @@ function shareCard(p: PortfolioSummary): { card: ShareCardData; holdingRow: Shar
       hero: priced ? fmtUsd(p.totalAirdropUsd) : `${fmtNum(paidCount)} ${plural(paidCount, "payment", "payments")}`,
       sub,
       stamp: `${fmtDay(p.generatedAt)} · ${new Date(p.generatedAt * 1000).toISOString().slice(11, 16)} UTC`,
-      badge: excluded
-        ? { text: "Excluded by policy", tone: "negative" }
-        : p.eligible
-          ? { text: "Above the line · paid every cycle", tone: "positive" }
-          : { text: "Below the line", tone: "caution" },
+      badge: excluded ? { text: "Excluded by policy", tone: "negative" } : p.eligible ? { text: "Above the line · paid every cycle", tone: "positive" } : { text: "Below the line", tone: "caution" },
       rows: rows.slice(0, 3),
       footnote,
       cta: {
@@ -232,13 +204,9 @@ function shareCard(p: PortfolioSummary): { card: ShareCardData; holdingRow: Shar
         line: "Every payout, read from the chain.",
         site: site.url.replace(/^https?:\/\//, ""),
         address: shortAddress(address),
-        // Built here rather than taken from the API's `portfolioUrl`, which omits the trailing slash
-        // this site serves its directories at. site.url is pinned to the public origin at build time
-        // (netlify.toml), so a card saved from a preview deploy still points somewhere real.
         href: `${site.url}${canonicalPath("/portfolio")}?address=${address}`,
       },
     },
-    // "In wallet" when vaults are on the card, so the optional row and "In the vaults" read as a pair.
     holdingRow: {
       label: vaultOuro > 0 ? "In wallet" : "Holding",
       value: `${fmtTokens(p.balanceTokens)} OURO`,
@@ -248,18 +216,14 @@ function shareCard(p: PortfolioSummary): { card: ShareCardData; holdingRow: Shar
 }
 
 /** Claimable payout-vault rewards, as one row. Used when lifetime vault earned is not yet known. */
-function vaultClaimableRow(
-  claimable: NonNullable<PortfolioSummary["vaults"]>,
-): ShareCardRow | null {
+function vaultClaimableRow(claimable: NonNullable<PortfolioSummary["vaults"]>): ShareCardRow | null {
   if (claimable.length === 0) return null;
   const allPriced = claimable.every((v) => v.earnedUsd !== null);
   if (allPriced) {
     const usd = claimable.reduce((sum, v) => sum + (v.earnedUsd ?? 0), 0);
     return { label: "Vaults to collect", value: fmtUsd(usd) };
   }
-  const parts = claimable.flatMap((v) =>
-    v.earnedF !== null && v.earnedF > 0 ? [`${fmtTokens(v.earnedF)} ${v.payoutSymbol}`] : [],
-  );
+  const parts = claimable.flatMap((v) => (v.earnedF !== null && v.earnedF > 0 ? [`${fmtTokens(v.earnedF)} ${v.payoutSymbol}`] : []));
   if (parts.length === 0) return null;
   return { label: "Vaults to collect", value: parts.join(" + ") };
 }
@@ -289,62 +253,48 @@ function buildView(i: Inputs): PortfolioView {
       : excluded
         ? { tone: "negative", label: "Excluded by policy" }
         : p.eligible
-          // Short on purpose: the metric cards sit two-up from 641–960px, and the longer
-          // "Above the line · paid every cycle" overflowed the card (Badge is nowrap). The note
-          // under the figure still says every cycle pays.
           ? { tone: "positive", label: "Above the line" }
           : { tone: "caution", label: "Below the line" };
 
-  // Vault OURO is live on the same payload; surface it on Balance so a emptied-into-vaults wallet
-  // does not look like the monitor missed the tokens. Eligibility still uses wallet balance only.
   const vaultPositions = p && Array.isArray(p.vaults) ? p.vaults : null;
-  const vaultOuro =
-    vaultPositions?.reduce((sum, v) => sum + (v.depositSymbol === OURO.symbol && v.assetsF > 0 ? v.assetsF : 0), 0) ?? 0;
+  const vaultOuro = vaultPositions?.reduce((sum, v) => sum + (v.depositSymbol === OURO.symbol && v.assetsF > 0 ? v.assetsF : 0), 0) ?? 0;
 
   const balanceFootnote = !viewing
     ? S.metrics.balance.footnote
     : !p
       ? pendingWord
       : (() => {
-          const priced =
-            p.balanceUsd === null || p.priceUsd === null
-              ? "Awaiting a price from the monitor"
-              : `${fmtUsd(p.balanceUsd)} at ${fmtUsd(p.priceUsd, { exact: true })} each`;
+          const priced = p.balanceUsd === null || p.priceUsd === null ? "Awaiting a price from the monitor" : `${fmtUsd(p.balanceUsd)} at ${fmtUsd(p.priceUsd, { exact: true })} each`;
           return vaultOuro > 0 ? `${priced} · ${fmtTokens(vaultOuro)} OURO in the vaults` : priced;
         })();
 
   const balanceNote = !viewing
     ? S.metrics.balance.note
     : vaultOuro > 0 && p
-      ? `${i.mine ? "Your connected wallet" : "The wallet named in the link"} holds ${fmtTokens(p.balanceTokens)} OURO here. Another ${fmtTokens(vaultOuro)} OURO sits in the vaults below — that earns through the vault, and does not count toward the line.`
-      : `${i.mine ? "Your connected wallet" : "The wallet named in the link"}, read through ouro-monitor and refreshed every thirty seconds. What it has in the vaults is counted separately below.`;
+      ? `${fmtTokens(p.balanceTokens)} OURO in the wallet, and ${fmtTokens(vaultOuro)} OURO in the vaults below. Vault deposits earn through the vault and do not count toward the line.`
+      : `${i.mine ? "Your connected wallet" : "The wallet named in the link"}, read through ouro-monitor and refreshed every thirty seconds.`;
 
   const metrics: PortfolioView["metrics"] = {
     balance: {
       value: p ? fmtTokens(p.balanceTokens) : DASH,
       unit: OURO.symbol,
       footnote: balanceFootnote,
+      badge: standing,
       note: balanceNote,
     },
     share: {
       value: !p ? DASH : p.shareOfEligible !== null ? fmtPct(p.shareOfEligible, 4) : paid ? DASH : "0%",
-      // Complete on its own (not a lead-in to the badge). Reads under the % as
-      // "3.5% of N $OURO above the line".
       footnote: p?.eligibleSupplyTokens != null ? `of ${fmtNum(p.eligibleSupplyTokens)} $OURO above the line` : S.metrics.share.footnote,
-      badge: standing,
       note: !p
         ? S.metrics.share.note
         : excluded
           ? `Never paid, however large. The monitor's note on this address: ${excluded}.`
           : p.eligible
-            ? "Each cycle is split pro-rata across the eligible supply. Every wallet above the line gets the same rate."
+            ? S.metrics.share.note
             : `${fmtTokens(p.shortfallTokens)} more $OURO clears the line. Below it a wallet gets nothing from any cycle.`,
     },
     received: (() => {
-      const vaultEarned =
-        p && p.totalVaultEarnedUsd !== null && p.totalVaultEarnedUsd > 0 ? p.totalVaultEarnedUsd : null;
-      // When the rate card has nothing to say, vault rewards take that slot instead — keep them off
-      // this footnote so the band does not print the same dollars twice.
+      const vaultEarned = p && p.totalVaultEarnedUsd !== null && p.totalVaultEarnedUsd > 0 ? p.totalVaultEarnedUsd : null;
       const vaultOnRateCard = vaultEarned !== null && p?.projectedUsdPerDay == null;
       const showVaultHere = vaultEarned !== null && !vaultOnRateCard;
       const airdropFoot = !viewing
@@ -371,18 +321,13 @@ function buildView(i: Inputs): PortfolioView {
         note:
           vaultEarned !== null
             ? vaultOnRateCard
-              ? "Basket tokens the airdrop has sent this wallet, valued at what each cycle paid them out at, not today's price. Vault rewards are in the next card."
-              : "Basket airdrops valued at what each cycle paid out, not today's price. Vault figure is claimed, claimable, and compounding gain — separate from the line."
-            : "Basket tokens the airdrop has sent this wallet, valued at what each cycle paid them out at, not today's price. Sold or moved since, they still count here.",
+              ? "Valued at what each cycle paid the tokens out at, not today's price. Vault rewards are in the next card."
+              : "Valued at what each cycle paid out, not today's price. The vault figure is claimed, claimable and compounding gain, separate from the line."
+            : S.metrics.received.note,
       };
     })(),
     rate: (() => {
-      // Below the line the airdrop rate is empty; put vault rewards in this slot so a vaulted wallet
-      // is not a dash beside three filled cards.
-      const vaultEarned =
-        p && p.projectedUsdPerDay == null && p.totalVaultEarnedUsd !== null && p.totalVaultEarnedUsd > 0
-          ? p.totalVaultEarnedUsd
-          : null;
+      const vaultEarned = p && p.projectedUsdPerDay == null && p.totalVaultEarnedUsd !== null && p.totalVaultEarnedUsd > 0 ? p.totalVaultEarnedUsd : null;
       if (vaultEarned !== null) {
         return {
           label: "Received from the vaults",
@@ -414,8 +359,6 @@ function buildView(i: Inputs): PortfolioView {
     })(),
   };
 
-  // The history. `total` counts payments not fetched yet, from the summary, until the feed has reached
-  // the oldest one; from then on the rows themselves are the count.
   const rows = feed.payments ?? [];
   const read = viewing !== null && feed.payments !== null;
   const total = feed.complete ? rows.length : Math.max(rows.length, p?.airdropPayments ?? 0);
@@ -424,7 +367,7 @@ function buildView(i: Inputs): PortfolioView {
       key: r.tx,
       when: fmtWhen(r.ts),
       cycle: `#${r.cycle}`,
-      tokens: r.assets.map((a) => `${fmtTokens(a.amountF)} ${a.symbol ?? shortAddress(a.address)}`).join(" + ") || DASH,
+      tokens: r.assets.map((a) => `${fmtTokens(a.amountF)} ${a.symbol ?? shortAddress(a.address)}`).join(" · ") || DASH,
       value: fmtUsd(r.paidUsd),
       tx: hex(r.tx),
     })),
@@ -446,7 +389,6 @@ function buildView(i: Inputs): PortfolioView {
     status: !viewing ? "" : !read ? (feed.error ? "unavailable" : "reading…") : `${fmtNum(total)} ${plural(total, "payment", "payments")}${feed.error ? " · refresh failed" : ""}`,
   };
 
-  // The next payment, from the monitor's per-wallet estimate. Its status decides the whole card.
   const n = p?.next;
   let next: NextView;
   if (!viewing || !p || !n) {
@@ -463,11 +405,11 @@ function buildView(i: Inputs): PortfolioView {
             ? `Expected with the next cycle, ${fmtWhen(n.estimatedPayTs)}`
             : `Expected ${fmtWhen(n.estimatedPayTs)}, about ${fmtNum(n.cyclesUntilPay)} ${plural(n.cyclesUntilPay ?? 0, "cycle", "cycles")} from now`,
       rows: due
-        ? [{ label: "Per cycle, about", value: fmtUsd(n.estimatedPerCycleUsd) }]
+        ? [{ label: "Credited every cycle", value: fmtUsd(n.estimatedPerCycleUsd) }]
         : [
             { label: "Next cycle", value: fmtWhen(n.nextCycleTs) },
-            { label: "Per cycle, about", value: fmtUsd(n.estimatedPerCycleUsd) },
-            { label: "Owed so far", value: `${fmtUsd(n.pendingUsd)} of ${fmtUsd(n.dustThresholdUsd)}` },
+            { label: "Credited every cycle", value: fmtUsd(n.estimatedPerCycleUsd) },
+            { label: "Owed, not yet sent", value: `${fmtUsd(n.pendingUsd)} of ${fmtUsd(n.dustThresholdUsd)}` },
           ],
       text: due
         ? "An estimate from this wallet's share and recent payouts, if gas stays ordinary. The keeper wakes every two hours and pays every wallet whose credit covers the gas to send it."
@@ -499,9 +441,6 @@ function buildView(i: Inputs): PortfolioView {
     };
   }
 
-  // What it holds, as the monitor read it from the chain for this request: $OURO first, then every
-  // token the airdrop pays in. The total is withheld if any held token has no price, the rule the
-  // Ledger applies to its own totals.
   const held = p && Array.isArray(p.holdings) ? p.holdings : null;
   const holdingRows: HoldingRowView[] = held
     ? held.map((h) => {
@@ -518,8 +457,6 @@ function buildView(i: Inputs): PortfolioView {
     : S.holdings.rows;
   const holdingsTotal = held && p && !held.some((h) => h.usd === null && h.balanceF > 0) ? fmtUsd(p.holdingsTotalUsd) : DASH;
 
-  // The vaults: every live vault, filled in from the positions the monitor lists (it lists only the
-  // vaults the wallet has something in).
   const vaultRows: VaultRowView[] = LIVE_VAULTS.map((v) => {
     const pos = vaultPositions?.find((x) => x.address.toLowerCase() === v.entry.address.toLowerCase());
     return {

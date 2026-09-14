@@ -326,10 +326,14 @@ export interface OuroQueuedAsset {
  * next several cycles draw from.
  */
 export interface OuroPending {
-  // `pendingWei`, `tabWei` and `claimableWei` — the tax accrued in letscash's hook and what a claim
-  // would return of it — are still served here, and still read by the keeper's cycle tool. They were
-  // dropped from this type when the site stopped publishing them: an interface field nothing renders
-  // reads as a figure someone shows, and this one is not shown anywhere.
+  /**
+   * The tax accrued in letscash's hook and not yet pulled out, in wei of ETH, and what a claim would
+   * return of it. /airdrops publishes `pendingWei` as the first stage of what is on its way. Optional
+   * because a monitor build could stop serving them; the page then shows a dash.
+   */
+  pendingWei?: string;
+  tabWei?: string;
+  claimableWei?: string;
   creator: string;
   treasury: string;
   /**

@@ -1,71 +1,30 @@
-import type { CSSProperties } from "react";
-import { micro, mono } from "./text";
+import type { CSSProperties, ReactNode } from "react";
+import { legPct, type SplitLeg } from "~/content/protocol";
+import { KVRow } from "./KVRow";
+import { micro } from "./text";
 
 export interface Wedge {
-  /** Shown inside the wedge next to its value, when the wedge is wide enough to hold it. */
-  label: string;
-  /** The figure, e.g. "4%" or "80%". Always shown. */
-  value: string;
-  /** Relative width. Any units; the wedges are normalised against their sum. */
+  /** Relative width. Any units; the wedges are normalised against their sum by flex. */
   weight: number;
-  /** The first wedge is normally the accent one; the rest are ink. */
-  tone?: "accent" | "ink";
+  /** accent: the bronze share (what the protocol keeps). ink / soft / faint: the rest, in descending weight. */
+  tone?: "accent" | "ink" | "soft" | "faint";
 }
 
-const TONES: Record<"accent" | "ink", CSSProperties> = {
-  accent: { background: "var(--bronze-600)", color: "#FFFFFF" },
-  ink: { background: "var(--neutral-800)", color: "var(--text-inverse-muted)" },
-};
-
 /**
- * A proportional split, drawn. One wedge per slice, sized by weight, with the end captions naming what the
- * two ends of the bar are. It always sits next to the same numbers in text (the split table underneath, or
- * the sentence above), so it is `aria-hidden`: it is a second reading of data that is already available.
- *
- * A wedge narrower than a quarter of the bar drops its label and keeps only its figure, which is what makes
- * a lopsided split like 4 / 1 legible instead of clipped.
+ * A proportional split, drawn as a thin bar: one wedge per share, sized by weight. It always sits
+ * above the same numbers in text (the rows under it), so it is `aria-hidden`: a second reading of
+ * data that is already on the page. Optional captions name what the two ends of the bar are.
  */
 export function SplitBar({ wedges, left, right, style }: { wedges: Wedge[]; left?: string; right?: string; style?: CSSProperties }) {
-  const total = wedges.reduce((sum, w) => sum + w.weight, 0) || 1;
-
   return (
-    <div style={{ marginTop: 18, ...style }}>
-      <div
-        aria-hidden="true"
-        style={{
-          display: "flex",
-          height: 46,
-          borderRadius: "var(--radius-md)",
-          overflow: "hidden",
-          border: "1px solid var(--border-hairline)",
-        }}
-      >
-        {wedges.map((w, i) => {
-          const share = w.weight / total;
-          return (
-            <div
-              key={w.label}
-              style={{
-                flex: `${w.weight} 1 0`,
-                minWidth: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                borderLeft: i === 0 ? undefined : "1px solid var(--surface-page)",
-                ...TONES[w.tone ?? (i === 0 ? "accent" : "ink")],
-              }}
-            >
-              <span style={{ ...mono, fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em" }}>{w.value}</span>
-              {share >= 0.25 && <span style={{ ...micro, opacity: 0.85 }}>{w.label}</span>}
-            </div>
-          );
-        })}
+    <div style={style}>
+      <div className="split" aria-hidden="true">
+        {wedges.map((w, i) => (
+          <div key={i} className={`split__wedge--${w.tone ?? "ink"}`} style={{ flex: `${w.weight} 1 0` }} />
+        ))}
       </div>
       {(left || right) && (
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 16, marginTop: 8 }}>
+        <div className="split-caps">
           <span style={{ ...micro, color: "var(--text-faint)" }}>{left}</span>
           <span style={{ ...micro, color: "var(--text-faint)", textAlign: "right" }}>{right}</span>
         </div>
@@ -73,3 +32,37 @@ export function SplitBar({ wedges, left, right, style }: { wedges: Wedge[]; left
     </div>
   );
 }
+
+export interface SplitRow {
+  label: ReactNode;
+  value: ReactNode;
+  /** The bronze figure: the share the protocol keeps. */
+  accent?: boolean;
+}
+
+/**
+ * The hairline rows that read out a bar: label left, share right. The bar above them is decorative,
+ * so this is where the figures are actually stated, on the home page and in the docs alike.
+ */
+export function SplitRows({ rows, style }: { rows: SplitRow[]; style?: CSSProperties }) {
+  return (
+    <div className="split-rows" style={style}>
+      {rows.map((r, i) => (
+        <KVRow
+          key={i}
+          py={10}
+          border={i === rows.length - 1 ? "none" : "bottom"}
+          label={r.label}
+          value={r.value}
+          valueStyle={{ fontWeight: 600, color: r.accent ? "var(--bronze-700)" : undefined }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** A split's legs as the bar's wedges, in the order they are declared. */
+export const legWedges = (legs: SplitLeg[]): Wedge[] => legs.map((l) => ({ weight: l.pct, tone: l.tone }));
+
+/** The same legs as the rows under it, so the bar and the figures cannot disagree. */
+export const legRows = (legs: SplitLeg[]): SplitRow[] => legs.map((l) => ({ label: l.label, value: legPct(l), accent: l.tone === "accent" }));

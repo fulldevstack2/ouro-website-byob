@@ -1,18 +1,37 @@
 import type { CSSProperties, ReactNode } from "react";
 import { MicroLabel } from "./MicroLabel";
 
-/** Sub-page header (Ledger / Docs / Stake): kicker, display h1, lede, optional right-hand status. */
-export function PageHeader({ kicker, title, lede, aside, ledeStyle }: { kicker: ReactNode; title: ReactNode; lede: ReactNode; aside?: ReactNode; ledeStyle?: CSSProperties }) {
+/**
+ * Sub-page header: bronze kicker, display h1, one-sentence lede, and on the right whatever the page
+ * has to say about its own state (a Live badge, the clock, the wallet). A hairline closes it.
+ */
+export function PageHeader({
+  kicker,
+  title,
+  lede,
+  aside,
+  note,
+  ledeStyle,
+}: {
+  kicker: ReactNode;
+  title: ReactNode;
+  lede: ReactNode;
+  aside?: ReactNode;
+  /** One short line under the lede, for a fact the lede cannot carry (whose wallet is on screen). */
+  note?: ReactNode;
+  ledeStyle?: CSSProperties;
+}) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 24, flexWrap: "wrap" }}>
-      <div>
+    <div className="page-head">
+      <div className="page-head__main">
         <MicroLabel tone="accent">{kicker}</MicroLabel>
-        <h1 className="page-title" style={{ margin: "14px 0 0" }}>
-          {title}
-        </h1>
-        <p style={{ margin: "14px 0 0", fontSize: 16, color: "var(--text-secondary)", maxWidth: 560, ...ledeStyle }}>{lede}</p>
+        <h1 className="page-title">{title}</h1>
+        <p className="page-head__lede" style={ledeStyle}>
+          {lede}
+        </p>
+        {note && <div className="page-head__note">{note}</div>}
       </div>
-      {aside}
+      {aside && <div className="page-head__aside">{aside}</div>}
     </div>
   );
 }
