@@ -19,9 +19,20 @@ implementation of that design.
 - **The 2026-09 redesign** is the brief's white-paper page: flat white ground, warm ink, hairline rules, one bronze
   accent, six low-text screens, and figures doing the persuading. `packages/ds` still carries the warm-grey ground the
   analytics dashboard was designed on; this app sets the surface tokens back to white in `styles/site.css` (section 1),
-  for itself only. The earlier guilloché hero plate and the animated loop ring went with the redesign: the loop is a
-  still ring, the hero's right column is a card of three live figures read through ouro-monitor, and nothing on the
-  site animates unprompted except numbers.
+  for itself only. The hero's right column is now a card of three live figures read through ouro-monitor, and nothing
+  on the site animates unprompted except numbers and the plate.
+- **The plate** (`components/site/LoopPlate.tsx`) is the redesign's drawing of the Loop, in the slot beside the four
+  steps. Guilloché — the engine-turned line work on a banknote or share certificate — engraved live on a canvas
+  (`lib/guilloche.ts` is the pure maths). Two families of lathe traces turn against each other in two inks, one lit
+  line laps the outer figure for ever, lighting each of the Loop's four steps as it reaches it, and dragging works the lathe
+  (sideways turns the plate, up and down changes the depth of cut). It was the hero's in the first build of this site,
+  briefly dropped in the redesign, and brought back here: the ouroboros is one closed line with no beginning and no
+  end, which is what a guilloché figure is and what the four steps beside it describe. The four are named on the plate
+  itself, one to a corner of the square it is inscribed in, each opposite the station that points at it. That is where
+  they fit: the plate's own margin is about 27px and takes a numeral at most, whereas at the height a corner name sits
+  the circle is not there at all, so the names cost the lace nothing at any width. A static SVG of the same figure
+  is baked into the prerendered HTML, so the plate is on screen before hydration and with JS off; under
+  `prefers-reduced-motion` it is a single still, and it sleeps off screen and in a hidden tab.
 
 ## Scripts
 
@@ -50,10 +61,11 @@ app/
                            (the design system itself now lives in packages/ds — see the workspace README)
   components/site/         chrome + layout primitives: SiteNav (with the price ticker, hooks/useOuroTicker.ts),
                            SiteFooter, Container, Grid, SectionHead, PageHeader, MicroLabel, NumberedRow, KVRow,
-                           Pager, Bars, LoopRing (still), SplitBar, AddressCell, TokenIcon, AirdropCalc
+                           Pager, Bars, LoopPlate (the guilloché plate), SplitBar, AddressCell, TokenIcon, AirdropCalc
   components/wallet/       WalletProvider (wagmi + RainbowKit, client-only) and WalletButton (RainbowKit's
                            connect flow in the site's own buttons: connect, switch chain, address pill, disconnect)
-  lib/guilloche.ts         the share card's plate maths: one lathe trace, its family's index step, an SVG path
+  lib/guilloche.ts         the plate's maths, shared by the Loop and the share card: one lathe trace, its family's
+                           index step, an SVG path
   lib/dexscreener.ts       DexScreener quote for the one figure the monitor lacks (the day's change) and price fallback
                            (the monitor client now lives in packages/monitor-client)
   content/site.ts          name, tagline, X handle, chain, `auditPublished`, external links (TODOs)

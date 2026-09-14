@@ -8,7 +8,7 @@ export { Wordmark } from "./Wordmark";
 export { NumberedRow } from "./NumberedRow";
 export { KVRow } from "./KVRow";
 export { Pager } from "./Pager";
-export { LoopRing } from "./LoopRing";
+export { LoopPlate } from "./LoopPlate";
 export { SplitBar } from "./SplitBar";
 export { AddressCell, PendingCell } from "./AddressCell";
 export { TokenIcon } from "./TokenIcon";

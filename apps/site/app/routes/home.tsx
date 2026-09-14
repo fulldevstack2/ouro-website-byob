@@ -3,7 +3,7 @@ import { Link } from "react-router";
 
 import type { Route } from "./+types/home";
 import { Badge, Button, Callout, Card, LedgerTable, Stat, type BadgeTone, type LedgerColumn } from "@ouro/ds";
-import { AirdropCalc, Container, LoopRing, MicroLabel, SectionHead, TokenIcon, body14, mono } from "~/components/site";
+import { AirdropCalc, Container, LoopPlate, MicroLabel, SectionHead, TokenIcon, body14, mono } from "~/components/site";
 import { LINE_TOKENS, PROTOCOL_CONTRACTS, TOKEN_ICONS, explorerAddressUrl, shortAddress } from "~/content/protocol";
 import { externalLinkProps, site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
@@ -183,13 +183,21 @@ const STEPS: { n: string; title: string; text: string }[] = [
   { n: "04", title: "Yield", text: "The Reserve earns swap fees. 80% is airdropped, 20% compounds." },
 ];
 
+/** The same four, for the plate: it takes them as a prop so the figure and the list cannot disagree. */
+const PLATE_STEPS = STEPS.map((s) => ({ n: s.n, title: s.title })) as [
+  { n: string; title: string },
+  { n: string; title: string },
+  { n: string; title: string },
+  { n: string; title: string },
+];
+
 function LoopSection() {
   return (
     <Container id="loop" className="home-section">
       <SectionHead kicker="The mechanism" title="One loop. Four steps." style={{ marginBottom: 40 }} />
       <div className="loop">
         <div className="loop__ring-wrap">
-          <LoopRing />
+          <LoopPlate steps={PLATE_STEPS} />
         </div>
         <div>
           {STEPS.map((s) => (
