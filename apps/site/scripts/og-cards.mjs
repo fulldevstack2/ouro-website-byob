@@ -15,13 +15,13 @@ const out = join(root, "public", "og");
 mkdirSync(out, { recursive: true });
 
 const CARDS = {
-  home: { k: "Protocol owned liquidity · Robinhood Chain", t: "Own the fee generating layer of Robinhood Chain.", s: "A 5% trade tax: 2% airdropped to holders, 2% buying pools the protocol keeps, 1% ops. 80% of those pools' fees is airdropped too." },
+  home: { k: "Robinhood Chain · 4663", t: "Liquidity that pays its holders.", s: "Every $OURO trade buys protocol-owned liquidity in the top Robinhood Chain tokens. The fees those pools earn are airdropped to holders every two hours." },
   monitor: { k: "Live proof · upstream", t: "The dividend monitor.", s: "INDEX and HOOD10 payouts, tax, eligibility and operator actions, read from Robinhood Chain. Nothing reported by hand." },
-  vaults: { k: "For HOOD10 and INDEX holders", t: "The vaults.", s: "Pool HOOD10 or INDEX, clear the dividend line together, and take the yield in your token, WETH or USDG." },
-  ledger: { k: "Live proof", t: "The Ledger.", s: "Every position the treasury owns, what the pools have earned, and what the same tokens would have been worth simply held." },
-  airdrops: { k: "Live proof", t: "The airdrops.", s: "Every payout Ouro has sent: what each cycle paid, to how many wallets, and what is already collected and waiting to go out." },
-  portfolio: { k: "Your wallet", t: "Your portfolio.", s: "Your $OURO, every airdrop it has received with the transaction that paid it, what it holds now and your vault deposits." },
-  docs: { k: "Documentation", t: "How Ouro works.", s: "The tax, the Loop, the Reserve, the airdrop, compounding, the Seal, governance and risks." },
+  vaults: { k: "For holders under the line", t: "The vaults.", s: "Pool your $OURO with others, clear the 100,000 line together, and get paid in OURO, ETH or dollars." },
+  ledger: { k: "Live proof", t: "The Ledger.", s: "What the Reserve owns, what it earned, and whether that beats simply holding." },
+  airdrops: { k: "Live proof", t: "The airdrops.", s: "Every cycle the keeper has paid, and what is on its way. If the site and the chain disagree, the chain is right." },
+  portfolio: { k: "Your wallet", t: "The portfolio.", s: "Your $OURO, every airdrop it has received, and what it holds now." },
+  docs: { k: "Documentation", t: "How Ouro works.", s: "The tax, the Loop, the Reserve, the airdrop, the parameters, what Ouro cannot do, the risks and every address." },
 };
 
 for (const [name, c] of Object.entries(CARDS)) {

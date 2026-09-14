@@ -23,7 +23,7 @@ const NO_BATCH = ["rpc.mainnet.chain.robinhood.com"];
  * except the chain's own, which answered three of eight with an error, so that one is asked one call
  * at a time instead of being written off for it.
  *
- * Deliberately in its own module rather than in wagmi.ts: useEthBalance is plain viem precisely so a
+ * Deliberately in its own module rather than in wagmi.ts: a page can create a plain viem client from it, so one that
  * page that never connects a wallet does not pull RainbowKit into its bundle, and importing the
  * transport from wagmi.ts would undo that.
  */

@@ -1,10 +1,8 @@
-import type { ReactNode } from "react";
 import { Link } from "react-router";
 
 import type { Route } from "./+types/ledger";
 import { Badge, Callout, Card, LedgerTable, Stat, type BadgeTone, type LedgerColumn } from "@ouro/ds";
-import { AddressCell, Container, Grid, KVRow, MicroLabel, PageHeader, PendingCell, SectionHead, body14, hairline, mono } from "~/components/site";
-import { Bars } from "~/components/site/Bars";
+import { AddressCell, Bars, Container, KVRow, MicroLabel, PageHeader, PendingCell, SectionHead, body14, fitTable, mono } from "~/components/site";
 import { COLLECTION_SPLIT_USD, COLLECT_THRESHOLD_USD, INFRASTRUCTURE, PROTOCOL_CONTRACTS, RESERVE_POOLS, type AddressEntry } from "~/content/protocol";
 import { externalLinkProps, site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
@@ -32,7 +30,7 @@ import {
 export function meta({ location }: Route.MetaArgs) {
   return pageMeta({
     title: `The Ledger · ${site.name} treasury, read from the chain`,
-    description: "Protocol-owned LP: what the Reserve holds, fees earned, net vs holding. Read from Robinhood Chain.",
+    description: "What the Reserve owns, what it earned, and whether that beats simply holding. Read from Robinhood Chain.",
     path: location.pathname,
     image: "/og/ledger.png",
   });
@@ -65,12 +63,11 @@ function pageStatus(poll: ReturnType<typeof useMonitor<Reserve>>, nowSec: number
 }
 
 function TxLink({ explorer, tx }: { explorer: string | null; tx: string }) {
-  const text = <span style={{ ...mono, fontSize: 12 }}>{shortHash(tx)}</span>;
-  if (!explorer) return text;
+  if (!explorer) return <span className="mono-link">{shortHash(tx)}</span>;
   const href = `${explorer}/tx/${tx}`;
   return (
-    <a href={href} {...externalLinkProps(href)} style={{ color: "var(--text-secondary)" }}>
-      {text}
+    <a href={href} {...externalLinkProps(href)} className="mono-link">
+      {shortHash(tx)} ↗
     </a>
   );
 }
@@ -130,6 +127,7 @@ function PositionCard({ p, explorer }: { p: ReservePosition; explorer: string | 
       : p.inRange
         ? { tone: "positive", label: "In range · earning" }
         : { tone: "caution", label: "Out of range · earning nothing" };
+  const poolHref = explorer ? `${explorer}/address/${p.pool}` : null;
 
   return (
     <Card
@@ -138,9 +136,13 @@ function PositionCard({ p, explorer }: { p: ReservePosition; explorer: string | 
           {pairOf(p)} <span style={{ ...mono, textTransform: "none", letterSpacing: 0, color: "var(--text-faint)" }}>#{p.tokenId}</span>
         </>
       }
-      action={<Badge tone={rangeBadge.tone} dot>{rangeBadge.label}</Badge>}
+      action={
+        <Badge tone={rangeBadge.tone} dot>
+          {rangeBadge.label}
+        </Badge>
+      }
     >
-      <Grid cols="repeat(3, 1fr)" gap={20} className="grid--2col-md">
+      <div className="pos__stats">
         <Stat label="Marked to market" value={fmtUsd(p.valueUsd)} footnote={`${fmtTokens(p.side0.amountF)} ${p.side0.symbol ?? ""} + ${fmtTokens(p.side1.amountF)} ${p.side1.symbol ?? ""}`} />
         <Stat
           label="Fees earned"
@@ -153,14 +155,15 @@ function PositionCard({ p, explorer }: { p: ReservePosition; explorer: string | 
           delta={p.netVsHoldingUsd === null || p.hodlUsd === null || p.hodlUsd <= 0 ? null : fmtPctSigned(p.netVsHoldingUsd / p.hodlUsd)}
           footnote={`Deposits would be ${fmtUsd(p.hodlUsd)} held`}
         />
-      </Grid>
+      </div>
 
-      <div style={{ marginTop: 20, borderTop: hairline }}>
+      <div className="kv-list" style={{ marginTop: 20 }}>
         <KVRow
           label="Pool fee, and what the Reserve keeps of it"
           value={
             <>
-              {fmtFeeTier(p.feeBps)} <span style={{ color: "var(--text-faint)" }}>tier</span> → {fmtFeeTier(p.lpFeeBps?.fee0 ?? null)} <span style={{ color: "var(--text-faint)" }}>to the LP</span>
+              {fmtFeeTier(p.feeBps)} <span style={{ color: "var(--text-faint)" }}>tier →</span> {fmtFeeTier(p.lpFeeBps?.fee0 ?? null)}{" "}
+              <span style={{ color: "var(--text-faint)" }}>to the LP</span>
             </>
           }
         />
@@ -173,13 +176,12 @@ function PositionCard({ p, explorer }: { p: ReservePosition; explorer: string | 
             </>
           }
         />
-        <KVRow label="Deposits, net of withdrawals" value={`${fmtTokens(p.side0.depositedF)} ${p.side0.symbol ?? ""} + ${fmtTokens(p.side1.depositedF)} ${p.side1.symbol ?? ""}`} />
         <KVRow label="Opened, and topped up since" value={`${fmtWhen(p.firstTs)} · ${fmtNum(p.adds)} add${p.adds === 1 ? "" : "s"}, ${fmtNum(p.collects)} collect${p.collects === 1 ? "" : "s"}`} />
         <KVRow
           label="Pool"
           value={
-            explorer ? (
-              <a href={`${explorer}/address/${p.pool}`} {...externalLinkProps(`${explorer}/address/${p.pool}`)} style={{ color: "var(--text-secondary)" }}>
+            poolHref ? (
+              <a href={poolHref} {...externalLinkProps(poolHref)} className="mono-link" style={{ fontSize: 13 }}>
                 {shortHash(p.pool)} ↗
               </a>
             ) : (
@@ -190,18 +192,6 @@ function PositionCard({ p, explorer }: { p: ReservePosition; explorer: string | 
         />
       </div>
     </Card>
-  );
-}
-
-function Method({ n, title, children }: { n: string; title: string; children: ReactNode }) {
-  return (
-    <div style={{ display: "flex", gap: 14, padding: "12px 0", borderBottom: hairline }}>
-      <span style={{ ...mono, fontSize: 13, fontWeight: 600, color: "var(--bronze-600)", width: 26, flex: "none" }}>{n}</span>
-      <div style={body14}>
-        <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{title}. </span>
-        {children}
-      </div>
-    </div>
   );
 }
 
@@ -217,26 +207,15 @@ export default function Ledger() {
   /**
    * Venues holding Reserve liquidity that the Monitor does not index. A venue reporting zero is not
    * news; a venue it could not read (`count === null`) is, because that is coverage we cannot claim.
-   *
-   * This exists because on 2026-09-13 the Reserve opened a Uniswap v4 position and this page said
-   * nothing at all — the totals stayed confident and simply excluded it. A silent omission reads as
-   * a complete figure, which is the one thing the Ledger must never publish.
+   * A silent omission reads as a complete figure, which is the one thing the Ledger must never publish.
    */
   const unindexed = (d?.unindexed ?? []).filter((u) => u.count === null || u.count > 0);
   const unindexedTotal = unindexed.some((u) => u.count === null) ? null : unindexed.reduce((n, u) => n + (u.count ?? 0), 0);
-  /**
-   * "No positions yet" is a claim about the treasury, not about our coverage. With liquidity sitting
-   * in a venue we do not read, that claim is simply false — so the badge narrows to what was checked.
-   */
   const sb = status === "empty" && unindexed.length > 0 ? { ...STATUS_BADGE[status], label: "No v3 positions" } : STATUS_BADGE[status];
 
   /**
    * One bar per UTC day, from the last snapshot of that day, over a fixed 30-day window ending today.
-   *
-   * The window is fixed rather than "however many days we have" because `Bars` sizes each bar as
-   * `width / n`: on the Reserve's first day a single snapshot would draw one bar across the whole
-   * chart, which reads as a full month at that value. Days with no snapshot draw nothing, which is
-   * the honest gap the component is built for.
+   * Days with no snapshot draw nothing, which is the honest gap the chart is built for.
    */
   const navByDay = (() => {
     const byDay = new Map<number, number | null>();
@@ -246,19 +225,20 @@ export default function Ledger() {
     for (let day = today - 29 * 86_400; day <= today; day += 86_400) out.push({ t: day, value: byDay.get(day) ?? null });
     return out;
   })();
+  const firstDay = navByDay.find((b) => b.value !== null);
 
   const held = (d?.positions ?? []).filter((p) => p.held);
   const closed = (d?.positions ?? []).filter((p) => !p.held);
 
   return (
-    <Container style={{ paddingTop: 64, minHeight: 640 }}>
+    <Container className="page">
       <PageHeader
         kicker="Live proof"
         title="The Ledger."
-        lede="What the treasury owns in LP, what those pools earned, and whether that beats simply holding the tokens."
+        lede="What the Reserve owns, what it earned, and whether that beats simply holding."
         ledeStyle={{ maxWidth: 680 }}
         aside={
-          <div style={{ display: "flex", alignItems: "center", gap: 14, paddingBottom: 4 }}>
+          <>
             <Badge tone={sb.tone} dot>
               {sb.label}
             </Badge>
@@ -266,13 +246,13 @@ export default function Ledger() {
               {clock}
               {d?.block ? ` · block ${fmtNum(d.block)}` : ""}
             </span>
-          </div>
+          </>
         }
       />
 
       {status === "unconfigured" && (
         <Callout tone="caution" title="Monitor not configured for this build" style={{ marginTop: 32 }}>
-          Set <code style={mono}>MONITOR_API_URL</code> at build time to the Monitor's origin. Until then every figure below shows a dash.
+          Set <code style={mono}>MONITOR_API_URL</code> at build time to the monitor&apos;s origin. Until then every figure below shows a dash.
         </Callout>
       )}
       {status === "offline" && (
@@ -283,26 +263,18 @@ export default function Ledger() {
       )}
       {status === "stale" && (
         <Callout tone="caution" title="Showing the last good reading" style={{ marginTop: 32 }}>
-          Last refreshed {reserve.updatedAt ? ago((Date.now() - reserve.updatedAt) / 1000) : "—"} ago. The monitor's own reading is from {fmtWhen(d?.generatedAt)}.
+          Last refreshed {reserve.updatedAt ? ago((Date.now() - reserve.updatedAt) / 1000) : "—"} ago. The monitor&apos;s own reading is from {fmtWhen(d?.generatedAt)}.
         </Callout>
       )}
       {status === "syncing" && (
         <Callout title="The monitor is still reading the chain" style={{ marginTop: 32 }}>
-          It has not finished indexing the Reserve's history yet, so nothing below is stated as fact. A dash here means
-          "not read", not "zero". Figures fill in on their own within a few minutes of the monitor starting.
+          It has not finished indexing the Reserve&apos;s history yet, so nothing below is stated as fact. A dash here means &quot;not read&quot;, not &quot;zero&quot;.
         </Callout>
       )}
       {status === "empty" && (
-        <Callout
-          tone="caution"
-          title={unindexed.length > 0 ? "The Reserve holds no positions this page can read" : "The Reserve holds no positions yet"}
-          style={{ marginTop: 32 }}
-        >
-          The monitor has read the chain up to block {fmtNum(d?.indexedTo ?? null)} and finds no Uniswap v3 liquidity at{" "}
-          <code style={mono}>{d?.lp}</code>.{" "}
-          {unindexed.length > 0
-            ? "That is not the same as an empty treasury — it holds liquidity elsewhere, counted above and valued nowhere on this page."
-            : "Every figure below stays a dash until the LP leg of the tax opens a position."}
+        <Callout tone="caution" title={unindexed.length > 0 ? "The Reserve holds no positions this page can read" : "The Reserve holds no positions yet"} style={{ marginTop: 32 }}>
+          The monitor has read the chain up to block {fmtNum(d?.indexedTo ?? null)} and finds no Uniswap v3 liquidity at <code style={mono}>{d?.lp}</code>.{" "}
+          {unindexed.length > 0 ? "That is not the same as an empty treasury: it holds liquidity elsewhere, counted below and valued nowhere on this page." : "Every figure below stays a dash until the LP leg of the tax opens a position."}
         </Callout>
       )}
       {t && t.priced === false && (
@@ -311,26 +283,21 @@ export default function Ledger() {
           totals show a dash. The positions themselves, and their token amounts, are unaffected.
         </Callout>
       )}
-
+      {/* A coverage note, not a risk: the monitor reports positions it counts but cannot value (the
+          Reserve's Uniswap v4 position since 2026-09-13), so the treasury is larger than the totals
+          below read. Said once here in the quiet tone, and again in the NAV footnote. */}
       {unindexed.length > 0 && (
-        <Callout tone="caution" title="The Reserve holds liquidity this page does not value" style={{ marginTop: 32 }}>
+        <Callout title={`Counted but not valued: ${unindexed.map((u) => (u.count === null ? `${u.label}, unread` : `${fmtNum(u.count)} ${u.label} position${u.count === 1 ? "" : "s"}`)).join(", ")}`} style={{ marginTop: 32 }}>
           {unindexed.map((u) => (
-            <div key={u.positionManager} style={{ marginBottom: 10 }}>
-              <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
-                {u.count === null ? `${u.label}: the number of positions could not be read.` : `${fmtNum(u.count)} position${u.count === 1 ? "" : "s"} in ${u.label}.`}
-              </span>{" "}
-              {u.note}
-            </div>
+            <div key={u.positionManager}>{u.note}</div>
           ))}
-          Every figure below counts the Uniswap v3 positions only, so the treasury is larger than it reads here. These are left out rather than
-          estimated: a number this page cannot read from the chain is not one it will guess at.
         </Callout>
       )}
 
-      <Grid cols="repeat(4, 1fr)" gap={24} className="grid--2col-md" style={{ margin: "40px 0 48px", padding: "28px 0", borderTop: hairline, borderBottom: hairline }}>
+      <div className="stat-band">
         <Stat
           label="Treasury NAV"
-          value={fmtUsd(t?.navUsd, { compact: true })}
+          value={fmtUsd(t?.navUsd)}
           footnote={
             `Owned liquidity, marked to market · ${fmtNum(t?.positions ?? null)} position${t?.positions === 1 ? "" : "s"}` +
             (unindexed.length === 0 ? "" : unindexedTotal === null ? " · excludes liquidity held in an unread venue" : ` · excludes ${fmtNum(unindexedTotal)} held elsewhere`)
@@ -347,34 +314,34 @@ export default function Ledger() {
                 : `${fmtUsd(t.uncollectedFeesUsd)} of ${THRESHOLD} uncollected · ${fmtUsd(COLLECT_THRESHOLD_USD - t.uncollectedFeesUsd)} to go before a collection`
           }
         />
-        <Stat
-          label="Divergence loss"
-          value={fmtUsdSigned(t?.divergenceUsd)}
-          footnote="What the pool gave up by rebalancing as the price moved"
-        />
+        <Stat label="Divergence loss" value={fmtUsdSigned(t?.divergenceUsd)} footnote="What the pools gave up by rebalancing as prices moved" />
         <Stat
           label="Net against holding"
           value={fmtUsdSigned(t?.netVsHoldingUsd)}
           delta={t ? fmtPctSigned(t.netVsHoldingPct) : null}
           footnote={`Fees minus divergence, over ${fmtAge(t?.ageDays)}`}
         />
-      </Grid>
+      </div>
 
-      <Callout title="Why this page leads with the net, not the fees" style={{ marginBottom: 48 }}>
-        LP fees can still lose to holding (divergence). Fees alone:{" "}
-        {t ? fmtPctSigned(t.hodlUsd && t.hodlUsd > 0 && t.feesTotalUsd !== null ? t.feesTotalUsd / t.hodlUsd : null) : "—"}. Net:{" "}
-        {fmtUsdSigned(t?.netVsHoldingUsd)} ({t ? fmtPctSigned(t.netVsHoldingPct) : "—"}) on {fmtUsd(t?.hodlUsd)}.
+      <Callout title="Why this page leads with the net, not the fees">
+        Fees can still lose to holding. Fees alone: {t ? fmtPctSigned(t.hodlUsd && t.hodlUsd > 0 && t.feesTotalUsd !== null ? t.feesTotalUsd / t.hodlUsd : null) : "—"}. Net:{" "}
+        {fmtUsdSigned(t?.netVsHoldingUsd)} ({t ? fmtPctSigned(t.netVsHoldingPct) : "—"}) on {fmtUsd(t?.hodlUsd)} held.
       </Callout>
 
-      <Grid cols="1.1fr 0.9fr" gap={48} align="start" style={{ marginBottom: 64 }}>
+      <div className="cols-2" style={{ marginTop: 48 }}>
         <div>
-          <MicroLabel style={{ marginBottom: 12 }}>Treasury NAV, by day</MicroLabel>
+          <MicroLabel style={{ marginBottom: 12 }}>Treasury NAV, by day · 30 days</MicroLabel>
           <Bars data={navByDay} format={(v) => fmtUsd(v, { compact: true })} ariaLabel="Treasury NAV in US dollars, by day" />
+          {firstDay && (
+            <div className="bars-axis" style={{ justifyContent: "center" }}>
+              <span>{new Date(firstDay.t * 1000).toISOString().slice(5, 10)} · first position in the window</span>
+            </div>
+          )}
         </div>
         <div>
           <MicroLabel style={{ marginBottom: 12 }}>The Reserve</MicroLabel>
-          <div style={{ borderTop: hairline }}>
-            <KVRow label="Positions held, and earning right now" value={t ? `${fmtNum(t.positions)} · ${fmtNum(t.inRange)} in range` : "—"} />
+          <div className="kv-list">
+            <KVRow label="Positions held, earning now" value={t ? `${fmtNum(t.positions)} · ${fmtNum(t.inRange)} in range` : "—"} />
             <KVRow label="Wallet that holds them" value={d ? <AddressCell address={d.lp as `0x${string}`} /> : "—"} />
             <KVRow label="Gas left to collect with" value={d ? `${fmtEth(d.gas.eth)} ETH${d.gas.usd === null ? "" : ` · ${fmtUsd(d.gas.usd)}`}` : "—"} />
             <KVRow
@@ -387,22 +354,14 @@ export default function Ledger() {
               border="none"
             />
           </div>
-          <div style={{ marginTop: 14, fontSize: 13, color: "var(--text-muted)" }}>
-            Collect at {THRESHOLD}: {TO_HOLDERS} airdropped, {TO_RESERVE} compounded. Small collects skipped (gas).{" "}
-            <Link to="/airdrops/">Airdrops →</Link>
+          <div className="kv-note">
+            Small collects are skipped for gas. What was paid out is on the <Link to="/airdrops/">airdrops page →</Link>
           </div>
         </div>
-      </Grid>
+      </div>
 
-      <SectionHead
-        kicker="Positions"
-        title="What the treasury owns."
-        titleStyle={{ fontSize: 30 }}
-        sub="One card per Reserve LP position."
-        subStyle={{ fontSize: 15 }}
-        style={{ marginBottom: 24 }}
-      />
-      <div style={{ display: "flex", flexDirection: "column", gap: 24, marginBottom: 64 }}>
+      <SectionHead kicker="Positions" title="What the treasury owns." size="sub" style={{ margin: "64px 0 24px" }} />
+      <div className="positions">
         {held.map((p) => (
           <PositionCard key={p.tokenId} p={p} explorer={explorer} />
         ))}
@@ -412,101 +371,57 @@ export default function Ledger() {
         {(!d || status === "syncing") && (
           <Card label="Positions">
             <div style={{ ...body14, fontStyle: "italic" }}>
-              {status === "unconfigured"
-                ? "The Monitor's origin is not set for this build, so no positions can be read."
-                : status === "offline"
-                  ? "The Monitor is not answering."
-                  : "Reading the chain…"}
+              {status === "unconfigured" ? "The monitor's origin is not set for this build, so no positions can be read." : status === "offline" ? "The monitor is not answering." : "Reading the chain…"}
             </div>
           </Card>
         )}
       </div>
 
-      {/* Renamed from "Cycle feed" when /airdrops got the real one: this is the positions moving, not payouts. */}
-      <Card label="Position feed" action={<span style={{ ...mono, fontSize: 12, color: "var(--text-faint)" }}>{clock} · watching</span>} style={{ marginBottom: 64 }}>
-        {events.data && events.data.events.length > 0 ? (
-          <div className="table-scroll">
-            <LedgerTable
-              compact
-              columns={EVENT_COLS}
-              rows={events.data.events.map((e) => ({
-                when: <span style={{ fontSize: 13 }}>{fmtWhen(e.ts)}</span>,
-                what: (
-                  <span style={{ fontSize: 13 }}>
-                    {EVENT_LABEL[e.kind] ?? e.kind}
-                    <span style={{ color: "var(--text-faint)" }}>
-                      {" · "}
-                      {e.kind === "transfer_in" || e.kind === "transfer_out"
-                        ? `#${e.tokenId}`
-                        : `${fmtTokens(e.amount0F)} ${e.symbol0 ?? ""} + ${fmtTokens(e.amount1F)} ${e.symbol1 ?? ""}`}
+      <div style={{ marginTop: 48 }}>
+        <Card label="Position feed" action={<span style={{ ...mono, fontSize: 12, color: "var(--text-faint)" }}>{clock ? `${clock} · watching` : ""}</span>}>
+          {events.data && events.data.events.length > 0 ? (
+            <div className="table-scroll">
+              <LedgerTable
+                compact
+                columns={EVENT_COLS}
+                rows={events.data.events.map((e) => ({
+                  when: <span style={{ fontSize: 13 }}>{fmtWhen(e.ts)}</span>,
+                  what: (
+                    <span style={{ fontSize: 13 }}>
+                      {EVENT_LABEL[e.kind] ?? e.kind}
+                      <span style={{ color: "var(--text-faint)" }}>
+                        {" · "}
+                        {e.kind === "transfer_in" || e.kind === "transfer_out" ? `#${e.tokenId}` : `${fmtTokens(e.amount0F)} ${e.symbol0 ?? ""} + ${fmtTokens(e.amount1F)} ${e.symbol1 ?? ""}`}
+                      </span>
                     </span>
-                  </span>
-                ),
-                value: <span style={{ ...mono, fontSize: 13 }}>{e.kind === "transfer_in" || e.kind === "transfer_out" ? "—" : fmtUsd(e.usd)}</span>,
-                tx: <TxLink explorer={explorer} tx={e.tx} />,
-              }))}
-            />
+                  ),
+                  value: <span style={{ ...mono, fontSize: 13 }}>{e.kind === "transfer_in" || e.kind === "transfer_out" ? "—" : fmtUsd(e.usd)}</span>,
+                  tx: <TxLink explorer={explorer} tx={e.tx} />,
+                }))}
+              />
+            </div>
+          ) : (
+            <div style={{ ...body14, fontStyle: "italic" }}>{MONITOR_API ? "No movements indexed yet. The first one writes row one." : "The monitor's origin is not set for this build."}</div>
+          )}
+          <div className="card-foot">
+            Every add, withdrawal and fee collection the Reserve has made, priced at the moment it happened. Method in the <Link to="/docs/">docs</Link>.
           </div>
-        ) : (
-          <div style={{ ...body14, fontStyle: "italic" }}>
-            {MONITOR_API ? "No movements indexed yet. The first one writes row one." : "The Monitor's origin is not set for this build."}
-          </div>
-        )}
-        <div style={{ borderTop: hairline, marginTop: 14, paddingTop: 14, fontSize: 13, color: "var(--text-muted)" }}>
-          Every add, withdrawal and fee collection the Reserve has made, priced at the moment it happened. A collect that shares a transaction with a withdrawal
-          has the principal netted out, so what shows here as fees is fees.
-        </div>
-      </Card>
+        </Card>
+      </div>
 
-      <SectionHead
-        kicker="Method"
-        title="How this is measured."
-        titleStyle={{ fontSize: 30 }}
-        sub="Onchain via the Monitor. Missing price → dash."
-        subStyle={{ fontSize: 15 }}
-        style={{ marginBottom: 24 }}
-      />
-      <Grid cols="1fr 1fr" gap={48} align="start" style={{ marginBottom: 64 }}>
-        <div>
-          <Method n="01" title="What a position holds">
-            How many tokens sit in that LP right now (from pool price and range).
-          </Method>
-          <Method n="02" title="Uncollected fees">
-            Fees earned but not yet swept out. Simulated collect as the owner.
-          </Method>
-          <Method n="03" title="Fees the Reserve keeps">
-            Share after the factory cut (e.g. a 0.30% pool pays the Reserve 0.25%).
-          </Method>
+      <SectionHead kicker="Addresses" title="Verify everything." size="sub" style={{ margin: "64px 0 28px" }} />
+      <div className="cols-2 cols-2--tight">
+        <div className="table-scroll">
+          <LedgerTable compact style={fitTable} columns={ADDR_COLS} rows={addressRows(PROTOCOL_CONTRACTS)} />
         </div>
-        <div>
-          <Method n="04" title="Divergence loss">
-            How LP compares to simply holding the same tokens at today&apos;s price.
-          </Method>
-          <Method n="05" title="Fees already collected">
-            Fees already swept, valued when collected. Includes the fifth that compounds back into LP.
-          </Method>
-          <Method n="06" title="What is withheld">
-            If any Reserve token lacks a trusted price, USD totals show a dash.
-          </Method>
-        </div>
-      </Grid>
-
-      <div>
-        <SectionHead
-          kicker="Addresses"
-          title="Verify everything."
-          titleStyle={{ fontSize: 30 }}
-          sub="The wallet, the pools, and infrastructure. All onchain."
-          subStyle={{ fontSize: 15 }}
-          style={{ marginBottom: 32 }}
-        />
-        <Grid cols="1fr 1fr" gap={24} align="start">
-          <LedgerTable compact columns={ADDR_COLS} rows={addressRows(PROTOCOL_CONTRACTS)} />
-          <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
-            <LedgerTable compact columns={POOL_COLS} rows={addressRows(RESERVE_POOLS)} />
-            <LedgerTable compact columns={INFRA_COLS} rows={addressRows(INFRASTRUCTURE)} />
+        <div className="stack stack--wide">
+          <div className="table-scroll">
+            <LedgerTable compact style={fitTable} columns={POOL_COLS} rows={addressRows(RESERVE_POOLS)} />
           </div>
-        </Grid>
+          <div className="table-scroll">
+            <LedgerTable compact style={fitTable} columns={INFRA_COLS} rows={addressRows(INFRASTRUCTURE)} />
+          </div>
+        </div>
       </div>
     </Container>
   );

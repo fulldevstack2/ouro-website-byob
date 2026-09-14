@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { MONITOR_API, useMonitor, type OuroYield, type Summary } from "@ouro/monitor-client";
+import { dexQuote } from "~/lib/dexscreener";
 
 /** The measured airdrop rate a wallet above the line earns, annualised, with the basis it rests on. */
 export interface AirdropRate {
@@ -25,9 +26,9 @@ export interface Prices {
  * before their first harvest.
  *
  * ouro-monitor first, the same source as the rest of the site, so the vaults page never disagrees
- * with the home hero about the OURO price or the airdrop rate. DexScreener fills in only what the
- * monitor could not give: it is CORS-open and indexes the Robinhood Chain pools, and the deepest
- * pool's price is taken. Both refresh every five minutes; a price is a slow figure here.
+ * with the home page about the OURO price or the airdrop rate. DexScreener fills in only what the
+ * monitor could not give (lib/dexscreener.ts). Both refresh every five minutes; a price is a slow
+ * figure here.
  */
 export function usePrices(): Prices {
   const y = useMonitor<OuroYield>(MONITOR_API ? "/v1/ouro/yield?days=7" : null, 300_000);
@@ -44,8 +45,8 @@ export function usePrices(): Prices {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const run = async () => {
       try {
-        const [ouro, eth] = await Promise.all([dexPrice(OURO_ADDRESS, ctrl.signal), dexPrice(WETH_ADDRESS, ctrl.signal)]);
-        if (!ctrl.signal.aborted) setDex({ ouro, eth });
+        const [ouro, eth] = await Promise.all([dexQuote(OURO_ADDRESS, ctrl.signal), dexQuote(WETH_ADDRESS, ctrl.signal)]);
+        if (!ctrl.signal.aborted) setDex({ ouro: ouro.priceUsd, eth: eth.priceUsd });
       } catch {
         // Keep whatever was last read.
       }
@@ -72,21 +73,3 @@ export function usePrices(): Prices {
 
 const OURO_ADDRESS = "0x8ea0eb3505f5b3bd2bbea0febae0ce850cc73ecc";
 const WETH_ADDRESS = "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73";
-
-interface DexPair {
-  chainId: string;
-  priceUsd?: string;
-  liquidity?: { usd?: number };
-}
-
-/** The token's USD price on its deepest Robinhood Chain pool, or null when DexScreener has none. */
-async function dexPrice(token: string, signal: AbortSignal): Promise<number | null> {
-  const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token}`, { signal, headers: { accept: "application/json" } });
-  if (!r.ok) return null;
-  const d = (await r.json()) as { pairs?: DexPair[] };
-  const best = (d.pairs ?? [])
-    .filter((p) => p.chainId === "robinhood" && p.priceUsd)
-    .sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))[0];
-  const n = best ? Number(best.priceUsd) : Number.NaN;
-  return Number.isFinite(n) && n > 0 ? n : null;
-}

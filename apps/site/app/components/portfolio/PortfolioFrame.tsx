@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import type { Address, Hex } from "viem";
 
 import { Badge, Button, Card, LedgerTable, Stat, type BadgeTone, type LedgerColumn } from "@ouro/ds";
-import { AddressCell, ConnectBar, Grid, KVRow, Pager, TokenIcon, body14, hairline, mono } from "~/components/site";
+import { AddressCell, KVRow, PageHeader, Pager, TokenIcon, body14, hairline, mono } from "~/components/site";
 import { BASKET_TOKENS } from "~/content/protocol";
 import { externalLinkProps, site } from "~/content/site";
 import { LIVE_VAULTS, TOKENS } from "~/content/vaults";
@@ -20,13 +20,11 @@ import { fmtNum } from "@ouro/monitor-client";
    hands this file a filled-in `PortfolioView`. Keeping wagmi and RainbowKit out of here keeps them
    out of the server bundle.
 
-   SHAPE. It follows theindex.finance's portfolio page, which readers of this chain already know: the
-   connect bar, a band of metric cards, then the payment history with vaults and the line under it,
-   and next-payment / holdings on the right. The page is always the connected wallet's. It can
-   also show another wallet, `?address=0x…`, but that is deliberately not offered anywhere on the
-   page: no lookup field, no link to it. The only trace is `ViewingNote`, which says whose figures are
-   on screen when they are not the connected wallet's, because a page headed "Your portfolio" must
-   not print someone else's numbers without saying so.
+   SHAPE. The header carries the wallet controls on its right; under it a band of four metric cards,
+   then the payment history with the vaults and the line under it, and the next payment and the
+   holdings on the right. The page is always the connected wallet's. `?address=0x…` shows another
+   wallet (the share card's code opens it), and `ViewingNote` under the lede says whose figures are on
+   screen when they are not the connected wallet's.
    ──────────────────────────────────────────────────────────────────────────── */
 
 export const OURO = TOKENS.find((t) => t.key === "ouro")!;
@@ -42,10 +40,7 @@ export interface MetricView {
   badge?: { tone: BadgeTone; label: string };
   /** A sentence under the figure saying what it is. */
   note: ReactNode;
-  /**
-   * When set, replaces the card's fixed title (e.g. rate card becomes vault rewards when the
-   * airdrop rate does not apply).
-   */
+  /** When set, replaces the card's fixed title (the rate card becomes vault rewards when the airdrop rate does not apply). */
   label?: string;
 }
 
@@ -111,10 +106,12 @@ export interface PortfolioView {
   line: { tokens: ReactNode; text: ReactNode };
 }
 
-/** The bar's title. Same shape as the vaults' "Ouro Vaults": the app's name, fixed. */
-export const BAR_TITLE = "Ouro Portfolio";
+/** The page's header, with the wallet controls on its right. Shared by the prerender and the live module. */
+export function PortfolioHeader({ right, note }: { right: ReactNode; note?: ReactNode }) {
+  return <PageHeader kicker="Your wallet" title="The portfolio." lede="Your $OURO, every airdrop it has received, and what it holds now." aside={right} note={note} />;
+}
 
-/** Under the bar's title when the wallet on screen is not the connected one. See the note at the top. */
+/** Under the lede when the wallet on screen is not the connected one. See the note at the top. */
 export function ViewingNote({ address }: { address: Address }) {
   return (
     <span>
@@ -136,19 +133,19 @@ function Metric({ n, label, m }: { n: string; label: string; m: MetricView }) {
           </Badge>
         </div>
       )}
-      <div style={{ ...body14, marginTop: 12 }}>{m.note}</div>
+      <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text-secondary)", marginTop: 12 }}>{m.note}</div>
     </Card>
   );
 }
 
 export function MetricCards({ m }: { m: PortfolioView["metrics"] }) {
   return (
-    <Grid cols="repeat(4, 1fr)" gap={24} className="grid--2col-md">
+    <div className="pf-metrics">
       <Metric n="01" label="Balance" m={m.balance} />
       <Metric n="02" label="Share of every cycle" m={m.share} />
       <Metric n="03" label="Airdrops received" m={m.received} />
       <Metric n="04" label="At the current rate" m={m.rate} />
-    </Grid>
+    </div>
   );
 }
 
@@ -158,7 +155,7 @@ const HISTORY_COLS: LedgerColumn[] = [
   { key: "when", label: "Received", nowrap: true },
   { key: "cycle", label: "Cycle", numeric: true, nowrap: true },
   { key: "tokens", label: "Tokens" },
-  { key: "value", label: "Value when sent", align: "right", numeric: true, nowrap: true },
+  { key: "value", label: "Value", align: "right", numeric: true, nowrap: true },
   { key: "tx", label: "Tx", align: "right", nowrap: true },
 ];
 
@@ -166,14 +163,11 @@ const HISTORY_COLS: LedgerColumn[] = [
 export const HISTORY_PAGE_SIZE = 12;
 
 function TxLink({ tx }: { tx: Hex | null }) {
-  if (!tx) return <span style={{ ...mono, fontSize: 12, color: "var(--text-faint)" }}>{DASH}</span>;
+  if (!tx) return <span className="mono-link" style={{ color: "var(--text-faint)" }}>{DASH}</span>;
   const href = `${site.links.explorer}/tx/${tx}`;
-  // Shorter than the shared shortHash: the history card shares the row with the side stack, and the
-  // full 10+6 form was what pushed the Tx header past the card edge by a few pixels.
-  const label = `${tx.slice(0, 8)}…${tx.slice(-4)}`;
   return (
-    <a href={href} {...externalLinkProps(href)} style={{ color: "var(--text-secondary)" }}>
-      <span style={{ ...mono, fontSize: 12 }}>{label}</span>
+    <a href={href} {...externalLinkProps(href)} className="mono-link">
+      {`${tx.slice(0, 6)}…${tx.slice(-4)}`} ↗
     </a>
   );
 }
@@ -181,11 +175,10 @@ function TxLink({ tx }: { tx: Hex | null }) {
 /**
  * Every payment to the wallet, newest first, paged like the airdrops table.
  *
- * The monitor serves the history a page at a time, so unlike the airdrops table this one does not
- * hold every row from the start: it asks for the next older page one page before the reader reaches
- * it, and the pager counts pages from the total the summary reports. Turning a page also brings the
- * table back into view if its top has scrolled off, since the buttons sit under twelve rows and the
- * new rows would otherwise start a screen above the cursor.
+ * The monitor serves the history a page at a time, so this one does not hold every row from the
+ * start: it asks for the next older page one page before the reader reaches it, and the pager counts
+ * pages from the total the summary reports. Turning a page also brings the table back into view if
+ * its top has scrolled off.
  */
 export function HistoryCard({ h }: { h: PortfolioView["history"] }) {
   const [page, setPage] = useState(0);
@@ -197,8 +190,6 @@ export function HistoryCard({ h }: { h: PortfolioView["history"] }) {
   /** Rows this page should have that are not here yet. */
   const pending = Math.max(0, Math.min(HISTORY_PAGE_SIZE, h.total - start) - visible.length);
 
-  // One page ahead of the reader, so OLDER lands on rows that are already here. `safePage` is a
-  // dependency so a fetch that failed is tried again on the next turn of the page.
   const { loadMore } = h;
   const needMore = loadMore !== undefined && h.rows.length < Math.min(h.total, start + 2 * HISTORY_PAGE_SIZE);
   useEffect(() => {
@@ -245,10 +236,7 @@ export function HistoryCard({ h }: { h: PortfolioView["history"] }) {
         ) : (
           <div style={{ ...body14, fontStyle: "italic", padding: "6px 0 10px" }}>{h.empty}</div>
         )}
-        <div style={{ borderTop: hairline, marginTop: 14, paddingTop: 14, fontSize: 13, color: "var(--text-muted)" }}>
-          Every payout the airdrop has sent this address, newest first, from ouro-monitor&apos;s index of the chain. Each payment is valued at what its cycle
-          paid the token out at, not at today&apos;s price.
-        </div>
+        <div className="card-foot">Value is what the tokens were worth when they were sent, not today.</div>
       </Card>
     </div>
   );
@@ -258,7 +246,7 @@ export function HistoryCard({ h }: { h: PortfolioView["history"] }) {
 
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
-/** "1:42:10", or "42:10" under an hour: the shape the vaults page counts down in. Hours run past 24 rather than turning into days. */
+/** "1:42:10", or "42:10" under an hour. Hours run past 24 rather than turning into days. */
 function fmtCountdown(c: Countdown): string {
   const hours = c.d * 24 + c.h;
   return hours > 0 ? `${hours}:${pad2(c.m)}:${pad2(c.s)}` : `${pad2(c.m)}:${pad2(c.s)}`;
@@ -274,8 +262,7 @@ function CountdownValue({ payAt }: { payAt: number }) {
 /**
  * When this wallet is next paid, as the monitor estimates it. Per wallet, not the keeper's slot: a
  * wallet just over the line is credited every cycle but paid only once what it is owed covers the gas
- * to send it, so its estimate can sit several cycles out. No clock runs when there is nothing to count
- * down to.
+ * to send it. No clock runs when there is nothing to count down to.
  */
 export function NextPaymentCard({ n }: { n: NextView }) {
   return (
@@ -295,7 +282,9 @@ export function NextPaymentCard({ n }: { n: NextView }) {
           ))}
         </div>
       )}
-      <div style={{ fontSize: 13, color: "var(--text-muted)", borderTop: hairline, paddingTop: 14, marginTop: n.rows.length > 0 ? 0 : 14 }}>{n.text}</div>
+      <div className="card-foot" style={{ marginTop: n.rows.length > 0 ? 0 : 14 }}>
+        {n.text}
+      </div>
     </Card>
   );
 }
@@ -310,9 +299,7 @@ export function HoldingsCard({ h }: { h: PortfolioView["holdings"] }) {
               <TokenIcon symbol={r.symbol} src={r.icon} size={28} />
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: "block", fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{r.symbol}</span>
-                <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {r.name}
-                </span>
+                <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.name}</span>
               </span>
             </span>
             <span style={{ textAlign: "right", flex: "none" }}>
@@ -322,8 +309,8 @@ export function HoldingsCard({ h }: { h: PortfolioView["holdings"] }) {
           </div>
         ))}
       </div>
-      <KVRow label="Worth now, at today's prices" value={h.total} border="top" py={12} />
-      <div style={{ fontSize: 13, color: "var(--text-muted)", borderTop: hairline, paddingTop: 14 }}>{h.note}</div>
+      <KVRow label="Worth now, at today's prices" value={h.total} border="none" py={12} valueStyle={{ fontWeight: 600 }} />
+      <div className="card-foot">{h.note}</div>
     </Card>
   );
 }
@@ -345,10 +332,9 @@ export function VaultsCard({ v }: { v: PortfolioView["vaults"] }) {
           />
         ))}
       </div>
-      <KVRow label="Total at today's prices" value={v.total} border="none" py={12} />
-      <div style={{ fontSize: 13, color: "var(--text-muted)", borderTop: hairline, paddingTop: 14 }}>
-        Deposits are priced through each vault&apos;s own totals, the way the vaults page prices them. Deposit, withdraw and collect on the{" "}
-        <Link to="/vaults/">vaults page</Link>.
+      <KVRow label="Total at today's prices" value={v.total} border="none" py={12} valueStyle={{ fontWeight: 600 }} />
+      <div className="card-foot">
+        Deposit, withdraw and collect on the <Link to="/vaults/">vaults page</Link>.
       </div>
     </Card>
   );
@@ -359,7 +345,7 @@ export function LineCard({ l }: { l: PortfolioView["line"] }) {
     <Card label="The line" tone="tint">
       <Stat value={l.tokens} unit={OURO.symbol} />
       <div style={{ ...body14, marginTop: 12 }}>{l.text}</div>
-      <div className="cta-row" style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
         <Button size="sm" arrow href={site.links.buy} target="_blank" rel="noreferrer">
           Buy {site.ticker}
         </Button>
@@ -374,11 +360,8 @@ export function LineCard({ l }: { l: PortfolioView["line"] }) {
 /* ── the whole thing ──────────────────────────────────────────────────────── */
 
 /**
- * The figures and the tables, under the connect bar. `historyKey` remounts the history card, and so
+ * The figures and the tables, under the header. `historyKey` remounts the history card, and so
  * resets its page, when the wallet on screen changes.
- *
- * Layout: history down the middle with vaults + the line under it; next payment and holdings stay
- * on the right so that column is only two cards and does not feel squeezed.
  */
 export function PortfolioBody({ view, historyKey }: { view: PortfolioView; historyKey?: string }) {
   return (
@@ -410,22 +393,22 @@ export const STATIC_VIEW: PortfolioView = {
       value: DASH,
       unit: OURO.symbol,
       footnote: "Connect a wallet to read it",
-      note: "Read from the OURO token on Robinhood Chain for the connected wallet, through ouro-monitor, and refreshed every thirty seconds.",
+      note: "Read from the OURO token on Robinhood Chain, through ouro-monitor, and refreshed every thirty seconds.",
     },
     share: {
       value: DASH,
       footnote: "of the $OURO above the line",
-      note: `Airdrops need ${LINE} $OURO in one wallet. Above that, each cycle is split pro-rata across everyone who clears it.`,
+      note: "Each cycle is split pro-rata across every wallet that clears the line.",
     },
     received: {
       value: DASH,
       footnote: "Payments, valued when they were sent",
-      note: "Basket tokens the airdrop has sent this wallet, valued at what each cycle paid them out at, not today's price.",
+      note: "Valued at what each cycle paid the tokens out at, not today's price.",
     },
     rate: {
       value: DASH,
       footnote: "At the average of recent cycles",
-      note: "What recent payouts would pay a holding this size. It moves with volume and is not a forecast.",
+      note: "Moves with volume. Not a forecast.",
     },
   },
   history: {
@@ -440,7 +423,7 @@ export const STATIC_VIEW: PortfolioView = {
     payAt: null,
     footnote: "Connect a wallet to see when it is next paid",
     rows: [],
-    text: "Wallets above the line are credited every cycle and paid once what they are owed covers about five times the gas to send it. Nothing owed is cancelled; a smaller holding simply waits a few cycles between payments.",
+    text: "Wallets above the line are credited every cycle and paid once what they are owed covers about five times the gas to send it. Nothing owed is cancelled.",
   },
   holdings: {
     rows: [OURO, ...BASKET_TOKENS].map((t) => ({ key: t.address, symbol: t.symbol, name: t.name, icon: t.icon, amount: DASH, value: DASH })),
@@ -453,15 +436,21 @@ export const STATIC_VIEW: PortfolioView = {
   },
   line: {
     tokens: LINE,
-    text: `Wallets holding ${LINE} $OURO or more are paid every cycle. Below it the token is still yours to hold and trade, and the vaults pool smaller holdings so they clear the line together.`,
+    text: `Wallets at or above it are paid every cycle. Below it, the vaults pool smaller holdings so they clear the line together.`,
   },
 };
 
-/** The prerendered section: same layout, figures pending, wallet button disabled. */
+/** The prerendered page: same layout, figures pending, wallet button disabled. */
 export function PortfolioStatic() {
   return (
     <>
-      <ConnectBar title={BAR_TITLE} right={<Button disabled>Connect wallet</Button>} />
+      <PortfolioHeader
+        right={
+          <Button size="sm" disabled>
+            Connect wallet
+          </Button>
+        }
+      />
       <PortfolioBody view={STATIC_VIEW} />
     </>
   );

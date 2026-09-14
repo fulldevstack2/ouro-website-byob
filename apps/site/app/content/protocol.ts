@@ -25,6 +25,12 @@ export const COLLECTION_SPLIT_USD = {
   reserve: (COLLECT_THRESHOLD_USD * (100 - FEE_SPLIT_HOLDERS_PCT)) / 100,
 };
 
+/** The balance a wallet needs to be paid by the airdrop, in whole OURO. "The line" everywhere on the site. */
+export const LINE_TOKENS = 100_000;
+
+/** The supply minted, fixed: no mint function. */
+export const TOTAL_SUPPLY_TOKENS = 1_000_000_000;
+
 /**
  * The supply the vaults' share is measured against: the billion minted, less the ~123,000,000 still
  * locked in the team vest (the Sablier stream in PROTOCOL_CONTRACTS below).
@@ -50,19 +56,17 @@ export interface AddressEntry {
 export const PROTOCOL_CONTRACTS: AddressEntry[] = [
   { name: "OURO token", address: "0x8Ea0eB3505f5B3Bd2BbEa0fEBae0cE850cC73ecc" },
   { name: "ETH/OURO pool (Uniswap v4)", address: "0x4abc526118181921d76bf184896938ae7c8fc0921abce79ebef3d36a622968a5", poolId: true },
-  { name: "Tax claimer (pulls the tax out of the hook)", address: "0xd8E6c485aC9210A33B434325FAD5743310102405" },
-  { name: "Airdrop wallet (collections land here, and payouts leave from it)", address: "0xEA1B87B70852e48FDcA9262Ca91018C44C19001c" },
+  { name: "Tax claimer", address: "0xd8E6c485aC9210A33B434325FAD5743310102405" },
+  { name: "Airdrop wallet", address: "0xEA1B87B70852e48FDcA9262Ca91018C44C19001c" },
   // The hot wallet above signs every cycle, so it holds a working float only. The ETH behind it sits
-  // here and is forwarded when that float runs low. Listed separately because the two together are
-  // the reserve — /airdrops totals both, and reading either alone understates it.
-  { name: "Airdrop ETH reserve (3-of-3 Safe, tops up the payout wallet)", address: "0x9EF77382E25334c7952a643286a98178514eECf2" },
+  // here and is forwarded when that float runs low.
+  { name: "Airdrop ETH reserve (3-of-3 Safe)", address: "0x9EF77382E25334c7952a643286a98178514eECf2" },
   { name: "Airdrop distributor", address: "0x0bd09D209292c3359885adDBF9CF94A7AEcC369F" },
   { name: "Team vest (Sablier Lockup, stream 156)", address: "0x548129a58bC230549DF7F9e33f27E77F6779ff0f" },
   // Custody moved to the 3-of-3 Safe 0xc8BF917136cEd0126f8cDe688CE0d2ff146Af33E on 2026-09-11 and came
   // back here on 2026-09-12: three signatures per fee collection cost more than the arrangement bought.
   // The Safe holds none now. It still appears in the Ledger's position history as two `transfer_out` /
   // `transfer_in` pairs, so it is named here for anyone reconciling those four transactions.
-  // The Ledger's own "Wallet that holds them" row reads `lp` from /v1/reserve and needs no address here.
   { name: "Reserve (holds the protocol-owned liquidity)", address: "0xa2d45d2454B4029be1a0c33ae9f5cb1b5dc6C84D" },
 ];
 
@@ -80,14 +84,12 @@ export const RESERVE_POOLS: AddressEntry[] = [
 ];
 
 /**
- * A token the airdrop pays in, for marking a wallet's holdings on /portfolio.
+ * A token the airdrop pays in, for marking a wallet's holdings on /portfolio and the calculator's slice.
  *
  * The basket is CASHCAT, PONS and AI today. WETH is listed because the fee leg arrives as the pools
- * earned it (docs §05: "often basket tokens plus WETH") and the airdrop wallet's queue already
- * carries a WETH line. ouro-monitor names every token a wallet holds and every token a payment
- * carried, so a new constituent shows up on the page before it is added here; this list is where
- * each token's mark and its display name live, and what the prerendered page lists before any
- * wallet is connected.
+ * earned it (docs §05) and the airdrop wallet's queue already carries a WETH line. ouro-monitor names
+ * every token a wallet holds and every token a payment carried, so a new constituent shows up on the
+ * page before it is added here; this list is where each token's mark and its display name live.
  */
 export interface BasketToken {
   symbol: string;
@@ -105,12 +107,24 @@ export const BASKET_TOKENS: BasketToken[] = [
   { symbol: "WETH", name: "Wrapped Ether", address: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73", decimals: 18, icon: "/tokens/weth.svg" },
 ];
 
+/** The token marks the site knows, by lowercase address and by symbol, for anywhere a token is drawn. */
+export const TOKEN_ICONS: Record<string, string> = {
+  OURO: "/tokens/ouro.svg",
+  CASHCAT: "/tokens/cashcat.jpg",
+  PONS: "/tokens/pons.png",
+  AI: "/tokens/ai.png",
+  WETH: "/tokens/weth.svg",
+  USDG: "/tokens/usdg.png",
+  HOOD10: "/tokens/hood10.png",
+  INDEX: "/tokens/index.png",
+};
+
 /** The launchpad rails $OURO trades on. Not ours — letscash's, shared by every token they launch. */
 export const VENUE: AddressEntry[] = [
   { name: "letscash trading hook", address: "0x75A54357D9C78a2Db19004a5FDc76c50F9242AEC" },
 ];
 
-/** Canonical infrastructure Ouro builds on (design project → uploads/DOCS.md §13). */
+/** Canonical infrastructure Ouro builds on. */
 export const INFRASTRUCTURE: AddressEntry[] = [
   { name: "Uniswap v4 PoolManager", address: "0x8366a39CC670B4001A1121B8F6A443A643e40951" },
   { name: "Uniswap v3 Factory", address: "0x1f7d7550B1b028f7571E69A784071F0205FD2EfA" },
@@ -128,10 +142,11 @@ export function explorerAddressUrl(address: string) {
   return site.links.explorer === "#" ? "#" : `${site.links.explorer}/address/${address}`;
 }
 
-/** Docs §09 (Parameters). */
+/** Docs §06 (Parameters). */
 export interface ParameterRow {
   parameter: string;
   value: string;
+  /** "Policy" the operator can change as a public on-chain transaction; "Fixed" nobody can. */
   mutable: string;
 }
 
@@ -141,15 +156,15 @@ export interface ParameterRow {
  * operator policy. Nothing here is enforced by a contract we control.
  */
 export const PARAMETERS: ParameterRow[] = [
-  { parameter: "Total supply", value: "1,000,000,000 OURO", mutable: "No · fixed, no mint" },
-  { parameter: "Trade tax", value: "5% of the ETH leg", mutable: "No · fixed at launch" },
-  { parameter: "Pool LP fee", value: "0%", mutable: "No · fixed at creation" },
-  { parameter: "Tax split", value: "2% airdrop / 2% LP / 0.7% ops / 0.3% letscash", mutable: "Protocol policy" },
-  { parameter: "Fee split: holders / Reserve", value: "80 / 20", mutable: "Protocol policy" },
-  { parameter: "Airdrop minimum", value: "100,000 OURO (0.01%)", mutable: "Protocol policy" },
-  { parameter: "Fee collection threshold", value: "$100 of accrued LP fees", mutable: "Protocol policy" },
-  { parameter: "Airdrop cadence", value: "Every 2 hours", mutable: "Protocol policy" },
-  { parameter: "Stream length", value: "~48 hours per collection", mutable: "Protocol policy" },
-  { parameter: "Basket", value: "CASHCAT + PONS + AI, toward ~5", mutable: "Protocol policy" },
-  { parameter: "Chain", value: "Robinhood Chain (4663)", mutable: "No" },
+  { parameter: "Total supply", value: "1,000,000,000 OURO", mutable: "Fixed · no mint" },
+  { parameter: "Trade tax", value: "5% of the ETH leg", mutable: "Fixed at launch" },
+  { parameter: "Pool LP fee", value: "0%", mutable: "Fixed at creation" },
+  { parameter: "Tax split", value: "2% airdrop / 2% LP / 0.7% ops / 0.3% letscash", mutable: "Policy" },
+  { parameter: "Fee split: holders / Reserve", value: "80 / 20", mutable: "Policy" },
+  { parameter: "Airdrop minimum", value: "100,000 OURO (0.01%)", mutable: "Policy" },
+  { parameter: "Fee collection threshold", value: "$100 of accrued LP fees", mutable: "Policy" },
+  { parameter: "Airdrop cadence", value: "Every 2 hours", mutable: "Policy" },
+  { parameter: "Stream length", value: "~48 hours per collection", mutable: "Policy" },
+  { parameter: "Basket", value: "CASHCAT + PONS + AI, toward ~5", mutable: "Policy" },
+  { parameter: "Chain", value: "Robinhood Chain (4663)", mutable: "Fixed" },
 ];

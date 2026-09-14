@@ -4,24 +4,24 @@
 > `packages/ds` and `packages/monitor-client`. Paths in this file are relative to `apps/site` unless they
 > start with `packages/`. See the workspace README at the repo root for the layout and the deploy change.
 
-Marketing site + docs for **Ouro ($OURO)**, *own the fee generating layer of Robinhood Chain*, on Robinhood Chain (4663).
+Marketing site + docs for **Ouro ($OURO)**, *liquidity that pays its holders*, on Robinhood Chain (4663).
 
 Built from the Claude Design export in `../ouros-website-claude-design/` ("Ouro Site" design component + the
-Ouro design system). This repo is the React implementation of that design.
+Ouro design system), and redesigned on 2026-09-14 against `../OURO REDESIGN BRIEF` (`Ouro Site.dc.html` is the
+canvas, `_ds/` the design system it is set in, `github.md` the screen-to-file map). This repo is the React
+implementation of that design.
 
 ## Stack
 
 - [React Router 8](https://reactrouter.com/) in **framework mode** (the React docs' recommended way to start a new app), Vite, TypeScript, pnpm.
 - **Static output.** `react-router.config.ts` sets `ssr: false` + `prerender: true`: every route is pre-rendered to HTML at build time and hydrates into a client-side app. No server to run.
 - **No CSS framework.** Styling is the design system's CSS custom-property tokens plus small component-scoped inline styles, exactly as in the design export.
-- **Two deliberate departures from the export** (reviewer feedback, 2026-08-30): the page ground is a warm grey
-  (`--page: #EEEBE5`, white `--paper` cards sit on it; see the note at the top of `packages/ds/src/styles/tokens/colors.css`), and the
-  hero's right column is **Ouro's plate**, `components/site/HeroRing.tsx`: guilloché — the engine-turned line work on a
-  banknote or share certificate — engraved live on a canvas (`lib/guilloche.ts` is the pure maths). Two families of lathe
-  traces turn against each other in two inks, one lit line laps the outer figure for ever and lights the Loop's four
-  stations as it passes, and dragging works the lathe (sideways turns the plate, up and down changes the depth of cut).
-  A static SVG of the same figure is baked into the prerendered HTML, so the plate is on screen before hydration and with
-  JS off; under `prefers-reduced-motion` it is a single still.
+- **The 2026-09 redesign** is the brief's white-paper page: flat white ground, warm ink, hairline rules, one bronze
+  accent, six low-text screens, and figures doing the persuading. `packages/ds` still carries the warm-grey ground the
+  analytics dashboard was designed on; this app sets the surface tokens back to white in `styles/site.css` (section 1),
+  for itself only. The earlier guilloché hero plate and the animated loop ring went with the redesign: the loop is a
+  still ring, the hero's right column is a card of three live figures read through ouro-monitor, and nothing on the
+  site animates unprompted except numbers.
 
 ## Scripts
 
@@ -48,10 +48,13 @@ app/
                            (ouro-monitor's /v1/portfolio/{address}, polled, and its paged /airdrops history),
                            lib/shareCard.ts (the card, painted on a canvas) + lib/qr.ts (its code)
                            (the design system itself now lives in packages/ds — see the workspace README)
-  components/site/         chrome + layout primitives: SiteNav, SiteFooter, Container, Grid, SectionHead,
-                           PageHeader, MicroLabel, NumberedRow, KVRow, HelpTip, LoopRing, CrankFeed,
-                           HeroRing (the guilloché plate in the home hero)
-  lib/guilloche.ts         the plate's maths: one lathe trace, its family's index step, an SVG path
+  components/site/         chrome + layout primitives: SiteNav (with the price ticker, hooks/useOuroTicker.ts),
+                           SiteFooter, Container, Grid, SectionHead, PageHeader, MicroLabel, NumberedRow, KVRow,
+                           Pager, Bars, LoopRing (still), SplitBar, AddressCell, TokenIcon, AirdropCalc
+  components/wallet/       WalletProvider (wagmi + RainbowKit, client-only) and WalletButton (RainbowKit's
+                           connect flow in the site's own buttons: connect, switch chain, address pill, disconnect)
+  lib/guilloche.ts         the share card's plate maths: one lathe trace, its family's index step, an SVG path
+  lib/dexscreener.ts       DexScreener quote for the one figure the monitor lacks (the day's change) and price fallback
                            (the monitor client now lives in packages/monitor-client)
   content/site.ts          name, tagline, X handle, chain, `auditPublished`, external links (TODOs)
   content/protocol.ts      protocol contract list (TBD until launch), the Reserve's pools, canonical infra, parameters
@@ -142,29 +145,23 @@ today. A cycle with any unpriced leg shows a dash rather than the value of the p
 days, and the annualised rate. The rate is **published with its basis attached**, never bare: the monitor's
 `caveat` names the actual history behind it ("Based on 1.6 days of payouts…") and the page renders it under the
 number and again as a callout. The same payouts annualise to roughly a fifth of the figure over a seven-day
-window, so the basis is half the number. The same rate also drives the home hero (`components/site/AprHeadline`),
-which sits between the lede and the buttons and renders **no figure** until it has data — a hero is
-prerendered, and a dash that becomes a large number is a flash of wrong information in the first thing anyone
-sees. It does hold its own height while the request is in flight, because it is directly above the primary
-call to action and appearing from nothing would shove the Buy button down under whatever the reader was about
-to click. The reserved 85px was measured (with the request held open via CDP, 84px still moved the buttons a
-pixel), and it is held only while loading: an unreachable or unconfigured monitor collapses the element rather
-than leaving a permanent hole in the hero. The section also states the ways the figures are
-inexact — the eligible supply excludes what is
-never paid (below-line wallets, the pool, the vest), and the keeper's `TAPER=3:30` means a typical wallet
-receives slightly *more* than strict pro-rata, so it is a floor for most holders. The wallet check shows the
-same at per-address scale: its share of every cycle, and what the measured rate implies for a holding that size.
+window, so the basis is half the number. The same rate is the basis of the home page's calculator
+(`components/site/AirdropCalc`), which shows what a holding of the reader's size would have collected, trailing,
+never as a forecast. The eligible supply excludes what is never paid (below-line wallets, the pool, the vest), and
+the keeper's `TAPER=3:30` means a typical wallet receives slightly *more* than strict pro-rata, so it is a floor
+for most holders.
 
-**Eligibility** — the line, the counts, the exclusion policy, and a paste-an-address check. Deliberately no rich
-list: a leaderboard of the largest wallets is a different page's job and not what a payout page is for. The check answers *eligibility*, not payment history: the
-holders endpoint reports balance, the line and the exclusion policy, while which wallets a given cycle paid
-lives in the indexer's `pushes` table and is not exposed per address. It says a wallet is paid every cycle, and
-says nothing about any particular one — and for an address it has never seen it says "not in the indexed set",
-not "not eligible", because only one of those is a fact about the wallet.
+**Eligibility** — a paste-an-address check, run when the button is pressed. Deliberately no rich list: a
+leaderboard of the largest wallets is a different page's job and not what a payout page is for. The check answers
+*eligibility*, not payment history: the holders endpoint reports balance, the line and the exclusion policy, while
+which wallets a given cycle paid lives in the indexer's `pushes` table and is not exposed per address. It says a
+wallet is paid every cycle, and says nothing about any particular one — and for an address it has never seen it
+says "not in the indexed set", not "not eligible", because only one of those is a fact about the wallet.
 
-There is no countdown to the next payout, on purpose — see `PayoutCadence`'s note and docs §06. The one
-exception is the portfolio's "Next payment · estimate" card, which counts down to ouro-monitor's per-wallet
-estimate and is labelled as one.
+There is no countdown to the next payout, on purpose (docs §05, "What makes a cycle wait"). The header names the
+keeper's next two-hour slot, which is when it wakes, not a promise that it pays. The one countdown on the site is
+the portfolio's "Next payment · estimate" card, which counts down to ouro-monitor's per-wallet estimate and is
+labelled as one.
 
 ## The portfolio (`/portfolio`)
 
