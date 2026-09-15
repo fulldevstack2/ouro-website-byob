@@ -21,6 +21,7 @@
  */
 import { useId, useState } from "react";
 
+import { useEnter } from "~/lib/motion";
 import type { Point } from "~/lib/series";
 
 export interface LineChartProps {
@@ -33,13 +34,25 @@ export interface LineChartProps {
   /** Rendered when there is nothing to draw, so an empty panel still says why. */
   emptyNote?: string;
   height?: number;
+  /**
+   * Top of the y-axis, when the reader has asked every panel to share one.
+   *
+   * Off by default, because the projects do not share a scale and forcing one flattens the smaller
+   * two into the baseline. On demand it is the only way to read magnitudes across panels, and it is
+   * a fair comparison in a way a colour overlay is not: same ink, same axis, no series is the figure
+   * and the others ground.
+   */
+  yMax?: number | null;
 }
 
 const PAD = { top: 12, right: 10, bottom: 20, left: 46 };
 
-export function LineChart({ points, format, formatTime, label, emptyNote, height = 150 }: LineChartProps) {
+export function LineChart({ points, format, formatTime, label, emptyNote, height = 150, yMax }: LineChartProps) {
   const gradId = useId();
   const [hover, setHover] = useState<number | null>(null);
+  // The series draws itself on arrival. Charts remount on a control change, which starts this over;
+  // a panel that merely moved because the reader re-ranked does not redraw.
+  const entering = useEnter();
 
   if (points.length < 2) {
     return (
@@ -61,7 +74,8 @@ export function LineChart({ points, format, formatTime, label, emptyNote, height
   // Baseline at zero: these are quantities, and starting the axis anywhere else exaggerates every
   // wobble into a cliff. The top is the real maximum, so the axis label names a value the line
   // actually reaches.
-  const vMax = Math.max(...vs);
+  const peak = Math.max(...vs);
+  const vMax = yMax !== null && yMax !== undefined && yMax > 0 ? yMax : peak;
   const span = t1 - t0 || 1;
 
   const x = (t: number) => PAD.left + ((t - t0) / span) * iw;
@@ -95,9 +109,9 @@ export function LineChart({ points, format, formatTime, label, emptyNote, height
     <div className="chart">
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        className="chart-svg"
+        className={entering ? "chart-svg enter" : "chart-svg"}
         role="img"
-        aria-label={`${label}. ${points.length} points, from ${formatTime(t0)} to ${formatTime(t1)}, peak ${format(vMax)}.`}
+        aria-label={`${label}. ${points.length} points, from ${formatTime(t0)} to ${formatTime(t1)}, peak ${format(peak)}.`}
         onPointerMove={onMove}
         onPointerLeave={() => setHover(null)}
       >
@@ -121,10 +135,25 @@ export function LineChart({ points, format, formatTime, label, emptyNote, height
           />
         ))}
 
-        <path d={area} fill={`url(#${gradId})`} />
-        <path d={line} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        <path className="chart-area" d={area} fill={`url(#${gradId})`} />
+        {/* `pathLength=1` normalises the path to one unit, so one dash-offset keyframe draws a series
+            of any length or shape. The panel redraws itself whenever the measure, the window or the
+            scale changes, which is the clearest way to say that what is on screen is new. */}
+        <path
+          className="chart-line"
+          d={line}
+          pathLength={1}
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth="2"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
 
-        {/* The endpoint carries a ring in the surface colour so it reads against the line. */}
+        {/* The endpoint carries a ring in the surface colour so it reads against the line, and a
+            second ring that keeps expanding out of it: the one mark on the panel that says the
+            series has a live end rather than a finished one. */}
+        <circle className="chart-pulse" cx={x(last.t)} cy={y(last.v)} r="3.5" fill="var(--accent)" />
         <circle cx={x(last.t)} cy={y(last.v)} r="3.5" fill="var(--accent)" stroke="var(--surface-card)" strokeWidth="2" />
 
         {active ? (

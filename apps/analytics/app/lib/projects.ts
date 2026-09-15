@@ -63,6 +63,16 @@ export interface ProjectRow {
   aprWindowPriced: number | null;
   aprWindowTotal: number | null;
   paid24hUsd: number | null;
+  /**
+   * Payout cycles this project has run, all time.
+   *
+   * Counted server-side for INDEX and HOOD10 (`paid.all.epochs`, 2,866 and 45), and from the cycle
+   * page for $OURO, which has no server-side count — so that one is a floor and `cyclesTruncated`
+   * says when the page came back full. It exists for the page total: "3,014 payout cycles" is the
+   * single figure that says what the airdrop meta on this chain adds up to.
+   */
+  cyclesAllTime: number | null;
+  cyclesTruncated: boolean;
   /** Distinct assets the last cycle paid out, for the "tokens paid" cell. */
   assets: { address: string; symbol: string | null }[] | null;
 
@@ -130,6 +140,8 @@ function blankRow(project: Project): ProjectRow {
     aprWindowPriced: null,
     aprWindowTotal: null,
     paid24hUsd: null,
+    cyclesAllTime: null,
+    cyclesTruncated: false,
     assets: null,
     holdersAboveLine: null,
     recipientsLast: null,
@@ -162,7 +174,6 @@ function fromSummary(
     ...pricingCoverage(cycles, now, t?.yield?.basisDays ?? null),
   };
   if (!t) return row;
-  const m = t.market;
   return {
     ...row,
     // Price and FDV come from `volume`'s payload, set on the row above — not from the indexer's
@@ -186,6 +197,7 @@ function fromSummary(
      */
     paidAllTimeUsd: unvaluedZero(t.indexedTo, t.paid?.all),
     paid24hUsd: unvaluedZero(t.indexedTo, t.paid?.h24),
+    cyclesAllTime: t.paid?.all?.epochs ?? null,
     assets: t.lastEpoch?.assets?.map((a) => ({ address: a.address, symbol: a.symbol })) ?? null,
     holdersAboveLine: t.holders?.aboveLine ?? null,
     recipientsLast: t.holders?.recipientsLast ?? null,
@@ -236,6 +248,10 @@ function fromOuro(
     // A full page means there may be more behind it; 86 cycles today, but the guard is the point.
     paidAllTimeTruncated: (cycles?.length ?? 0) >= OURO_CYCLE_PAGE,
     paid24hUsd: paid24h,
+    // No server-side count for $OURO, so this is the cycle page and carries the same floor
+    // guard as the total above it.
+    cyclesAllTime: cycles?.filter((c) => c.status === "closed").length ?? null,
+    cyclesTruncated: (cycles?.length ?? 0) >= OURO_CYCLE_PAGE,
     assets: lastCycle?.assets?.map((a) => ({ address: a.address, symbol: a.symbol })) ?? null,
     /**
      * NOT the recipient count.
@@ -316,6 +332,49 @@ export function useProjects(intervalMs = 30_000): ProjectsState {
 }
 
 /**
+ * The one comparable number behind a metric, for ranking.
+ *
+ * Always oriented so that BIGGER IS FIRST, which is why two of these are negated: sorting by how
+ * often a project pays has to put the shortest gap at the top, and sorting by when it last paid has
+ * to put the most recent one there. The registry states the direction in words next to the control
+ * (`SORT_ORDER`) so the reader is never left to infer it.
+ */
+export function metricValue(r: ProjectRow, key: SortKey): number | string | null {
+  switch (key) {
+    case "symbol":
+      return r.project.symbol;
+    case "price":
+      return r.priceUsd;
+    case "marketCap":
+      return r.marketCapUsd;
+    case "volume24h":
+      return r.volume.totalUsd;
+    case "paidAllTime":
+      return r.paidAllTimeUsd;
+    case "paid24h":
+      return r.paid24hUsd;
+    case "assets":
+      return r.assets?.length ?? null;
+    case "holders":
+      return r.holdersAboveLine;
+    case "recipients":
+      return r.recipientsLast;
+    case "ratePerLine":
+      return r.ratePerLineUsdPerDay;
+    case "apr":
+      return r.aprPct;
+    case "payoutRhythm":
+      return r.cadence.medianH === null ? null : -r.cadence.medianH;
+    case "lastPaid":
+      return r.cadence.sinceLastH === null ? null : -r.cadence.sinceLastH;
+    case "tax":
+      return r.project.taxBps;
+    case "wallet":
+      return r.project.coverage.wallet.state === "measured" ? 1 : null;
+  }
+}
+
+/**
  * Sort, with nulls always last.
  *
  * A project with no data sinks to the bottom whichever column is chosen, rather than sorting as if
@@ -323,27 +382,70 @@ export function useProjects(intervalMs = 30_000): ProjectsState {
  * claim about it.
  */
 export function sortRows(rows: ProjectRow[], key: SortKey): ProjectRow[] {
-  const value = (r: ProjectRow): number | string | null => {
-    switch (key) {
-      case "paidAllTime":
-        return r.paidAllTimeUsd;
-      case "marketCap":
-        return r.marketCapUsd;
-      case "apr":
-        return r.aprPct;
-      case "holders":
-        return r.holdersAboveLine;
-      case "symbol":
-        return r.project.symbol;
-    }
-  };
   return [...rows].sort((a, b) => {
-    const x = value(a);
-    const y = value(b);
+    const x = metricValue(a, key);
+    const y = metricValue(b, key);
     if (x === null && y === null) return a.project.symbol.localeCompare(b.project.symbol);
     if (x === null) return 1;
     if (y === null) return -1;
     if (typeof x === "string" || typeof y === "string") return String(x).localeCompare(String(y));
     return y - x;
   });
+}
+
+/**
+ * The whole meta, added up.
+ *
+ * The page had no aggregate at all, which left its single most striking fact unstated: these three
+ * tokens have together paid out nearly two million dollars. A total is only publishable here under
+ * the same rule every cell obeys — a withheld figure is never counted as zero — so each total
+ * carries how many of the projects it actually covers, and `floor` is set whenever a project was
+ * left out or contributed a figure that is itself a floor. The band prints "≥" when it is.
+ */
+export interface Totals {
+  paidAllTimeUsd: number | null;
+  paidAllTimeCounted: number;
+  paidAllTimeFloor: boolean;
+  paid24hUsd: number | null;
+  paid24hCounted: number;
+  cycles: number | null;
+  cyclesFloor: boolean;
+  recipientsLast: number | null;
+  recipientsCounted: number;
+  volume24hUsd: number | null;
+  projects: number;
+}
+
+export function totals(rows: ProjectRow[]): Totals {
+  const sum = (pick: (r: ProjectRow) => number | null) => {
+    const vals = rows.map(pick).filter((v): v is number => v !== null && Number.isFinite(v));
+    return { value: vals.length ? vals.reduce((s, v) => s + v, 0) : null, counted: vals.length };
+  };
+
+  const all = sum((r) => r.paidAllTimeUsd);
+  const h24 = sum((r) => r.paid24hUsd);
+  const cyc = sum((r) => r.cyclesAllTime);
+  const rec = sum((r) => r.recipientsLast);
+  const vol = sum((r) => r.volume.totalUsd);
+
+  // A project whose own total is partial or truncated makes the page total a floor too.
+  const partial = rows.some(
+    (r) =>
+      r.paidAllTimeTruncated ||
+      (r.pricedPeriods !== null && r.closedPeriods !== null && r.pricedPeriods < r.closedPeriods),
+  );
+
+  return {
+    paidAllTimeUsd: all.value,
+    paidAllTimeCounted: all.counted,
+    paidAllTimeFloor: partial || all.counted < rows.length,
+    paid24hUsd: h24.value,
+    paid24hCounted: h24.counted,
+    cycles: cyc.value,
+    cyclesFloor: rows.some((r) => r.cyclesTruncated) || cyc.counted < rows.length,
+    recipientsLast: rec.value,
+    recipientsCounted: rec.counted,
+    volume24hUsd: vol.value,
+    projects: rows.length,
+  };
 }

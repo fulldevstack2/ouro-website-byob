@@ -67,7 +67,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       <p className="lede">
         {is404
           ? "That URL is not one of ours."
-          : "The page failed to render. The figures come from an indexer that may simply be unreachable — try again in a moment."}
+          : "The page failed to render. The figures come from an indexer that may simply be unreachable, so try again in a moment."}
       </p>
       <p style={{ marginTop: 24 }}>
         <a href="/">Back to the comparison</a>

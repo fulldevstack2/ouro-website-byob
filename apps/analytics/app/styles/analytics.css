@@ -56,8 +56,36 @@ body {
 }
 .disclosure a { color: var(--text-accent); text-underline-offset: 2px; }
 
-/* ── page header ────────────────────────────────────────────────────────── */
-.page-head { padding-block: 44px 28px; }
+/* ── masthead ───────────────────────────────────────────────────────────────
+   Title on the left, liveness on the right, one line of lede, and then figures. The old header ran
+   a four-line lede and a full-width status strip before the first number, which put every figure on
+   the page below the fold on a laptop. */
+.masthead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px 32px;
+  flex-wrap: wrap;
+  padding-block: 38px 22px;
+}
+.masthead-main { flex: 1 1 520px; min-width: 0; }
+.masthead-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  gap: 7px;
+  padding-top: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.masthead-meta b { color: var(--text-secondary); font-weight: var(--weight-medium); }
+@media (max-width: 700px) {
+  .masthead-meta { align-items: flex-start; text-align: left; }
+}
+
 .eyebrow {
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
@@ -65,12 +93,12 @@ body {
   letter-spacing: var(--tracking-caps);
   text-transform: uppercase;
   color: var(--text-accent);
-  margin: 0 0 14px;
+  margin: 0 0 12px;
 }
 h1 {
   font-family: var(--font-display);
   font-weight: var(--weight-semibold);
-  font-size: clamp(30px, 5vw, var(--text-3xl));
+  font-size: clamp(29px, 4.6vw, var(--text-3xl));
   line-height: var(--leading-display);
   letter-spacing: var(--tracking-display);
   margin: 0;
@@ -78,38 +106,166 @@ h1 {
 }
 .lede {
   font-size: var(--text-md);
-  line-height: 1.55;
+  line-height: 1.5;
   color: var(--text-secondary);
-  margin: 18px 0 0;
-  max-width: 62ch;
+  margin: 14px 0 0;
+  max-width: 66ch;
   text-wrap: pretty;
 }
 
-/* ── status strip ───────────────────────────────────────────────────────── */
-.strip {
-  display: flex;
-  flex-wrap: wrap;
+/* ── liveness ───────────────────────────────────────────────────────────────
+   Carried by text first. The dot is a second reading of a word that is already there, which is the
+   same rule the coverage marks follow. */
+.live {
+  display: inline-flex;
   align-items: center;
-  gap: 10px 24px;
-  padding-block: 16px;
-  border-block: 1px solid var(--border-hairline);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-variant-numeric: tabular-nums;
-  color: var(--text-muted);
+  gap: 7px;
+  padding: 5px 12px 5px 10px;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-full);
+  background: var(--surface-card);
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
-.strip b { font-weight: var(--weight-medium); color: var(--text-secondary); }
+.live .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-faint); flex: none; }
+.live[data-state="live"] .dot { background: var(--positive); animation: pulse 2.6s var(--ease-out) infinite; }
+.live[data-state="cached"] .dot { background: var(--caution); }
+.live[data-state="off"] .dot { background: var(--negative); }
+.live[data-state="loading"] .dot { background: var(--text-faint); animation: pulse 1.3s var(--ease-out) infinite; }
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--positive) 45%, transparent); }
+  70% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--positive) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--positive) 0%, transparent); }
+}
 
-/* ── the comparison table ───────────────────────────────────────────────── */
-.section { padding-block: 36px; }
+/* ── the headline band ──────────────────────────────────────────────────────
+   The one slab of ink on the page, and the only place a figure is set larger than the headline. It
+   states what the whole meta adds up to, which is the fact a reader arrives for and the one figure
+   the page never used to carry. */
+.band {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-inverse);
+  color: var(--text-inverse);
+  border-radius: var(--radius-lg);
+  padding: 26px 28px 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 400px);
+  gap: 24px 36px;
+  align-items: end;
+  box-shadow: var(--shadow-card);
+}
+.band::after {
+  content: "";
+  position: absolute;
+  right: -110px;
+  top: -150px;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--bronze-400) 26%, transparent), transparent 68%);
+  pointer-events: none;
+}
+@media (max-width: 860px) {
+  .band { grid-template-columns: minmax(0, 1fr); }
+}
+.band-head { min-width: 0; }
+.band-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-inverse-muted);
+  margin-bottom: 12px;
+}
+.band-figure {
+  display: block;
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+  font-size: clamp(40px, 7vw, 64px);
+  line-height: 1;
+  letter-spacing: var(--tracking-mono-big);
+  font-variant-numeric: tabular-nums;
+}
+.band-figure.dash { color: var(--text-inverse-muted); }
+.band-sub {
+  margin: 14px 0 0;
+  max-width: 48ch;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-inverse-muted);
+  text-wrap: pretty;
+}
+.band-spark { min-width: 0; position: relative; }
+.band-stats {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px 24px;
+  border-top: 1px solid color-mix(in srgb, var(--text-inverse) 14%, transparent);
+  padding-top: 20px;
+  margin-top: 2px;
+}
+@media (max-width: 560px) {
+  .band-stats { grid-template-columns: minmax(0, 1fr); }
+}
+.band-stat { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.band-stat .band-label { margin-bottom: 0; }
+.band-value {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-lg);
+  letter-spacing: var(--tracking-tight);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-inverse);
+}
+.band-value.dash { color: var(--text-inverse-muted); }
+.band-note { font-size: var(--text-2xs); line-height: 1.4; color: var(--text-inverse-muted); }
+
+/* ── sparklines ─────────────────────────────────────────────────────────────
+   Bars, not a line: these are daily totals, and a line between them draws values nobody measured. */
+.spark { display: block; min-width: 0; }
+.spark-svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+.spark-bar { fill: var(--accent); transition: opacity var(--dur-fast) var(--ease-out); }
+.spark-bar.on { fill: var(--accent-strong); }
+.spark-inverse .spark-bar { fill: var(--bronze-300); }
+.spark-inverse .spark-bar.on { fill: var(--bronze-100); }
+.spark-readout {
+  display: block;
+  margin-top: 7px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+  min-height: 1.4em;
+}
+.spark-readout b { font-weight: var(--weight-medium); color: var(--text-primary); }
+.spark-inverse .spark-readout { color: var(--text-inverse-muted); }
+.spark-inverse .spark-readout b { color: var(--text-inverse); }
+.spark-empty {
+  display: block;
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  padding: 22px 0;
+}
+.spark-empty.spark-inverse { color: var(--text-inverse-muted); }
+
+/* ── sections and controls ──────────────────────────────────────────────── */
+.section { padding-block: 30px; }
 .section-head {
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px 20px;
   flex-wrap: wrap;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
+/* The heading block gives way before the controls do, so a control row only drops to its own line
+   when it genuinely will not fit. */
+.section-head > div:first-child { flex: 1 1 340px; min-width: 0; }
+.section-head .controls { flex: 0 1 auto; }
 h2 {
   font-family: var(--font-display);
   font-weight: var(--weight-semibold);
@@ -121,43 +277,304 @@ h2 {
 .sub {
   font-size: var(--text-sm);
   color: var(--text-muted);
-  margin: 0 0 4px;
-  max-width: 68ch;
+  margin: 6px 0 0;
+  max-width: 72ch;
+  text-wrap: pretty;
+}
+/* The sentence opens with the sort direction, which the registry stores lower-case because it is
+   also printed mid-sentence on every row button. */
+.sub.cap::first-letter { text-transform: uppercase; }
+
+.controls { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.seg-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-tint);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-full);
+}
+.tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.tab:hover { color: var(--text-primary); }
+.tab[aria-pressed="true"] {
+  background: var(--surface-card);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--neutral-900) 9%, transparent);
+}
+.tab.solo {
+  background: var(--surface-tint);
+  border: 1px solid var(--border-hairline);
+  padding: 6px 12px;
+}
+.tab.solo[aria-pressed="true"] {
+  background: var(--accent-faint);
+  border-color: var(--border-accent);
+  color: var(--text-accent);
+  box-shadow: none;
+}
+.tab:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.controls select {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  padding: 6px 9px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  color: var(--text-primary);
+}
+.controls select:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* ── the leaderboard ────────────────────────────────────────────────────────
+   Same ink for all three. The rank is a numeral and the order is stated above them; nothing here
+   makes one project the figure and the others ground. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+@media (max-width: 920px) { .cards { grid-template-columns: minmax(0, 1fr); } }
+
+.card {
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: var(--surface-card);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-lg);
+  padding: 17px 18px 15px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    transform var(--dur-base) var(--ease-out);
+}
+.card:hover { border-color: var(--border-soft); box-shadow: var(--shadow-card); transform: translateY(-2px); }
+.card:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.card[data-on="true"] {
+  border-color: var(--border-accent);
+  box-shadow: 0 0 0 1px var(--border-accent), var(--shadow-card);
 }
 
+.card-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.card-rank {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-xs);
+  width: 19px;
+  height: 19px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.card-sym {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-md);
+  letter-spacing: var(--tracking-tight);
+}
+.card-name {
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-figure {
+  display: block;
+  margin-top: 15px;
+  font-family: var(--font-mono);
+  font-weight: var(--weight-semibold);
+  font-size: clamp(23px, 3vw, 31px);
+  line-height: 1.06;
+  letter-spacing: var(--tracking-mono-big);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.card-figure.dash { color: var(--text-faint); }
+.card-caption { display: block; margin-top: 6px; font-size: var(--text-2xs); color: var(--text-muted); line-height: 1.4; }
+/* A rate on a card carries its window, exactly as it does in a cell. It is not a tooltip here
+   either: a figure that will not fit beside what it was measured over does not go on the card. */
+.card-basis { display: block; color: var(--text-faint); margin-top: 2px; }
+.card-share {
+  display: block;
+  height: 3px;
+  margin-top: 12px;
+  background: var(--surface-sunken);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.card-share-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+  transition: width var(--dur-base) var(--ease-out);
+}
+.card-share-gap { display: block; height: 3px; margin-top: 12px; }
+.card-kv { display: block; margin-top: 13px; border-top: 1px solid var(--border-hairline); }
+.kv {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-hairline);
+  min-width: 0;
+}
+.kv:last-child { border-bottom: 0; }
+.kv-label { font-size: var(--text-2xs); color: var(--text-muted); min-width: 0; }
+.kv-sub { display: block; color: var(--text-faint); font-size: 10px; line-height: 1.35; margin-top: 1px; }
+.kv-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kv-value.dash { color: var(--text-faint); }
+.card-spark { display: block; margin-top: 13px; }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-accent);
+  background: var(--accent-faint);
+  border: 1px solid var(--bronze-200);
+  border-radius: var(--radius-xs);
+  padding: 1px 5px;
+  flex: none;
+}
+
+/* ── the comparison table ───────────────────────────────────────────────── */
 .table-scroll { overflow-x: auto; margin-top: 18px; }
 
 table.matrix {
   border-collapse: collapse;
   width: 100%;
-  min-width: 680px;
+  min-width: 720px;
   font-size: var(--text-sm);
 }
 .matrix th,
 .matrix td {
   text-align: left;
-  padding: 12px 16px;
+  padding: 11px 16px;
   vertical-align: top;
 }
 .matrix thead th {
   border-bottom: 1px solid var(--border-strong);
-  padding-bottom: 10px;
+  padding-bottom: 12px;
+  vertical-align: bottom;
 }
 .matrix tbody tr { border-bottom: 1px solid var(--border-hairline); }
 .matrix tbody tr:last-child { border-bottom: 0; }
 .matrix tbody tr:hover { background: var(--surface-tint); }
+.matrix tbody tr.sorted,
+.matrix tbody tr.sorted:hover { background: var(--accent-faint); }
+
+/* Band heads. Fourteen undifferentiated rows is a wall; three named runs of rows is a table. */
+.matrix tr.group-row,
+.matrix tr.group-row:hover { border-bottom: 0; background: transparent; }
+.matrix tr.group-row th {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 24px 16px 7px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.matrix tbody:first-of-type tr.group-row th { padding-top: 14px; }
+
+/* Tracing a column. Hover lights it, a selected card pins it; neither changes what is on the page. */
+.matrix td.col-hot, .matrix th.col-hot { background: var(--surface-tint); }
+.matrix td.col-pin, .matrix th.col-pin { background: var(--accent-faint); }
+.matrix td.col-pin.col-hot, .matrix th.col-pin.col-hot { background: var(--accent-soft); }
 
 .metric-name {
   color: var(--text-secondary);
-  width: 26%;
-  min-width: 190px;
+  width: 25%;
+  min-width: 195px;
 }
 .metric-name .hint {
   display: block;
   font-size: var(--text-2xs);
   color: var(--text-faint);
-  margin-top: 2px;
+  margin-top: 3px;
+  line-height: 1.4;
+  max-width: 34ch;
 }
+.col-metric-head {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* The row label IS the sort control, which is the honest version of "every column sorts". */
+.row-sort {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.row-sort:hover { color: var(--text-accent); }
+.row-sort .sort-mark {
+  font-size: 9px;
+  color: var(--text-faint);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+.row-sort:hover .sort-mark { opacity: 1; }
+.row-sort[aria-pressed="true"] { color: var(--text-accent); font-weight: var(--weight-medium); }
+.row-sort[aria-pressed="true"] .sort-mark { opacity: 1; color: var(--text-accent); }
+.row-sort:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.row-static { color: var(--text-secondary); }
 
 /* Figures are mono and tabular so columns align down the page — the house rule from the site:
    numbers and addresses read as data. */
@@ -171,8 +588,24 @@ table.matrix {
 .cell.dash { color: var(--text-faint); }
 
 /* ── project column heads ───────────────────────────────────────────────── */
-.phead { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.phead {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: flex-start;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 3px;
+}
 .phead .sym {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-mono);
   font-weight: var(--weight-semibold);
   font-size: var(--text-base);
@@ -185,6 +618,8 @@ table.matrix {
   font-family: var(--font-body);
   letter-spacing: 0;
 }
+.phead:hover .sym { color: var(--text-accent); }
+.phead:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
 /* ── coverage marks ─────────────────────────────────────────────────────────
    Status is carried by SHAPE and TEXT, never by hue alone. The brand's green, amber and red fail
@@ -236,57 +671,7 @@ table.matrix {
   letter-spacing: 0;
   white-space: normal;
   margin-top: 3px;
-}
-
-/* ── sort control ───────────────────────────────────────────────────────── */
-.sortbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-}
-.sortbar label { letter-spacing: 0.04em; text-transform: uppercase; font-size: var(--text-2xs); }
-.sortbar select {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  padding: 4px 8px;
-  border: 1px solid var(--border-soft);
-  border-radius: 3px;
-  background: var(--surface-card);
-  color: var(--text-primary);
-}
-.sortbar select:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-
-/* ── notes + footer ─────────────────────────────────────────────────────── */
-.note {
-  border-left: 2px solid var(--border-soft);
-  padding-left: 16px;
-  margin: 22px 0;
-  max-width: 66ch;
-  font-size: var(--text-sm);
-  line-height: 1.55;
-  color: var(--text-secondary);
-}
-.note strong { color: var(--text-primary); font-weight: var(--weight-semibold); }
-
-.foot {
-  border-top: 1px solid var(--border-hairline);
-  margin-top: 30px;
-  padding-block: 26px 50px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 28px;
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  color: var(--text-faint);
-}
-.foot a { color: var(--text-muted); }
-
-@media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
+  max-width: 34ch;
 }
 
 /* ── charts ─────────────────────────────────────────────────────────────────
@@ -296,21 +681,27 @@ table.matrix {
    are the only treatment that does not rank the projects by ink. */
 .charts {
   display: grid;
-  gap: 18px;
+  gap: 16px;
   margin-top: 20px;
 }
-@media (min-width: 760px) {
+@media (min-width: 820px) {
   .charts { grid-template-columns: repeat(3, 1fr); }
 }
 
 .chart-panel {
   background: var(--surface-card);
   border: 1px solid var(--border-hairline);
-  padding: 16px 16px 12px;
+  border-radius: var(--radius-md);
+  padding: 15px 16px 11px;
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+}
+.chart-panel[data-on="true"] {
+  border-color: var(--border-accent);
+  box-shadow: 0 0 0 1px var(--border-accent);
 }
 .chart-panel h3 {
   font-family: var(--font-mono);
@@ -354,12 +745,13 @@ table.matrix {
   font-size: var(--text-2xs);
   color: var(--text-faint);
   border: 1px dashed var(--border-hairline);
-  padding: 30px 12px;
+  padding: 44px 12px;
   text-align: center;
   border-radius: 2px;
 }
 
 /* The table view every chart owes a reader who cannot use it. */
+.chart-table { margin-top: 6px; }
 .chart-table summary {
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
@@ -367,8 +759,254 @@ table.matrix {
   text-transform: uppercase;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 6px 0;
+  padding: 10px 0;
 }
 .chart-table summary:hover { color: var(--text-accent); }
 .chart-table table { min-width: 0; font-size: var(--text-2xs); }
-.chart-table td, .chart-table th { padding: 4px 10px; }
+.chart-table td, .chart-table th { padding: 5px 10px; }
+.legend { font-size: var(--text-2xs); color: var(--text-faint); margin: 8px 0 0; }
+
+/* ── method + footer ────────────────────────────────────────────────────────
+   The editorial position still ships in full. It sits behind one disclosure rather than in two
+   standing paragraphs, because the reader who needs it goes looking and the reader who does not was
+   scrolling past it. */
+.method { border-top: 1px solid var(--border-hairline); }
+.method summary {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 14px 0;
+}
+.method summary:hover { color: var(--text-accent); }
+.method-body { padding-bottom: 6px; }
+
+.note {
+  border-left: 2px solid var(--border-soft);
+  padding-left: 16px;
+  margin: 18px 0;
+  max-width: 66ch;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+.note strong { color: var(--text-primary); font-weight: var(--weight-semibold); }
+
+.foot {
+  border-top: 1px solid var(--border-hairline);
+  margin-top: 20px;
+  padding-block: 24px 48px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+}
+.foot a { color: var(--text-muted); }
+
+/* ── loading ────────────────────────────────────────────────────────────────
+   A resting shape, never a dash. On this page a dash is a statement about our coverage, so printing
+   one while the first read is still in flight says something untrue for a second and a half. */
+.skel {
+  display: block;
+  border-radius: var(--radius-xs);
+  background: linear-gradient(
+    90deg,
+    var(--surface-sunken) 25%,
+    var(--surface-tint) 37%,
+    var(--surface-sunken) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.5s var(--ease-out) infinite;
+}
+.band .skel {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--text-inverse) 7%, transparent) 25%,
+    color-mix(in srgb, var(--text-inverse) 15%, transparent) 37%,
+    color-mix(in srgb, var(--text-inverse) 7%, transparent) 63%
+  );
+  background-size: 400% 100%;
+}
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+.skel-big { width: min(320px, 72%); height: clamp(40px, 7vw, 64px); }
+.skel-small { width: 92px; height: 22px; }
+.skel-spark { width: 100%; height: 100px; border-radius: var(--radius-sm); }
+.skel-cardfig { width: 62%; height: clamp(23px, 3vw, 31px); margin-top: 15px; }
+.skel-kv { width: 54px; height: 13px; }
+.skel-cardspark { width: 100%; height: 58px; }
+.skel-panel { height: 248px; border-radius: var(--radius-md); }
+
+/* ── motion ─────────────────────────────────────────────────────────────────
+   Three kinds, and nothing outside them:
+
+     · ARRIVAL  — something new is on screen: the band and cards on load, a section coming into
+                  view, a chart being drawn, bars growing in when the window changes.
+     · CHANGE   — something moved: a card sliding to a new rank, a figure that just ticked.
+     · LIVENESS — the page is reading a chain that does not stop: the status dot, the poll bar
+                  filling toward the next read, the expanding ring at the live end of every series,
+                  the slow drift behind the band.
+
+   All of it is transform and opacity, all of it is killed by the reduced-motion block at the foot of
+   this file, and none of it is load-bearing: every figure is legible with every animation removed. */
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* `backwards`, not `both`: a finished animation with `both` keeps applying `transform: none` and
+   would out-specify the card's hover lift for the rest of the session. The `.enter` class is dropped
+   a second after mount (see `useEnter`), because React reorders a list by re-inserting its nodes and
+   a re-inserted element restarts every CSS animation on it. */
+.band.enter { animation: rise 560ms var(--ease-out) backwards; }
+.card.enter { animation: rise 520ms var(--ease-out) backwards; }
+
+/* Sections that start below the fold, lifted into place as they arrive. Set by JS after first
+   paint, so nothing above the fold ever hides and a page without JS animates nothing. */
+[data-reveal="pending"] { opacity: 0; transform: translateY(16px); }
+[data-reveal="in"] {
+  opacity: 1;
+  transform: none;
+  transition: opacity 540ms var(--ease-out), transform 540ms var(--ease-out);
+}
+
+/* A figure that just moved. Painted with a spread shadow as well as a background so the halo can
+   overhang the text without the cell changing size and nudging the column. */
+@keyframes tick {
+  0% {
+    background-color: color-mix(in srgb, var(--bronze-300) 52%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--bronze-300) 52%, transparent);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 3px transparent;
+  }
+}
+[data-tick="on"] { animation: tick 1.15s var(--ease-out); border-radius: 2px; }
+@keyframes tick-inverse {
+  0% {
+    background-color: color-mix(in srgb, var(--bronze-300) 30%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--bronze-300) 30%, transparent);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 4px transparent;
+  }
+}
+.band [data-tick="on"] { animation: tick-inverse 1.15s var(--ease-out); }
+
+/* Time to the next read. Restarted by a key change whenever one lands, so it is a real countdown
+   and not a loop that happens to take thirty seconds. */
+.poll {
+  display: block;
+  width: 104px;
+  height: 2px;
+  border-radius: var(--radius-full);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.poll-fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  opacity: 0.8;
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: poll 30s linear both;
+}
+@keyframes poll {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* The band's glow, never quite still. 26 seconds end to end: slow enough that it reads as depth
+   rather than as something animating. */
+.band::after { animation: drift 26s var(--ease-out) infinite alternate; }
+@keyframes drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(-46px, 30px, 0) scale(1.16); }
+}
+
+/* A hairline of light crossing the band's divider, every few seconds. */
+.band-stats { position: relative; }
+.band-stats::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 26%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--bronze-200), transparent);
+  opacity: 0.8;
+  animation: sweep 6.5s linear infinite;
+  pointer-events: none;
+}
+@keyframes sweep {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(400%); }
+}
+
+/* A series drawing itself. `pathLength=1` on the path makes one keyframe work for any shape. */
+.chart-line { stroke-dasharray: 1; }
+.chart-svg.enter .chart-line { animation: draw 760ms var(--ease-out) backwards; }
+@keyframes draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+.chart-svg.enter .chart-area { animation: fade-in 760ms var(--ease-out) backwards; }
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* The live end of a series. Expands out of the endpoint and fades, forever. */
+.chart-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: ping 2.8s var(--ease-out) infinite;
+}
+@keyframes ping {
+  0% { transform: scale(0.7); opacity: 0.45; }
+  70% { transform: scale(3.4); opacity: 0; }
+  100% { transform: scale(3.4); opacity: 0; }
+}
+
+/* Bars growing out of the baseline, left to right. */
+.spark-bar {
+  transform-box: fill-box;
+  transform-origin: bottom;
+}
+.spark-svg.enter .spark-bar { animation: grow 420ms var(--ease-out) backwards; }
+@keyframes grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+/* Disclosure bodies, so opening one is a movement rather than a jump. */
+details[open] > .method-body,
+details[open] > .table-scroll {
+  animation: unfold 300ms var(--ease-out) backwards;
+}
+@keyframes unfold {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The pseudo-element selectors are not redundant: a bare `*` does not match `::before` or
+     `::after`, so the band's drifting glow went on drifting for a reader who asked it not to. */
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  /* Left running, these would freeze mid-state instead of simply not being there. */
+  .poll, .band-stats::before, .chart-pulse { display: none; }
+  [data-reveal] { opacity: 1 !important; transform: none !important; }
+}
