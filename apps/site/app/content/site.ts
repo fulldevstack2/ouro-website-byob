@@ -75,8 +75,12 @@ export const site = {
      * repo, its own Netlify site), so this site only ever links to it; change this constant and the
      * nav, the footer, the hero and the docs all follow, as do the redirects in netlify.toml, which
      * are the other half and are NOT read from here.
+     *
+     * TEMPORARY 2026-09-15: the raw Netlify subdomain, until analytics.ourolayer.com is pointed at
+     * that site. No trailing slash, or analyticsUrl() below builds "//ledger/". Restore the real
+     * host here and in netlify.toml together, and put those redirects back to 301 at the same time.
      */
-    analytics: "https://analytics.ourolayer.com",
+    analytics: "https://resilient-souffle-95850c.netlify.app",
     /** TODO: Robinhood Chain site. Linked nowhere until it is set. */
     robinhoodChain: "#",
   },
