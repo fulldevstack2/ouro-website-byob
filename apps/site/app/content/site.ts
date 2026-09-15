@@ -114,9 +114,6 @@ export const NAV: NavItem[] = [
   // Added 2026-09-10: the connected wallet's view of the same data. Its $OURO, every airdrop it
   // received, its vault deposits. (?address=0x… shows another wallet; the share card's code opens it.)
   { to: "/portfolio/", label: "Portfolio" },
-  // Held back 2026-09-08 with its route (see app/routes.ts). A nav link to a 404 is worse than no
-  // link at all.
-  { to: "/referral/", label: "Referral", hidden: true },
   { to: "/docs/", label: "Docs" },
   // The Ledger and the airdrops MOVED on 2026-09-15, to the analytics site, which is where everything
   // read off the chain now lives. This one link replaces both of them; their old URLs on this site
