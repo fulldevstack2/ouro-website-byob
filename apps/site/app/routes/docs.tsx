@@ -82,7 +82,7 @@ const CANT: { lead: string; text: string }[] = [
 const FAQ: { q: string; a: string }[] = [
   {
     q: "How is Ouro different from HOOD10 or The Index?",
-    a: "They hand out every tax point, so payouts stop when volume cools. Ouro airdrops 2% of a trade, keeps another 2% as fee-earning liquidity, and airdrops 80% of those fees.",
+    a: "They hand out every tax point, so payouts stop when volume cools. Ouro keeps 3.3% of a trade as fee-earning liquidity, airdrops 1% outright, and airdrops 80% of the fees that liquidity earns.",
   },
   { q: "What do I have to do to get paid?", a: "Hold at least 100,000 $OURO in your own wallet. No stake, lock or claim. Exchange and bridge balances do not count." },
   { q: "I hold less than 100,000 $OURO. What then?", a: "Pool with others in the vaults. Deposits clear the line together; you earn in OURO, ETH or dollars." },
@@ -143,8 +143,8 @@ export default function Docs() {
         <div className="docs-body">
           <Doc id="d01" n="01" title="Overview">
             <P>
-              A 5% tax on every $OURO trade buys tokens: 2% is airdropped to holders, 2% becomes protocol-owned liquidity (the Reserve), 1% covers ops and the
-              launchpad. 80% of the Reserve&apos;s fees are airdropped too.
+              A 5% tax on every $OURO trade buys tokens: 3.3% becomes protocol-owned liquidity (the Reserve), 1% is airdropped to holders, 0.7% covers ops and
+              the launchpad. 80% of the Reserve&apos;s fees are airdropped too.
             </P>
           </Doc>
 
