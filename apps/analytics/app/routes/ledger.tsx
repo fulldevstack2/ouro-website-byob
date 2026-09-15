@@ -4,7 +4,7 @@ import type { Route } from "./+types/ledger";
 import { Badge, Callout, Card, LedgerTable, Stat, type BadgeTone, type LedgerColumn } from "@ouro/ds";
 import { OuroFoot } from "~/components/OuroFoot";
 import { AddressCell, Bars, Container, KVRow, MicroLabel, PageHeader, SectionHead, body14, mono } from "~/components/site";
-import { COLLECTION_SPLIT_USD, COLLECT_THRESHOLD_USD } from "~/content/protocol";
+import { COLLECT_THRESHOLD_USD } from "~/content/protocol";
 import { externalLinkProps, ouroUrl, site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
 import { navWithV4, useReserveV4, type ReserveV4Row } from "~/hooks/useReserveV4";
@@ -93,8 +93,6 @@ const EVENT_LABEL: Record<string, string> = {
 /** Round policy figures as copy, so they are not run through `fmtUsd` ("$100.00"). */
 const usd0 = (n: number) => `$${n.toLocaleString("en-US")}`;
 const THRESHOLD = usd0(COLLECT_THRESHOLD_USD);
-const TO_HOLDERS = usd0(COLLECTION_SPLIT_USD.holders);
-const TO_RESERVE = usd0(COLLECTION_SPLIT_USD.reserve);
 
 function pairOf(p: ReservePosition): string {
   return `${p.side0.symbol ?? "?"} / ${p.side1.symbol ?? "?"}`;
@@ -417,14 +415,15 @@ export default function Ledger() {
               label="Fees are collected at"
               value={
                 <>
-                  {THRESHOLD} accrued <span style={{ color: "var(--text-faint)" }}>→</span> {TO_HOLDERS} airdropped, {TO_RESERVE} compounded
+                  {THRESHOLD} accrued <span style={{ color: "var(--text-faint)" }}>→</span> all of it compounded
                 </>
               }
               border="none"
             />
           </div>
           <div className="kv-note">
-            Small collects are skipped for gas. What was paid out is on the <Link to="/airdrops/">airdrops page →</Link>
+            Small collects are skipped for gas, and what is collected goes back into the positions. The airdrop is paid from the tax instead: every payout is on
+            the <Link to="/airdrops/">airdrops page →</Link>
           </div>
         </div>
       </div>

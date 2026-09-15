@@ -4,7 +4,7 @@ import type { Route } from "./+types/airdrops";
 import { Badge, Button, Callout, Card, Input, LedgerTable, Stat, Tabs, type BadgeTone, type LedgerColumn } from "@ouro/ds";
 import { OuroFoot } from "~/components/OuroFoot";
 import { Bars, Container, KVRow, PageHeader, Pager, SectionHead, body14, mono } from "~/components/site";
-import { COLLECT_THRESHOLD_USD, LINE_TOKENS, TOTAL_SUPPLY_TOKENS } from "~/content/protocol";
+import { LINE_TOKENS, TOTAL_SUPPLY_TOKENS } from "~/content/protocol";
 import { externalLinkProps, ouroUrl, site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
 import { pageMeta } from "~/lib/meta";
@@ -63,8 +63,6 @@ const CYCLE_COLS: LedgerColumn[] = [
 const HISTORY_PAGE_SIZE = 12;
 /** Cycles the table holds, newest first; the totals above it come from every day, not from these. */
 const TABLE_CYCLES = 50;
-
-const THRESHOLD = `$${COLLECT_THRESHOLD_USD.toLocaleString("en-US")}`;
 
 /** The transactions that paid a cycle, in the order they landed. A cycle number can be paid more than once. */
 function cycleTxs(c: OuroCycle): string[] {
@@ -311,7 +309,6 @@ export default function Airdrops() {
   const ethUsd = reserve.data?.positions.flatMap((p) => [p.side0, p.side1]).find((s) => s.symbol === "WETH")?.priceUsd ?? null;
   const hookEth = pending.data?.pendingWei ? Number(pending.data.pendingWei) / 1e18 : null;
   const hookUsd = hookEth === null || ethUsd === null ? null : hookEth * ethUsd;
-  const uncollected = reserve.data?.totals.uncollectedFeesUsd ?? null;
 
   return (
     <Container className="page">
@@ -371,10 +368,10 @@ export default function Airdrops() {
         </div>
         <Card label="On its way">
           <KVRow label="01 · Tax still in the letscash hook" value={hookUsd !== null ? fmtUsd(hookUsd) : hookEth !== null ? `${fmtEth(hookEth)} ETH` : "—"} py={12} />
-          <KVRow label="02 · Collected into the airdrop wallet" value={fmtUsd(pending.data?.queuedUsd ?? null)} py={12} />
-          <KVRow label={`03 · LP fees accrued, of the ${THRESHOLD} threshold`} value={fmtUsd(uncollected)} py={12} border="none" />
+          <KVRow label="02 · Collected into the airdrop wallet" value={fmtUsd(pending.data?.queuedUsd ?? null)} py={12} border="none" />
           <div className="card-foot" style={{ marginTop: 6 }}>
-            None of these is a scheduled amount. A collection streams out over about 48 hours, so this is the pool the next several cycles draw from.
+            Neither of these is a scheduled amount. Each top-up streams out over about 48 hours, so this is the pool the next several cycles draw from. The
+            fees the Reserve earns are not on this list: they compound back into the pools.
           </div>
         </Card>
       </div>

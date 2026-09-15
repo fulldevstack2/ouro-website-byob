@@ -16,7 +16,7 @@ export const site = {
   /** The hero's headline and the footer's italic line. One sentence, declarative, no exclamation. */
   tagline: "Liquidity that pays its holders.",
   description:
-    "Every $OURO trade buys protocol-owned liquidity in the top Robinhood Chain tokens. The fees those pools earn are airdropped to holders every two hours.",
+    "Every $OURO trade buys protocol-owned liquidity in the top Robinhood Chain tokens and pays holders every two hours. The fees those pools earn compound.",
   xHandle,
   tgHandle,
   /**

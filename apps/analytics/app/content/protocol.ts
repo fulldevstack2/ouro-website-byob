@@ -13,20 +13,19 @@ import { site } from "./site";
  * Fees are left in the positions until they are worth collecting.
  *
  * A collect is a transaction, and so is moving what it returns. Sweeping $4 of fees costs a
- * meaningful fraction of $4, and that cost would come out of the airdrop. So the Reserve's positions
- * accrue until the threshold has built up across all of them, and only then is a collection taken
- * and split on the usual 80 / 20. Protocol policy, not a contract rule.
+ * meaningful fraction of $4, and that cost would come straight out of what goes back into the pools.
+ * So the Reserve's positions accrue until the threshold has built up across all of them, and only
+ * then is a collection taken. Protocol policy, not a contract rule.
  */
 export const COLLECT_THRESHOLD_USD = 100;
 
-/** Share of every collection airdropped to holders; the rest compounds into the Reserve. */
-export const FEE_SPLIT_HOLDERS_PCT = 80;
-
-/** How a collection at the threshold divides, in whole dollars. Derived, so the copy cannot drift. */
-export const COLLECTION_SPLIT_USD = {
-  holders: (COLLECT_THRESHOLD_USD * FEE_SPLIT_HOLDERS_PCT) / 100,
-  reserve: (COLLECT_THRESHOLD_USD * (100 - FEE_SPLIT_HOLDERS_PCT)) / 100,
-};
+/**
+ * Share of every collection that compounds straight back into the Reserve's positions.
+ *
+ * 100 since 2026-09-15, when the airdrop's fee leg was retired: until then it was 80 to holders and
+ * 20 back into the positions. The airdrop is the tax's 1% leg now, and nothing else.
+ */
+export const FEE_SPLIT_RESERVE_PCT = 100;
 
 /** The balance a wallet needs to be paid by the airdrop, in whole OURO. "The line" on every page. */
 export const LINE_TOKENS = 100_000;

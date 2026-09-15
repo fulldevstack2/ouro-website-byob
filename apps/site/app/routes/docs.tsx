@@ -5,7 +5,6 @@ import type { Route } from "./+types/docs";
 import { Callout, LedgerTable, type LedgerColumn } from "@ouro/ds";
 import { AddressCell, Container, MicroLabel, PageHeader, PendingCell, SplitBar, SplitRows, fitTable, legRows, legWedges, mono } from "~/components/site";
 import {
-  COLLECTION_SPLIT_USD,
   COLLECT_THRESHOLD_USD,
   FEE_SPLIT,
   INFRASTRUCTURE,
@@ -74,7 +73,7 @@ const addrCols = (label: string): LedgerColumn[] => [
 ];
 
 const CANT: { lead: string; text: string }[] = [
-  { lead: "Can't mint.", text: " Fixed supply. Airdrops are fees already earned." },
+  { lead: "Can't mint.", text: " Fixed supply. Airdrops are bought with tax already paid." },
   { lead: "Can't change the tax.", text: " 5% is fixed in the letscash hook." },
   { lead: "Can't touch your wallet.", text: " Standard ERC20. No freeze, seize or clawback." },
 ];
@@ -82,13 +81,13 @@ const CANT: { lead: string; text: string }[] = [
 const FAQ: { q: string; a: string }[] = [
   {
     q: "How is Ouro different from HOOD10 or The Index?",
-    a: "They hand out every tax point, so payouts stop when volume cools. Ouro keeps 3.3% of a trade as fee-earning liquidity, airdrops 1% outright, and airdrops 80% of the fees that liquidity earns.",
+    a: "They hand out every tax point and keep nothing. Ouro airdrops 1% of a trade and keeps 3.3% as fee-earning liquidity it never hands out, and every fee that liquidity earns goes back into it.",
   },
   { q: "What do I have to do to get paid?", a: "Hold at least 100,000 $OURO in your own wallet. No stake, lock or claim. Exchange and bridge balances do not count." },
   { q: "I hold less than 100,000 $OURO. What then?", a: "Pool with others in the vaults. Deposits clear the line together; you earn in OURO, ETH or dollars." },
   {
     q: "What am I paid in, and when?",
-    a: "Tokens, every two hours. The tax leg is bought at market; the fee leg arrives as the pools earned it, usually basket tokens plus WETH.",
+    a: "Tokens, every two hours. Basket tokens, bought at market with the tax and handed out in kind.",
   },
   { q: "Is the basket safe? Are these stocks?", a: "No. They are crypto tokens on Robinhood Chain, including memecoins. They can go to zero." },
   {
@@ -144,7 +143,7 @@ export default function Docs() {
           <Doc id="d01" n="01" title="Overview">
             <P>
               A 5% tax on every $OURO trade buys tokens: 3.3% becomes protocol-owned liquidity (the Reserve), 1% is airdropped to holders, 0.7% covers ops and
-              the launchpad. 80% of the Reserve&apos;s fees are airdropped too.
+              the launchpad. Every fee the Reserve earns goes back into the Reserve.
             </P>
           </Doc>
 
@@ -155,7 +154,7 @@ export default function Docs() {
           </Doc>
 
           <Doc id="d03" n="03" title="The Loop">
-            <P>Each cycle deploys the accumulated tax on the split above and collects fees from the Reserve. Those fees split again:</P>
+            <P>Each cycle deploys the accumulated tax on the split above and collects fees from the Reserve. Those fees are not split. All of them go back in:</P>
             <SplitBar wedges={legWedges(FEE_SPLIT)} />
             <SplitRows rows={legRows(FEE_SPLIT)} />
           </Doc>
@@ -170,15 +169,15 @@ export default function Docs() {
 
           <Doc id="d05" n="05" title="The airdrop">
             <P>
-              Two legs: the tax leg, bought at market, and 80% of Reserve fees, passed through as the pools earned them. Hold at least 100,000 $OURO in your own
-              wallet. Nothing to stake, lock or claim.
+              One leg: 1% of every trade, bought at market and handed out in kind. Hold at least 100,000 $OURO in your own wallet. Nothing to stake, lock or
+              claim. What the Reserve earns is not part of it; that goes back into the pools.
             </P>
             <SplitRows
               rows={[
                 { label: "The line", value: "100,000 OURO · 0.01% of supply" },
                 { label: "Cadence", value: "Every 2 hours" },
-                { label: "Fees are collected once they reach", value: `${usd0(COLLECT_THRESHOLD_USD)} · then ${usd0(COLLECTION_SPLIT_USD.holders)} airdropped, ${usd0(COLLECTION_SPLIT_USD.reserve)} compounded` },
-                { label: "A collection is streamed over", value: "About 48 hours" },
+                { label: "Paid in", value: "Basket tokens, bought at market" },
+                { label: "A top-up of the airdrop wallet is streamed over", value: "About 48 hours" },
               ]}
             />
             <Callout title="What makes a cycle wait" style={{ marginTop: 14 }}>
@@ -212,11 +211,11 @@ export default function Docs() {
 
           <Doc id="d08" n="08" title="Risks">
             <P>
-              The tax leg tracks volume and stops with it. The fee leg needs pool fees. The basket can go to zero. LP can lose to holding. 5% both ways is
-              expensive for short-term trading. The rails are letscash&apos;s. One chain.
+              The airdrop is the tax leg alone, so it tracks volume and stops with it. The Reserve goes on earning either way, but that stays in the pools. The
+              basket can go to zero. LP can lose to holding. 5% both ways is expensive for short-term trading. The rails are letscash&apos;s. One chain.
             </P>
             <Callout tone="caution" title="No promises" style={{ marginTop: 14 }}>
-              An airdrop is a share of fees already earned. Not a yield promise. Not financial advice. Don&apos;t risk more than you can lose.
+              An airdrop is a share of tax already paid. Not a yield promise. Not financial advice. Don&apos;t risk more than you can lose.
             </Callout>
           </Doc>
 

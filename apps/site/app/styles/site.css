@@ -607,7 +607,7 @@ button:focus-visible,
 .faq__q { font-size: 15px; font-weight: 600; }
 .faq__a { font-size: 14px; line-height: 1.65; color: var(--text-secondary); margin-top: 6px; }
 
-/* Home's split section: each bar is introduced by the rate it divides ("5%", "80 / 20") and one line
+/* Home's split section: each bar is introduced by the rate it divides ("5%", "100%") and one line
    saying what that rate is taken from. The figure is display type at the size of a stat, the note is
    the body measure beside it, and the two sit on a baseline so a wrapped note still lines up. */
 .split-block__head { display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; padding-bottom: 4px; }

@@ -209,7 +209,8 @@ export const TERMS = {
    * All of it into the LP pools since 2026-09-15. It was 7 points to airdrops and 3 to ops until
    * then; the rebalance that moved the trade tax onto its LP leg moved this one the same way, and
    * for the same reason: a point spent on an airdrop pays once, a point put in a pool goes on
-   * earning, and the fees it earns are what the airdrop is paid from.
+   * earning. The fees those pools earn compound back into them from the same day, so nothing put
+   * in here leaks back out (FEE_SPLIT_RESERVE_PCT in content/protocol.ts).
    *
    * Operator policy, not a contract rule, and said as such wherever it appears. On chain the vault
    * pays the whole fee to a single `feeRecipient` (DividendVaultBase.feeRecipient) and has no notion

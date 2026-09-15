@@ -230,7 +230,7 @@ written rather than installed so one 21-character URL does not pull a dependency
 
 ## Before launch
 
-- **The mechanics changed on 2026-08-31** (5% tax · 4% basket / 1% ops · fees 80% airdropped to holders in kind / 20% compounded into the Reserve · no staking · no burn).
+- **The mechanics changed on 2026-08-31, and again on 2026-09-15** (5% tax · 3.3% LP / 1% airdrop / 0.4% ops / 0.3% letscash · every pool fee compounded back into the Reserve, none of it airdropped · no staking · no burn).
   The site copy and `docs/DOCS.md` are updated; **the contracts in `../basket-flywheel` are not** — they still ship a 2.5% tax hard-capped at 3%, a `StakingVault`
   and a burn. See that repo's `CONTRACTS.md` → "The design has moved ahead of this code".
 - `content/protocol.ts` → set the tax ceiling the hook will enforce, then state it in docs §10, §11 and the "Can the team rug?" FAQ (they currently say

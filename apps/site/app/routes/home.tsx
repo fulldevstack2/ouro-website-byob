@@ -213,9 +213,9 @@ function LineBand() {
 /* ------------------------------------------------------------- The split */
 
 /**
- * The two splits the whole protocol runs on, as bars: what the 5% tax buys, and what a collection of
- * pool fees pays. The figures come from content/protocol, which the docs and the parameter table read
- * too, so the three places the site states them cannot drift apart.
+ * The two bars the whole protocol runs on: what the 5% tax buys, and where a collection of pool fees
+ * goes. The figures come from content/protocol, which the docs and the parameter table read too, so
+ * the three places the site states them cannot drift apart.
  */
 function SplitSection() {
   return (
@@ -223,7 +223,7 @@ function SplitSection() {
       <SectionHead
         kicker="The split"
         title="Where every trade goes."
-        sub="Two splits, and both are published. One divides the tax a trade pays, the other divides what the Reserve earns."
+        sub="Both are published. The tax a trade pays divides four ways. What the Reserve earns is not divided at all."
         action={<Link to="/docs/#d02">The method →</Link>}
       />
       <div className="cols-2">
@@ -238,7 +238,7 @@ function SplitSection() {
         <div>
           <div className="split-block__head">
             <span className="split-block__figure">{FEE_SPLIT_LABEL}</span>
-            <span className="split-block__note">of every fee the Reserve collects, once the accrued fees are worth a collection.</span>
+            <span className="split-block__note">of every fee the Reserve collects, back into the positions that earned it, once a collection is worth taking.</span>
           </div>
           <SplitBar wedges={legWedges(FEE_SPLIT)} />
           <SplitRows rows={legRows(FEE_SPLIT)} />
@@ -254,7 +254,7 @@ const STEPS: { n: string; title: string; text: string }[] = [
   { n: "01", title: "Trade", text: "Every $OURO swap pays a 5% tax, in ETH." },
   { n: "02", title: "Buy", text: "3.3% buys liquidity in the chain's deepest pools. 1% buys tokens for holders." },
   { n: "03", title: "Own", text: "That liquidity is the Reserve. The protocol keeps it." },
-  { n: "04", title: "Yield", text: "The Reserve earns swap fees. 80% is airdropped, 20% compounds." },
+  { n: "04", title: "Compound", text: "The Reserve earns swap fees. 100% goes back into compounding the LP." },
 ];
 
 /** The same four, for the plate: it takes them as a prop so the figure and the list cannot disagree. */
@@ -418,8 +418,8 @@ const CMP_HEAD: { label: string; sym: string | null; ouro?: boolean }[] = [
 
 const CMP_ROWS: [string, string, string, string][] = [
   ["What the tax buys", "All handed out", "All handed out", "1% out, 3.3% kept as LP"],
-  ["Holders are paid from", "The tax", "The tax", "Tax + pool fees"],
-  ["When volume cools", "Payouts stop", "Payouts stop", "Pools keep earning"],
+  ["What the protocol keeps", "Nothing", "Nothing", "The Reserve, for good"],
+  ["When volume cools", "Payouts stop", "Payouts stop", "Payouts thin, the Reserve keeps earning"],
 ];
 
 function DifferenceSection() {
@@ -477,7 +477,7 @@ const ROADMAP: { n: string; horizon: string; title: string; body: ReactNode }[] 
     n: "02",
     horizon: "Medium term",
     title: "Build the Reserve up",
-    body: "Keep buying protocol-owned liquidity with every trade. Deeper positions earn more fees, and 80% of those fees is what the airdrop pays.",
+    body: "Keep buying protocol-owned liquidity with every trade. Deeper positions earn more fees, and all of those fees go straight back into them.",
   },
   {
     n: "03",

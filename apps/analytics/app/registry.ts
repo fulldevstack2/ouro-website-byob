@@ -244,7 +244,7 @@ export const PROJECTS: Project[] = [
     adapter: "ouro",
     operator: "ouro",
     blurb:
-      "Taxes its own trades and splits the proceeds: half to holders as an airdrop, half into liquidity the protocol keeps and earns fees on.",
+      "Taxes its own trades: one point is airdropped to holders, 3.3 buy liquidity the protocol keeps, and every fee that liquidity earns goes back into it.",
     coverage: {
       price: MARKET_MEASURED,
       marketCap: MARKET_MEASURED,

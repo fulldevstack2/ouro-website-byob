@@ -4,20 +4,24 @@ import { site } from "./site";
  * Fees are left in the positions until they are worth collecting.
  *
  * A collect is a transaction, and so is moving what it returns. Sweeping $4 of fees costs a
- * meaningful fraction of $4, and that cost would come out of the airdrop. So the Reserve's positions
- * accrue until the threshold below has built up across all of them, and only then is a collection
- * taken and split on the usual 80 / 20 — four fifths to the wallet the Airdropper pays from, one
- * fifth compounded straight back into the positions. (Stated in dollars rather than percentages
- * here because the numbers are derived below, so the two cannot drift apart.) Nothing is lost by
- * waiting: uncollected fees sit in the position still earning, and the Ledger publishes the running
- * figure against the threshold.
+ * meaningful fraction of $4, and that cost would come straight out of what goes back into the pools.
+ * So the Reserve's positions accrue until the threshold below has built up across all of them, and
+ * only then is a collection taken. Nothing is lost by waiting: uncollected fees sit in the position
+ * still earning, and the Ledger publishes the running figure against the threshold.
  *
  * Protocol policy, not a contract rule.
  */
 export const COLLECT_THRESHOLD_USD = 100;
 
-/** Share of every collection airdropped to holders; the rest compounds into the Reserve. */
-export const FEE_SPLIT_HOLDERS_PCT = 80;
+/**
+ * Share of every collection that compounds straight back into the Reserve's positions.
+ *
+ * 100 since 2026-09-15, when the airdrop's fee leg was retired: until then it was 80 to holders and
+ * 20 back into the positions. The same move as the tax rebalance and the vault performance fee, both
+ * made the same day and for the same reason: a dollar handed out pays once, a dollar put back into a
+ * pool goes on earning. The airdrop is the tax's 1% leg now, and nothing else.
+ */
+export const FEE_SPLIT_RESERVE_PCT = 100;
 
 /** The tax on every buy and sell, in ETH. Fixed in letscash's hook at launch; not ours to change. */
 export const TRADE_TAX_PCT = 5;
@@ -52,22 +56,16 @@ export const TAX_SPLIT: SplitLeg[] = [
   { label: "letscash: the launchpad's platform fee", short: "letscash", pct: 0.3, tone: "faint" },
 ];
 
+/** One leg since 2026-09-15, kept as a split so the bar, the rows and the table read it as they read the tax. */
 export const FEE_SPLIT: SplitLeg[] = [
-  { label: "Holders: airdropped to every wallet above the line, as earned", short: "holders", pct: FEE_SPLIT_HOLDERS_PCT, tone: "ink" },
-  { label: "Reserve: tops up the positions, so the next cycle earns more", short: "Reserve", pct: 100 - FEE_SPLIT_HOLDERS_PCT, tone: "accent" },
+  { label: "Reserve: every fee goes back into the positions, so the next cycle earns more", short: "Reserve", pct: FEE_SPLIT_RESERVE_PCT, tone: "accent" },
 ];
 
-/** "3.3%", "0.4%", "80%": a leg's share, with no trailing zero on a whole number. */
+/** "3.3%", "0.4%", "100%": a leg's share, with no trailing zero on a whole number. */
 export const legPct = (leg: SplitLeg) => `${leg.pct}%`;
 
-/** "80 / 20": the fee split as one figure, for a heading and for the parameter table. */
-export const FEE_SPLIT_LABEL = FEE_SPLIT.map((l) => String(l.pct)).join(" / ");
-
-/** How a collection at the threshold divides, in whole dollars. Derived, so the copy cannot drift. */
-export const COLLECTION_SPLIT_USD = {
-  holders: (COLLECT_THRESHOLD_USD * FEE_SPLIT_HOLDERS_PCT) / 100,
-  reserve: (COLLECT_THRESHOLD_USD * (100 - FEE_SPLIT_HOLDERS_PCT)) / 100,
-};
+/** "100%": what a collection does, as one figure, for a heading and for the parameter table. */
+export const FEE_SPLIT_LABEL = FEE_SPLIT.map((l) => legPct(l)).join(" / ");
 
 /** The balance a wallet needs to be paid by the airdrop, in whole OURO. "The line" everywhere on the site. */
 export const LINE_TOKENS = 100_000;
@@ -183,8 +181,9 @@ export const RESERVE_V4_POSITIONS: V4PositionEntry[] = [
 /**
  * A token the airdrop pays in, for marking a wallet's holdings on /portfolio and the calculator's slice.
  *
- * The basket is CASHCAT, PONS, AI and microduck today. WETH is listed because the fee leg arrives as the pools
- * earned it (docs §05) and the airdrop wallet's queue already carries a WETH line. ouro-monitor names
+ * The basket is CASHCAT, PONS, AI and microduck today. WETH is listed because the airdrop wallet's queue
+ * carries a WETH line, and because the payouts made before the fee leg was retired on 2026-09-15 passed
+ * pool fees through in WETH, which /portfolio still has to mark. ouro-monitor names
  * every token a wallet holds and every token a payment carried, so a new constituent shows up on the
  * page before it is added here; this list is where each token's mark and its display name live.
  */
@@ -262,11 +261,11 @@ export const PARAMETERS: ParameterRow[] = [
   { parameter: "Trade tax", value: `${TRADE_TAX_PCT}% of the ETH leg`, mutable: "Fixed at launch" },
   { parameter: "Pool LP fee", value: "0%", mutable: "Fixed at creation" },
   { parameter: "Tax split", value: TAX_SPLIT.map((l) => `${legPct(l)} ${l.short}`).join(" / "), mutable: "Policy" },
-  { parameter: "Fee split: holders / Reserve", value: FEE_SPLIT_LABEL, mutable: "Policy" },
+  { parameter: "Pool fees", value: `${FEE_SPLIT_LABEL} compounded into the Reserve`, mutable: "Policy" },
   { parameter: "Airdrop minimum", value: "100,000 OURO (0.01%)", mutable: "Policy" },
   { parameter: "Fee collection threshold", value: "$100 of accrued LP fees", mutable: "Policy" },
   { parameter: "Airdrop cadence", value: "Every 2 hours", mutable: "Policy" },
-  { parameter: "Stream length", value: "~48 hours per collection", mutable: "Policy" },
+  { parameter: "Stream length", value: "~48 hours per wallet top-up", mutable: "Policy" },
   { parameter: "Basket", value: "CASHCAT + PONS + AI + microduck, toward ~5", mutable: "Policy" },
   { parameter: "Chain", value: "Robinhood Chain (4663)", mutable: "Fixed" },
 ];
