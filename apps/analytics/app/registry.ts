@@ -66,21 +66,58 @@ export type Metric =
   | "tax"
   | "wallet";
 
-export const METRICS: { key: Metric; label: string; hint?: string }[] = [
-  { key: "price", label: "Price" },
-  { key: "marketCap", label: "Fully diluted value" },
-  { key: "volume24h", label: "24 h volume", hint: "and the taxed share of it" },
-  { key: "paidAllTime", label: "Airdropped, all time" },
-  { key: "paid24h", label: "Airdropped, 24 h" },
-  { key: "assets", label: "Tokens paid out" },
-  { key: "holders", label: "Holders above the line" },
-  { key: "recipients", label: "Wallets paid", hint: "in the most recent cycle" },
-  { key: "ratePerLine", label: "Rate per line, per day" },
-  { key: "apr", label: "APR", hint: "annualised from the basis shown" },
-  { key: "payoutRhythm", label: "How often it pays", hint: "measured, not the configured interval" },
-  { key: "lastPaid", label: "Last paid" },
-  { key: "tax", label: "Tax funding it" },
-  { key: "wallet", label: "Per-wallet history" },
+/**
+ * The bands the table is read in.
+ *
+ * The table used to open on Price, which is the one thing on it a reader can get anywhere else. The
+ * page is about airdrops, so the airdrop rows come first and the market rows sit underneath as
+ * context for them.
+ */
+export type MetricGroup = "airdrops" | "rhythm" | "market";
+
+export const GROUPS: { key: MetricGroup; label: string }[] = [
+  { key: "airdrops", label: "Airdrops" },
+  { key: "rhythm", label: "Rhythm" },
+  { key: "market", label: "Market and coverage" },
+];
+
+export interface MetricDef {
+  key: Metric;
+  label: string;
+  hint?: string;
+  group: MetricGroup;
+  /**
+   * Set when the projects can be ranked by this row, which is how the reader re-sorts: the row label
+   * is the control. `order` names the direction in words, because "descending" is meaningless for
+   * half of these — sorting by how often a project pays puts the SHORTEST gap first.
+   */
+  sort?: { order: string };
+  /** How the figure is captioned when this metric is the one the leaderboard is ranked by. */
+  caption?: string;
+  /**
+   * The label as it reads inside a sentence: "Ranked by …".
+   *
+   * Needed because lower-casing `label` turns APR into "apr". Written out rather than fixed with a
+   * capitalisation rule, since the next acronym would break that too.
+   */
+  rank?: string;
+}
+
+export const METRICS: MetricDef[] = [
+  { key: "paidAllTime", label: "Airdropped, all time", group: "airdrops", sort: { order: "largest first" }, caption: "airdropped, all time", rank: "airdropped, all time" },
+  { key: "paid24h", label: "Airdropped, 24 h", group: "airdrops", sort: { order: "largest first" }, caption: "airdropped in 24 h", rank: "what it airdropped in 24 h" },
+  { key: "assets", label: "Tokens paid out", group: "airdrops" },
+  { key: "recipients", label: "Wallets paid", hint: "in the most recent cycle", group: "airdrops", sort: { order: "most wallets first" }, caption: "wallets paid last cycle", rank: "wallets paid last cycle" },
+  { key: "holders", label: "Holders above the line", group: "airdrops", sort: { order: "most holders first" }, caption: "holders above the line", rank: "holders above the line" },
+  { key: "ratePerLine", label: "Rate per line, per day", group: "airdrops", sort: { order: "highest first" }, caption: "per line, per day", rank: "rate per line" },
+  { key: "apr", label: "APR", hint: "annualised from the basis shown", group: "airdrops", sort: { order: "highest first" }, caption: "APR", rank: "APR" },
+  { key: "payoutRhythm", label: "How often it pays", hint: "measured, not the configured interval", group: "rhythm", sort: { order: "most often first" }, caption: "between payouts, typically", rank: "how often it pays" },
+  { key: "lastPaid", label: "Last paid", group: "rhythm", sort: { order: "most recent first" }, caption: "since the last payout", rank: "how recently it paid" },
+  { key: "price", label: "Price", group: "market", sort: { order: "highest first" }, caption: "per token", rank: "price" },
+  { key: "marketCap", label: "Fully diluted value", group: "market", sort: { order: "largest first" }, caption: "fully diluted value", rank: "fully diluted value" },
+  { key: "volume24h", label: "24 h volume", hint: "and the taxed share of it", group: "market", sort: { order: "largest first" }, caption: "traded in 24 h", rank: "24 h volume" },
+  { key: "tax", label: "Tax funding it", group: "market", sort: { order: "highest first" }, caption: "trade tax", rank: "the tax funding it" },
+  { key: "wallet", label: "Per-wallet history", group: "market" },
 ];
 
 export interface Project {
@@ -144,7 +181,7 @@ const MARKET_MEASURED: CoverageRecord = { state: "measured" };
  * the same figure covers a project the indexer has never seen. $OURO's volume used to read "not
  * indexed" here purely because `/v1/summary` does not carry it.
  */
-const VOLUME_MEASURED: CoverageRecord = { state: "measured", note: "summed across every pool the token trades in" };
+const VOLUME_MEASURED: CoverageRecord = { state: "measured", note: "summed across every pool it trades in" };
 
 /**
  * Every metric at once — for a project the indexer has never synced.
@@ -217,15 +254,17 @@ export const PROJECTS: Project[] = [
       assets: { state: "measured", note: "per cycle, per asset" },
       holders: {
         state: "not_indexed",
-        note: "the count lives on the payout registry endpoint, which is uncached by design and not for a dashboard to poll — it needs /v1/projects",
+        note: "the count lives on the payout registry endpoint, which is uncached by design and not for a dashboard to poll. It needs /v1/projects",
       },
-      recipients: { state: "measured", note: "wallets the last cycle actually paid" },
+      // No note: "in the most recent cycle" is already the column hint, and saying it again in
+      // every cell is exactly the wallpaper that teaches a reader to skip the notes that differ.
+      recipients: { state: "measured" },
       ratePerLine: {
         state: "measured",
         note: "a floor for most wallets: the keeper's taper pays the three largest less than pro-rata",
       },
       // The number the whole site can most easily mislead with. It ships with its window attached.
-      apr: { state: "measured", basisDays: 7, historyDays: 9.2, note: "young — the rate tracks launch volume" },
+      apr: { state: "measured", basisDays: 7, historyDays: 9.2, note: "young, so the rate tracks launch volume" },
       payoutRhythm: { state: "measured", note: "measured from its own cycles" },
       lastPaid: { state: "measured" },
       tax: { state: "measured" },
@@ -267,14 +306,14 @@ export const PROJECTS: Project[] = [
       paidAllTime: { state: "measured" },
       paid24h: { state: "measured" },
       assets: { state: "measured", note: "the ten basket constituents, per period" },
-      holders: { state: "measured", note: "replayed from the token's own transfers" },
-      recipients: { state: "measured", note: "wallets the last period actually paid" },
+      holders: { state: "measured", note: "replayed from the token's transfers" },
+      recipients: { state: "measured" },
       ratePerLine: { state: "measured" },
       apr: { state: "measured", basisDays: 7 },
-      payoutRhythm: { state: "measured", note: "measured from its own periods" },
+      payoutRhythm: { state: "measured", note: "measured from its own cycles" },
       lastPaid: { state: "measured" },
       // The one place HOOD10 is better instrumented than INDEX: its hook emits FeeAccrued per swap.
-      tax: { state: "measured", note: "exact — the hook emits FeeAccrued per swap" },
+      tax: { state: "measured", note: "exact: the hook emits FeeAccrued per swap" },
       wallet: { state: "not_indexed", note: "payout receipts are not indexed for this project" },
     },
   },
@@ -312,16 +351,36 @@ export const LAUNCHPAD_FIXTURE: Project = {
  * a project this site does not operate at the top. The column header names the order, and every
  * column sorts.
  */
-export type SortKey = "paidAllTime" | "marketCap" | "apr" | "holders" | "symbol";
+export type SortKey = Metric | "symbol";
 
 export const DEFAULT_SORT: SortKey = "paidAllTime";
 
+/** Every row that carries a `sort`, plus the alphabetical fallback. The table label IS the control. */
+export const SORTABLE: SortKey[] = [...METRICS.filter((m) => m.sort).map((m) => m.key), "symbol"];
+
+export const isSortable = (key: SortKey): boolean => SORTABLE.includes(key);
+
 export const SORT_LABELS: Record<SortKey, string> = {
-  paidAllTime: "Airdropped, all time",
-  marketCap: "Fully diluted value",
-  apr: "APR",
-  holders: "Holders",
+  ...(Object.fromEntries(METRICS.map((m) => [m.key, m.label])) as Record<Metric, string>),
   symbol: "Name",
+};
+
+/** "largest first", "most often first" — the direction, in words, printed next to the ranking. */
+export const SORT_ORDER: Record<SortKey, string> = {
+  ...(Object.fromEntries(METRICS.map((m) => [m.key, m.sort?.order ?? ""])) as Record<Metric, string>),
+  symbol: "A to Z",
+};
+
+/** How the ranked figure is captioned on a leaderboard card. */
+export const SORT_CAPTION: Record<SortKey, string> = {
+  ...(Object.fromEntries(METRICS.map((m) => [m.key, m.caption ?? m.label.toLowerCase()])) as Record<Metric, string>),
+  symbol: "airdropped, all time",
+};
+
+/** The label as it reads inside "Ranked by …". */
+export const SORT_RANK: Record<SortKey, string> = {
+  ...(Object.fromEntries(METRICS.map((m) => [m.key, m.rank ?? m.label.toLowerCase()])) as Record<Metric, string>),
+  symbol: "name",
 };
 
 export const byKey = (key: string): Project | undefined => PROJECTS.find((p) => p.key === key);
