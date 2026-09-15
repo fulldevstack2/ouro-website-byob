@@ -252,7 +252,7 @@ function SplitSection() {
 
 const STEPS: { n: string; title: string; text: string }[] = [
   { n: "01", title: "Trade", text: "Every $OURO swap pays a 5% tax, in ETH." },
-  { n: "02", title: "Buy", text: "2% buys tokens for holders. 2% buys liquidity in the chain's deepest pools." },
+  { n: "02", title: "Buy", text: "3.3% buys liquidity in the chain's deepest pools. 1% buys tokens for holders." },
   { n: "03", title: "Own", text: "That liquidity is the Reserve. The protocol keeps it." },
   { n: "04", title: "Yield", text: "The Reserve earns swap fees. 80% is airdropped, 20% compounds." },
 ];
@@ -417,7 +417,7 @@ const CMP_HEAD: { label: string; sym: string | null; ouro?: boolean }[] = [
 ];
 
 const CMP_ROWS: [string, string, string, string][] = [
-  ["What the tax buys", "All handed out", "All handed out", "2% out, 2% kept as LP"],
+  ["What the tax buys", "All handed out", "All handed out", "1% out, 3.3% kept as LP"],
   ["Holders are paid from", "The tax", "The tax", "Tax + pool fees"],
   ["When volume cools", "Payouts stop", "Payouts stop", "Pools keep earning"],
 ];
@@ -425,7 +425,7 @@ const CMP_ROWS: [string, string, string, string][] = [
 function DifferenceSection() {
   return (
     <Container id="difference" className="home-section">
-      <SectionHead kicker="The difference" title="They spend the tax. Ouro keeps half working." />
+      <SectionHead kicker="The difference" title="They spend the tax. Ouro keeps most of it working." />
       <div className="cmp">
         <div className="cmp-head cmp-head--blank" aria-hidden="true" />
         {CMP_HEAD.map((h) => (

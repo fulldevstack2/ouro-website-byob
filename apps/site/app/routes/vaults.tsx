@@ -67,7 +67,7 @@ const STEPS: { lead: string; text: string }[] = [
   { lead: "The pool clears the line,", text: "so the airdrop lands in the vault every two hours." },
   {
     lead: "A keeper sells it into what your vault pays.",
-    text: `You keep ${100 - TERMS.performanceFeePct}%. ${TERMS.performanceFeePct}% of profit funds more airdrops and ops. Withdraw any time.`,
+    text: `You keep ${100 - TERMS.performanceFeePct}%. ${TERMS.performanceFeePct}% of profit goes into the LP pools. Withdraw any time.`,
   },
 ];
 
@@ -77,7 +77,7 @@ const PARAM_COLS: LedgerColumn[] = [
 ];
 const PARAM_ROWS = [
   ["Performance fee", `${TERMS.performanceFeePct}% of harvest gains, cap ${TERMS.maxPerformanceFeePct}%`],
-  ["Fee split: airdrops / ops", `${TERMS.feeSplit.airdrops}% / ${TERMS.feeSplit.ops}% of the gain · policy`],
+  ["Where the fee goes", `LP pools, ${TERMS.feeSplit.lp}% of the gain · policy`],
   ["Deposit and withdrawal fees", "0"],
   ["Gains vest over", `${TERMS.profitUnlock}, cap ${TERMS.maxProfitUnlock}`],
   ["Swap venue", "Uniswap UniversalRouter"],

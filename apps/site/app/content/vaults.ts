@@ -203,16 +203,20 @@ export const TERMS = {
   performanceFeePct: 10,
   maxPerformanceFeePct: 30,
   /**
-   * Where the performance fee goes, in points of the harvest gain, so the two add up to
-   * `performanceFeePct`. THE ONLY PLACE THIS SPLIT IS WRITTEN: the copy on /vaults and the home
-   * page reads it from here.
+   * Where the performance fee goes, in points of the harvest gain, so the legs add up to
+   * `performanceFeePct`. THE ONLY PLACE THIS SPLIT IS WRITTEN: the copy on /vaults reads it from here.
+   *
+   * All of it into the LP pools since 2026-09-15. It was 7 points to airdrops and 3 to ops until
+   * then; the rebalance that moved the trade tax onto its LP leg moved this one the same way, and
+   * for the same reason: a point spent on an airdrop pays once, a point put in a pool goes on
+   * earning, and the fees it earns are what the airdrop is paid from.
    *
    * Operator policy, not a contract rule, and said as such wherever it appears. On chain the vault
    * pays the whole fee to a single `feeRecipient` (DividendVaultBase.feeRecipient) and has no notion
    * of a split; this is what that recipient does with it, exactly like the 5% tax's
-   * "2% airdrop / 2% LP / 0.7% ops / 0.3% letscash" row in content/protocol.ts.
+   * "3.3% LP / 1% airdrop / 0.4% ops / 0.3% letscash" row in content/protocol.ts.
    */
-  feeSplit: { airdrops: 7, ops: 3 },
+  feeSplit: { lp: 10 },
   profitUnlock: "1 day",
   maxProfitUnlock: "30 days",
   venue: { name: "Uniswap UniversalRouter (Robinhood fork)", address: "0x8876789976dEcBfCbBbe364623C63652db8C0904" as const },
