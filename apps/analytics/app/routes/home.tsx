@@ -4,12 +4,11 @@ import type { Route } from "./+types/home";
 import { Charts, type MeasureKey } from "~/components/Charts";
 import { DASH } from "~/components/Coverage";
 import { Elapsed } from "~/components/Elapsed";
-import { HeroBand } from "~/components/HeroBand";
 import { Leaderboard } from "~/components/Leaderboard";
 import { Matrix } from "~/components/Matrix";
-import { combineDaily, useSeries, withinDays, type Point, type Series } from "~/lib/series";
+import { useSeries, withinDays, type Point, type Series } from "~/lib/series";
 import { useReveal } from "~/lib/motion";
-import { sortRows, totals, useProjects } from "~/lib/projects";
+import { sortRows, useProjects } from "~/lib/projects";
 import { usePainted } from "~/lib/snapshot";
 import { DEFAULT_SORT, PROJECTS, SORTABLE, SORT_LABELS, SORT_ORDER, SORT_RANK, type SortKey } from "~/registry";
 
@@ -53,12 +52,10 @@ export default function Home() {
   useReveal();
 
   const ordered = sortRows(painted.rows, sort);
-  const sums = useMemo(() => totals(painted.rows), [painted.rows]);
-  const combined = useMemo(() => combineDaily(painted.paid, windowDays), [painted.paid, windowDays]);
   const perProject = useMemo(() => byProject(painted.paid, windowDays), [painted.paid, windowDays]);
   const chartSeries = useMemo(
-    () => ({ paid: painted.paid, tax: painted.tax, recipients: painted.recipients }) as Record<MeasureKey, Series[]>,
-    [painted.paid, painted.tax, painted.recipients],
+    () => ({ gaps: painted.gaps, tax: painted.tax, recipients: painted.recipients }) as Record<MeasureKey, Series[]>,
+    [painted.gaps, painted.tax, painted.recipients],
   );
 
   const loading = painted.source === "empty" && live.configured;
@@ -112,13 +109,9 @@ export default function Home() {
             )}
           </span>
           <span className="meta-line">
-            {sums.projects} tokens · source <b>ouro-monitor</b>
+            {painted.rows.length} tokens · source <b>ouro-monitor</b>
           </span>
         </div>
-      </div>
-
-      <div className="container">
-        <HeroBand totals={sums} paidPerDay={combined} loading={loading} windowDays={windowDays} />
       </div>
 
       <section className="container section" data-reveal="">

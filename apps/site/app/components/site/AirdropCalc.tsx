@@ -3,7 +3,7 @@ import { Link } from "react-router";
 
 import { Badge, Button, Card, Stat } from "@ouro/ds";
 import { BASKET_TOKENS, LINE_TOKENS } from "~/content/protocol";
-import { site } from "~/content/site";
+import { analyticsUrl, site } from "~/content/site";
 import { MONITOR_API, fmtNum, fmtPct, fmtTokens, fmtUsd, useMonitor, type OuroCycle, type OuroYield } from "@ouro/monitor-client";
 import { Container } from "./Container";
 import { KVRow } from "./KVRow";
@@ -176,7 +176,7 @@ export function AirdropCalc() {
           )}
 
           <div className="calc__ctas">
-            <Button variant="secondary" arrow to="/airdrops/">
+            <Button variant="secondary" arrow href={analyticsUrl("/airdrops/")}>
               See every payout
             </Button>
             <Button variant="ghost" arrow href={site.links.buy} target="_blank" rel="noreferrer">

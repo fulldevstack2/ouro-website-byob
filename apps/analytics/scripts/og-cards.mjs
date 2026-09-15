@@ -1,6 +1,12 @@
 /**
  * Renders the Open Graph cards in public/og from scripts/og/card.html with headless Chrome.
  * Run after changing a page title/lede: `node scripts/og-cards.mjs` (needs Chrome installed).
+ *
+ * The cards for the two Ouro pages, which moved here from apps/site on 2026-09-15 along with this
+ * script and its template. Same renderer and same design on both sites, so a card made here is the
+ * card the page had before it moved. The comparison page has no card: it is not one page about one
+ * thing, and a card that says "the airdrop meta" over Ouro's own wordmark would read as a claim
+ * about the projects it reports on.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, rmSync } from "node:fs";
@@ -14,14 +20,9 @@ const template = `file://${join(root, "scripts", "og", "card.html")}`;
 const out = join(root, "public", "og");
 mkdirSync(out, { recursive: true });
 
-// ledger and airdrops are NOT here: those pages moved to apps/analytics on 2026-09-15 and their cards
-// went with them (apps/analytics/scripts/og-cards.mjs, same template, same renderer).
 const CARDS = {
-  home: { k: "Robinhood Chain · 4663", t: "Liquidity that pays its holders.", s: "Every $OURO trade buys protocol-owned liquidity in the top Robinhood Chain tokens. The fees those pools earn are airdropped to holders every two hours." },
-  monitor: { k: "Live proof · upstream", t: "The dividend monitor.", s: "INDEX and HOOD10 payouts, tax, eligibility and operator actions, read from Robinhood Chain. Nothing reported by hand." },
-  vaults: { k: "For holders under the line", t: "The vaults.", s: "Pool your $OURO with others, clear the 100,000 line together, and get paid in OURO, ETH or dollars." },
-  portfolio: { k: "Your wallet", t: "The portfolio.", s: "Your $OURO, every airdrop it has received, and what it holds now." },
-  docs: { k: "Documentation", t: "How Ouro works.", s: "The tax, the Loop, the Reserve, the airdrop, the parameters, what Ouro cannot do, the risks and every address." },
+  ledger: { k: "Live proof", t: "The Ledger.", s: "What the Reserve owns, what it earned, and whether that beats simply holding." },
+  airdrops: { k: "Live proof", t: "The airdrops.", s: "Every cycle the keeper has paid, and what is on its way. If the site and the chain disagree, the chain is right." },
 };
 
 for (const [name, c] of Object.entries(CARDS)) {

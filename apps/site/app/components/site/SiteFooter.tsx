@@ -36,11 +36,17 @@ export function SiteFooter() {
           <div className="site-footer__lists">
             <div className="site-footer__list">
               <MicroLabel style={{ marginBottom: 4 }}>Protocol</MicroLabel>
-              {VISIBLE_NAV.map((item) => (
-                <Link key={item.to} to={item.to} className="foot-link">
-                  {item.label}
-                </Link>
-              ))}
+              {VISIBLE_NAV.map((item) =>
+                item.external ? (
+                  <a key={item.to} href={item.to} className="foot-link">
+                    {item.label} ↗
+                  </a>
+                ) : (
+                  <Link key={item.to} to={item.to} className="foot-link">
+                    {item.label}
+                  </Link>
+                ),
+              )}
             </div>
             <div className="site-footer__list">
               <MicroLabel style={{ marginBottom: 4 }}>Elsewhere</MicroLabel>

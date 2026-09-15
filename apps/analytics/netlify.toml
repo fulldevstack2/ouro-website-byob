@@ -14,3 +14,10 @@
   # Origin of ouro-monitor, inlined at BUILD time (vite.config.ts → __MONITOR_API__), so a deploy is
   # required to change it. Keep CORS_ORIGINS on the monitor's Render service in step with this.
   MONITOR_API_URL = "https://ouro-monitor.onrender.com"
+
+# /ledger/ and /airdrops/ live here as of 2026-09-15; ourolayer.com 301s both paths onto this site
+# (apps/site/netlify.toml). Do not change these paths without changing those redirects.
+#
+# Every route is pre-rendered to its own index.html. Unknown URLs get build/client/404.html (written
+# by scripts/postbuild.mjs) with a real 404 status; the app hydrates it and shows its own "Page not
+# found". Cache and security headers live in public/_headers.

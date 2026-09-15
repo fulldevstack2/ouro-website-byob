@@ -17,7 +17,7 @@ import {
   VENUE,
   type AddressEntry,
 } from "~/content/protocol";
-import { site } from "~/content/site";
+import { analyticsUrl, site } from "~/content/site";
 import { VAULT_CONTRACTS } from "~/content/vaults";
 import { pageMeta } from "~/lib/meta";
 import { smoothScrollNextNavigation } from "~/lib/scroll";
@@ -163,8 +163,8 @@ export default function Docs() {
           <Doc id="d04" n="04" title="The Reserve">
             <P>
               Protocol-owned LP in liquid Robinhood Chain tokens. It opened with <strong>CASHCAT</strong> and <strong>PONS</strong>, and{" "}
-              <strong>microduck</strong> is the third, held as an ETH pair in a Uniswap v4 pool, which the <Link to="/ledger/">Ledger</Link> reads straight from
-              the chain. It builds toward five, each capped at 20–25% of the treasury. The tradeoff against holding is divergence; the Ledger publishes both.
+              <strong>microduck</strong> is the third, held as an ETH pair in a Uniswap v4 pool, which the{" "}
+              <a href={analyticsUrl("/ledger/")}>Ledger ↗</a> reads straight from the chain. It builds toward five, each capped at 20–25% of the treasury. The tradeoff against holding is divergence; the Ledger publishes both.
             </P>
           </Doc>
 
@@ -227,8 +227,8 @@ export default function Docs() {
           <Doc id="d09" n="09" title="Addresses" wide>
             <P>
               On-chain and readable. Team vest: Sablier, uncancellable; cliff Mar 2027, ends Sep 2027. The pools the Reserve is an LP in and the vault
-              contracts are here too, which is where the <Link to="/ledger/">Ledger</Link> and the <Link to="/vaults/">vaults page</Link> send anyone looking
-              for them.
+              contracts are here too, which is where the <a href={analyticsUrl("/ledger/")}>Ledger ↗</a> and the <Link to="/vaults/">vaults page</Link> send anyone
+              looking for them.
             </P>
             <div className="stack stack--wide" style={{ marginTop: 14 }}>
               <div className="table-scroll">
@@ -250,7 +250,7 @@ export default function Docs() {
             <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text-muted)", marginTop: 12, maxWidth: 640 }}>
               The ETH/OURO pool and the Reserve&apos;s ETH / microduck pool are Uniswap v4 pools, ids inside the PoolManager rather than contracts of their
               own, so they are the two rows here without an explorer link. What the Reserve holds in those pools, and what it has earned there, is on the{" "}
-              <Link to="/ledger/">Ledger</Link>.
+              <a href={analyticsUrl("/ledger/")}>Ledger ↗</a>.
             </div>
           </Doc>
 

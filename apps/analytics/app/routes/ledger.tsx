@@ -2,9 +2,10 @@ import { Link } from "react-router";
 
 import type { Route } from "./+types/ledger";
 import { Badge, Callout, Card, LedgerTable, Stat, type BadgeTone, type LedgerColumn } from "@ouro/ds";
+import { OuroFoot } from "~/components/OuroFoot";
 import { AddressCell, Bars, Container, KVRow, MicroLabel, PageHeader, SectionHead, body14, mono } from "~/components/site";
 import { COLLECTION_SPLIT_USD, COLLECT_THRESHOLD_USD } from "~/content/protocol";
-import { externalLinkProps, site } from "~/content/site";
+import { externalLinkProps, ouroUrl, site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
 import { navWithV4, useReserveV4, type ReserveV4Row } from "~/hooks/useReserveV4";
 import { pageMeta } from "~/lib/meta";
@@ -475,22 +476,31 @@ export default function Ledger() {
             <div style={{ ...body14, fontStyle: "italic" }}>{MONITOR_API ? "No movements indexed yet. The first one writes row one." : "The monitor's origin is not set for this build."}</div>
           )}
           <div className="card-foot">
-            Every add, withdrawal and fee collection the Reserve has made, priced at the moment it happened. Method in the <Link to="/docs/">docs</Link>.
+            Every add, withdrawal and fee collection the Reserve has made, priced at the moment it happened. Method in the{" "}
+            <a href={ouroUrl("/docs/")} {...externalLinkProps(ouroUrl("/docs/"))}>
+              docs ↗
+            </a>
+            .
           </div>
         </Card>
       </div>
 
-      {/* The addresses live in the docs, which is the one page that publishes every address on this
-          site. A second copy here was a second thing to keep right. */}
+      {/* The addresses live in the docs, on ourolayer.com, which is the one page that publishes every
+          Ouro address. A second copy here was a second thing to keep right, and it is now a second
+          thing on a second site. */}
       <div style={{ ...body14, marginTop: 40, maxWidth: 620 }}>
         <p style={{ margin: 0 }}>
           The Reserve wallet, the pools it is an LP in and the contracts behind them are published with every other Ouro address in the docs, each one linked
           to the explorer.
         </p>
         <p style={{ margin: "12px 0 0" }}>
-          <Link to="/docs/#d09">Read the addresses →</Link>
+          <a href={ouroUrl("/docs/#d09")} {...externalLinkProps(ouroUrl("/docs/#d09"))}>
+            Read the addresses on ourolayer.com ↗
+          </a>
         </p>
       </div>
+
+      <OuroFoot />
     </Container>
   );
 }

@@ -9,8 +9,9 @@ export default [
   // figure still read "Pending".
   route("vaults", "routes/vaults.tsx"),
   route("monitor", "routes/monitor.tsx"),
-  route("ledger", "routes/ledger.tsx"),
-  route("airdrops", "routes/airdrops.tsx"),
+  // /ledger and /airdrops MOVED to the analytics site on 2026-09-15 (apps/analytics), which is now
+  // the one place everything read off the chain lives. Their paths are unchanged there, and this
+  // site 301s both of them across (netlify.toml), so every link already posted still resolves.
   // Added 2026-09-10: the connected wallet's view of the airdrop (its balance, every payout it
   // received, its vault deposits). ?address=0x… shows another wallet and is deliberately offered
   // nowhere on the site; it is read on the client only, since the route is prerendered.

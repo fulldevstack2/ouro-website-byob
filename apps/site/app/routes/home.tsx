@@ -5,7 +5,7 @@ import type { Route } from "./+types/home";
 import { Badge, Button, Callout, Card, LedgerTable, Stat, type BadgeTone, type LedgerColumn } from "@ouro/ds";
 import { AirdropCalc, Container, LoopPlate, MicroLabel, SectionHead, SplitBar, SplitRows, TokenIcon, body14, legRows, legWedges, mono } from "~/components/site";
 import { FEE_SPLIT, FEE_SPLIT_LABEL, LINE_TOKENS, PROTOCOL_CONTRACTS, TAX_SPLIT, TOKEN_ICONS, TRADE_TAX_PCT, explorerAddressUrl, shortAddress } from "~/content/protocol";
-import { externalLinkProps, site } from "~/content/site";
+import { analyticsUrl, externalLinkProps, site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
 import { navWithV4, useReserveV4, type ReserveV4Row } from "~/hooks/useReserveV4";
 import { pageMeta } from "~/lib/meta";
@@ -74,7 +74,7 @@ function Hero() {
             <Button size="lg" arrow href={site.links.buy} {...externalLinkProps(site.links.buy)}>
               Buy {site.ticker}
             </Button>
-            <Button size="lg" variant="secondary" to="/ledger/">
+            <Button size="lg" variant="secondary" arrow href={analyticsUrl("/ledger/")}>
               See the pools
             </Button>
           </div>
@@ -159,9 +159,10 @@ function HeroCard() {
         <Stat size="sm" label="Airdropped to holders" value={fmtUsd(all?.paidUsd)} footnote={all ? `${fmtNum(all.cycles)} cycles${all.since ? ` since ${all.since}` : ""}` : "Every cycle, valued when sent"} />
         <Stat size="sm" label="Airdrop every 2 hours" value={fmtUsd(last?.paidUsd)} footnote={last ? `${fmtWhen(last.endTs ?? last.startTs)} · ${fmtNum(last.recipients)} wallets` : "Every two hours"} />
       </div>
+      {/* Both of these are on the analytics site now. Same pages, same paths, another origin. */}
       <div className="hero__links">
-        <Link to="/ledger/">Open the ledger →</Link>
-        <Link to="/airdrops/">Every payout →</Link>
+        <a href={analyticsUrl("/ledger/")}>Open the ledger ↗</a>
+        <a href={analyticsUrl("/airdrops/")}>Every payout ↗</a>
       </div>
     </Card>
   );
@@ -364,7 +365,7 @@ function ReserveSection() {
         kicker="The Reserve"
         title="CASHCAT, PONS and microduck."
         sub="Protocol-owned positions in the chain's deepest pools. Never handed out."
-        action={<Link to="/ledger/">Full ledger →</Link>}
+        action={<a href={analyticsUrl("/ledger/")}>Full ledger ↗</a>}
       />
       <div className="table-scroll">
         <LedgerTable columns={POOL_COLS} rows={rows} />

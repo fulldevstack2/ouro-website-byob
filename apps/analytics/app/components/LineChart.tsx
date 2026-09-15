@@ -26,8 +26,16 @@ import type { Point } from "~/lib/series";
 
 export interface LineChartProps {
   points: Point[];
-  /** Formats a value for the axis and the tooltip. */
+  /** Formats a value for the tooltip, and for the axis unless `formatAxis` overrides it. */
   format: (v: number) => string;
+  /**
+   * Formats the two axis labels, when they need writing differently from a single value.
+   *
+   * Durations are why this exists: "2.5 d" set over "29.7 h" is two ticks of one axis in two units,
+   * which cannot be compared at a glance, while "2.5 d" on its own is the right way to say a
+   * duration. The axis locks to one unit; the tooltip keeps `format`.
+   */
+  formatAxis?: (v: number) => string;
   /** Formats a timestamp for the tooltip. */
   formatTime: (t: number) => string;
   label: string;
@@ -47,7 +55,7 @@ export interface LineChartProps {
 
 const PAD = { top: 12, right: 10, bottom: 20, left: 46 };
 
-export function LineChart({ points, format, formatTime, label, emptyNote, height = 150, yMax }: LineChartProps) {
+export function LineChart({ points, format, formatAxis, formatTime, label, emptyNote, height = 150, yMax }: LineChartProps) {
   const gradId = useId();
   const [hover, setHover] = useState<number | null>(null);
   // The series draws itself on arrival. Charts remount on a control change, which starts this over;
@@ -75,6 +83,7 @@ export function LineChart({ points, format, formatTime, label, emptyNote, height
   // wobble into a cliff. The top is the real maximum, so the axis label names a value the line
   // actually reaches.
   const peak = Math.max(...vs);
+  const axis = formatAxis ?? format;
   const vMax = yMax !== null && yMax !== undefined && yMax > 0 ? yMax : peak;
   const span = t1 - t0 || 1;
 
@@ -172,10 +181,10 @@ export function LineChart({ points, format, formatTime, label, emptyNote, height
 
         {/* Axis labels name real values: the peak, the midpoint and zero. */}
         <text x={PAD.left - 6} y={PAD.top + 4} className="chart-axis" textAnchor="end">
-          {format(vMax)}
+          {axis(vMax)}
         </text>
         <text x={PAD.left - 6} y={PAD.top + ih / 2 + 4} className="chart-axis" textAnchor="end">
-          {format(vMax / 2)}
+          {axis(vMax / 2)}
         </text>
         <text x={PAD.left - 6} y={PAD.top + ih + 4} className="chart-axis" textAnchor="end">
           0

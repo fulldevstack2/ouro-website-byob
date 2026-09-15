@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useRef, useState, type FormEvent } from "react";
-import { Link } from "react-router";
 
 import type { Route } from "./+types/airdrops";
 import { Badge, Button, Callout, Card, Input, LedgerTable, Stat, Tabs, type BadgeTone, type LedgerColumn } from "@ouro/ds";
+import { OuroFoot } from "~/components/OuroFoot";
 import { Bars, Container, KVRow, PageHeader, Pager, SectionHead, body14, mono } from "~/components/site";
 import { COLLECT_THRESHOLD_USD, LINE_TOKENS, TOTAL_SUPPLY_TOKENS } from "~/content/protocol";
-import { externalLinkProps, site } from "~/content/site";
+import { externalLinkProps, ouroUrl, site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
 import { pageMeta } from "~/lib/meta";
 import {
@@ -436,10 +436,14 @@ export default function Airdrops() {
           />
           <Callout tone="caution" title="A rate is only as good as its window" style={{ marginTop: 16 }}>
             {y?.caveat ?? `This one rests on ${y?.basisDays ? fmtNum(y.basisDays, 0) : "seven"} days.`} It moves with trading volume and is not a forecast.{" "}
-            <Link to="/#calc">Try your size in the calculator →</Link>
+            <a href={ouroUrl("/#calc")} {...externalLinkProps(ouroUrl("/#calc"))}>
+              Try your size in the calculator on ourolayer.com ↗
+            </a>
           </Callout>
         </div>
       </div>
+
+      <OuroFoot />
     </Container>
   );
 }

@@ -62,6 +62,16 @@ export const site = {
     buy: "https://www.letscash.fun/token/0x8ea0eb3505f5b3bd2bbea0febae0ce850cc73ecc",
     /** Block explorer for Robinhood Chain (address and transaction links everywhere). */
     explorer: "https://robinhoodchain.blockscout.com",
+    /**
+     * The analytics site: the airdrop meta across every tax-index token on the chain, and since
+     * 2026-09-15 the Ledger and the airdrops, which used to be pages of this site.
+     *
+     * THE ONE PLACE this address is written. It is a separate standalone app (apps/analytics in this
+     * repo, its own Netlify site), so this site only ever links to it; change this constant and the
+     * nav, the footer, the hero and the docs all follow, as do the redirects in netlify.toml, which
+     * are the other half and are NOT read from here.
+     */
+    analytics: "https://analytics.ourolayer.com",
     /** TODO: Robinhood Chain site. Linked nowhere until it is set. */
     robinhoodChain: "#",
   },
@@ -70,6 +80,11 @@ export const site = {
 export interface NavItem {
   to: string;
   label: string;
+  /**
+   * Leaves this site: rendered as a plain anchor with an arrow rather than a router Link, which would
+   * try to resolve an absolute URL as a route of this app.
+   */
+  external?: boolean;
   /**
    * Kept out of the nav and the footer, but still routed, prerendered and reachable at its URL. This is a
    * one-word way to shelve a page without deleting it; flip it off to bring the link back.
@@ -87,10 +102,10 @@ export const NAV: NavItem[] = [
   { to: "/vaults/", label: "Vaults" },
   // Shelved 2026-08-31 until it is ready to show. Route, page and URL are untouched.
   { to: "/monitor/", label: "Monitor", hidden: true },
-  // Unshelved 2026-09-04: the Reserve holds real positions and the Ledger reads them from the
-  // chain through ouro-monitor's /v1/reserve. It needs MONITOR_API_URL set at build time.
-  { to: "/ledger/", label: "Ledger" },
-  { to: "/airdrops/", label: "Airdrops" },
+  // The Ledger and the airdrops MOVED on 2026-09-15, to the analytics site, which is where everything
+  // read off the chain now lives. This one link replaces both of them; their old URLs on this site
+  // redirect onto their new ones (netlify.toml), so nothing posted anywhere stops working.
+  { to: site.links.analytics, label: "Analytics", external: true },
   // Added 2026-09-10: the connected wallet's view of the same data. Its $OURO, every airdrop it
   // received, its vault deposits. (?address=0x… shows another wallet; the share card's code opens it.)
   { to: "/portfolio/", label: "Portfolio" },
@@ -102,6 +117,14 @@ export const NAV: NavItem[] = [
 
 /** What the site chrome actually links. Use this, not NAV, anywhere a reader can click. */
 export const VISIBLE_NAV = NAV.filter((item) => !item.hidden);
+
+/**
+ * A page of the analytics site, absolute. `/ledger/` and `/airdrops/` kept their paths when they
+ * moved there, so a link that named one still names the same page.
+ */
+export function analyticsUrl(path = "/") {
+  return `${site.links.analytics}${path}`;
+}
 
 /** `target="_blank"` only for real external URLs, not for "#" placeholders. */
 export function externalLinkProps(href: string) {

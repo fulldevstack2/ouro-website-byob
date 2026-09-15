@@ -1,0 +1,106 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   The Ouro pages: /ledger and /airdrops.
+
+   These two moved over from ourolayer.com, and this is the part of that site's stylesheet they were
+   built on. EVERYTHING HERE IS SCOPED UNDER `.page`, which is the class on the one Container each of
+   those routes renders, and that is not tidiness: `.section-head` and `.table-scroll` exist in
+   analytics.css too, meaning something different, and an unscoped copy would quietly restyle the
+   comparison page. `.page x` also outranks the bare `.page` selector's namesake there, which is how
+   these two get the site's version and nothing else does.
+
+   The primitives themselves (Container, PageHeader, KVRow, Bars…) are inline-styled against @ouro/ds
+   tokens, so what is needed here is only the layout their class names carry.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Every sub-page: room under the chrome, and a floor so a page that is still reading does not
+   collapse to a header. */
+.page { padding-top: 56px; min-height: 640px; }
+
+/* The page header: kicker, display h1, lede, and whatever the page says about its own state. */
+.page .page-head {
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--border-hairline); padding-bottom: 28px;
+}
+.page .page-head__main { min-width: 0; }
+.page .page-head__lede { margin: 14px 0 0; font-size: 17px; line-height: 1.6; color: var(--text-secondary); max-width: 620px; }
+.page .page-head__note { margin-top: 10px; font-size: 13px; line-height: 1.5; color: var(--text-muted); }
+.page .page-head__aside { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-bottom: 4px; }
+@media (max-width: 720px) {
+  .page .page-head__aside { width: 100%; }
+}
+.page .page-title {
+  margin: 14px 0 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(34px, 4.4vw, 48px);
+  line-height: 1.08; letter-spacing: var(--tracking-display);
+}
+
+/* The editorial section start: 1px ink rule, bronze kicker, display h2. Not the comparison page's
+   `.section-head`, which is a flex row of a heading and its controls. */
+.page .section-head { display: block; border-top: 1px solid var(--border-strong); padding-top: 20px; margin-bottom: 32px; }
+.page .section-head--row { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+.page .section-head__sub { margin: 12px 0 0; font-size: 16px; line-height: 1.6; color: var(--text-secondary); max-width: 620px; }
+.page .section-head__action { font-size: 14px; white-space: nowrap; }
+.page .section-title {
+  margin: 12px 0 0; font-family: var(--font-display); font-weight: 600; font-size: clamp(28px, 3.4vw, 36px);
+  line-height: 1.12; letter-spacing: var(--tracking-display);
+}
+.page .section-title--sub { font-size: 30px; }
+.page .section-title--small { font-size: 28px; }
+
+/* Two columns that stack on their own rather than at a fixed breakpoint. 380px, not 320: at 320
+   these pairs (a 30-bar chart beside a card, two address tables) held two columns down to ~700px,
+   where both halves wrapped every other line. */
+.page .cols-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 48px; align-items: start; }
+.page .cols-2 > * { min-width: 0; }
+
+/* The band of four figures across the top of both pages. Four across or two by two, never three with
+   an orphan underneath: an auto-fit band drops to three columns at about 1030px and leaves the fourth
+   figure alone on a row of its own, which reads as a layout fault rather than as the fourth of four. */
+.page .stat-band {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px;
+  margin: 36px 0 40px; padding: 28px 0; border-bottom: 1px solid var(--border-hairline);
+}
+.page .stat-band > * { min-width: 0; }
+@media (max-width: 1040px) {
+  .page .stat-band { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 32px; }
+}
+/* One under another on a phone. Two up, the labels are different heights ("Wallets above the line"
+   takes two lines, "Eligible supply" one) and the figures beside each other sit at different heights. */
+@media (max-width: 560px) {
+  .page .stat-band { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+}
+
+/* A dense table keeps its column widths and scrolls sideways inside its own box, rather than
+   compressing a timestamp column to 45px on a phone. `min-width: 0` is load-bearing: a grid or flex
+   item defaults to `min-width: auto` and a wide table would push the whole layout out instead. */
+.page .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; min-width: 0; margin-top: 0; }
+.page .table-scroll > table { min-width: 560px; }
+
+/* Under a chart: the first day, a note, the last day. */
+.page .bars-axis { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); }
+
+/* A quiet mono link, for addresses and transaction hashes. */
+.page .mono-link { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 12px; color: var(--text-secondary); }
+.page .mono-link:hover { color: var(--text-primary); }
+
+/* Hairline label/figure lists, and the note that qualifies one. */
+.page .kv-list { border-top: 1px solid var(--border-hairline); }
+.page .kv-note { margin-top: 14px; font-size: 13px; color: var(--text-muted); }
+
+/* One position per card, each opening on the three figures that matter. */
+.page .positions { display: flex; flex-direction: column; gap: 24px; }
+.page .pos__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+.page .pos__stats > * { min-width: 0; }
+
+/* What a card says about itself, under a rule at its foot. */
+.page .card-foot { border-top: 1px solid var(--border-hairline); margin-top: 14px; padding-top: 14px; font-size: 13px; color: var(--text-muted); }
+.page .card-foot--row { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+/* "Is my wallet above the line": a field, a button, and the answer under them. */
+.page .check { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.page .check__field { flex: 1; min-width: 220px; }
+.page .check__result { display: flex; align-items: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; font-size: 14px; color: var(--text-secondary); }
+
+/* The foot these pages brought with them (components/OuroFoot). Same type as the comparison page's,
+   with the disclaimer set as its own full-width line rather than a third column of a row. */
+.page .page-foot { margin-top: 56px; }
+.page .page-foot__legal { flex-basis: 100%; max-width: 92ch; line-height: 1.5; }

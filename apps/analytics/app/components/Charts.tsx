@@ -18,15 +18,35 @@
 import { useState } from "react";
 
 import { LineChart } from "~/components/LineChart";
+import { fmtHours } from "~/lib/cadence";
 import { useFlip } from "~/lib/motion";
 import { withinDays, type Series } from "~/lib/series";
 
-export type MeasureKey = "paid" | "tax" | "recipients";
+export type MeasureKey = "gaps" | "tax" | "recipients";
 
 const fmtDay = (t: number) => new Date(t * 1000).toISOString().slice(5, 10);
 const fmtUsdAxis = (v: number) =>
-  v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `$${Math.round(v / 1000)}k` : `$${Math.round(v)}`;
+  v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v >= 1000 ? `${Math.round(v / 1000)}k` : `${Math.round(v)}`;
 const fmtCount = (v: number) => Math.round(v).toLocaleString("en-US");
+
+/** How long ago, in the same units the gap chart is drawn in. */
+const sinceNow = (t: number) => Math.max(0, Date.now() / 1000 - t) / 3600;
+
+/**
+ * One unit for a whole duration axis, picked from the top of it.
+ *
+ * `fmtHours` changes unit at 48 hours, which is right for a figure standing on its own and wrong for
+ * an axis: a panel topping out at 59 h drew "2.5 d" above "29.7 h", two ticks of one axis in two
+ * units, and the reader has to do arithmetic to see that the first is twice the second. The hover
+ * readout still uses `fmtHours`, where a value has no neighbour it has to agree with.
+ */
+const axisHours = (top: number) => {
+  const [by, unit] = top >= 48 ? [24, "d"] : top >= 1 ? [1, "h"] : [1 / 60, "min"];
+  return (v: number) => {
+    const n = v / by;
+    return `${n < 10 ? n.toFixed(1) : Math.round(n)} ${unit}`;
+  };
+};
 
 interface Measure {
   key: MeasureKey;
@@ -38,11 +58,12 @@ interface Measure {
 
 export const MEASURES: Measure[] = [
   {
-    key: "paid",
-    label: "Airdropped",
-    lede: "Dollars paid out to holders, by UTC day. Days a token paid nothing are left blank rather than drawn as zero.",
-    unit: "US dollars airdropped per day",
-    format: fmtUsdAxis,
+    key: "gaps",
+    label: "Airdrop frequency",
+    lede:
+      "How long each token went between one airdrop and the next, so a rising line is a token paying less often. The gap it is in now is still open, so the panel says when it last paid instead.",
+    unit: "time between one payout and the next",
+    format: fmtHours,
   },
   {
     key: "tax",
@@ -82,7 +103,7 @@ export function Charts({
   focus: string | null;
   loading: boolean;
 }) {
-  const [measure, setMeasure] = useState<MeasureKey>("paid");
+  const [measure, setMeasure] = useState<MeasureKey>("gaps");
   const [shared, setShared] = useState(false);
   // The panels re-rank with the cards, so they slide rather than jump.
   const panels = useFlip<HTMLDivElement>();
@@ -156,16 +177,29 @@ export function Charts({
         ) : (
           windowed.map((s) => {
             const own = s.points.length ? Math.max(...s.points.map((p) => p.v)) : null;
+            const last = s.points[s.points.length - 1];
+            const sorted = s.points.map((p) => p.v).sort((a, b) => a - b);
+            const typical = sorted.length ? (sorted[Math.floor(sorted.length / 2)] as number) : null;
+            /**
+             * Each panel says the thing its measure needs saying.
+             *
+             * For a quantity that is its peak, because the panels do NOT share a y-axis unless asked
+             * to, and saying which is the difference between small multiples and a misread
+             * comparison. For the gaps it is when the token last paid and what is typical for it:
+             * the whole point of the series is rhythm, and a lone median would hide a tail that runs
+             * to two and a half days. Both come from the plotted points, so the note can never
+             * disagree with the line above it.
+             */
+            const note =
+              measure === "gaps"
+                ? last
+                  ? `last airdrop ${fmtHours(sinceNow(last.t))} ago · typically ${fmtHours(typical)} apart${shared ? " · shared scale" : ""}`
+                  : "no payouts in this window"
+                : `${shared ? "shared scale · peaks at " : "own scale · peak "}${own === null ? "—" : active.format(own)}`;
             return (
               <div className="chart-panel" key={s.key} data-flip={s.key} data-on={focus === s.key}>
                 <h3>{s.symbol}</h3>
-                {/* Each panel carries its own peak, because the panels do NOT share a y-axis unless
-                    asked to — saying which is the difference between small multiples and a misread
-                    comparison. */}
-                <p className="panel-note">
-                  {shared ? "shared scale · peaks at " : "own scale · peak "}
-                  {own === null ? "—" : active.format(own)}
-                </p>
+                <p className="panel-note">{note}</p>
                 <LineChart
                   /* Remounting on a control change is what replays the draw-on. It is keyed on the
                      controls and the point count only, so a poll that changes nothing does not
@@ -173,6 +207,7 @@ export function Charts({
                   key={`${measure}:${windowDays}:${shared}:${s.points.length}`}
                   points={s.points}
                   format={active.format}
+                  formatAxis={measure === "gaps" ? axisHours(shared ? peak : (own ?? 0)) : undefined}
                   formatTime={fmtDay}
                   label={`${s.symbol} ${active.label}`}
                   emptyNote="nothing in this window"
@@ -192,11 +227,11 @@ export function Charts({
             <thead>
               <tr>
                 <th scope="col">Token</th>
-                <th scope="col">Points</th>
+                <th scope="col">{measure === "gaps" ? "Gaps" : "Points"}</th>
                 <th scope="col">First</th>
                 <th scope="col">Latest</th>
-                <th scope="col">Peak</th>
-                <th scope="col">Median</th>
+                <th scope="col">{measure === "gaps" ? "Longest" : "Peak"}</th>
+                <th scope="col">{measure === "gaps" ? "Typical" : "Median"}</th>
               </tr>
             </thead>
             <tbody>

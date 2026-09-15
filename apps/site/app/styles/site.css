@@ -135,25 +135,6 @@ button:focus-visible,
 .section-head__sub { margin: 12px 0 0; font-size: 16px; line-height: 1.6; color: var(--text-secondary); max-width: 620px; }
 .section-head__action { font-size: 14px; white-space: nowrap; }
 
-/* The band of four figures across the top of the Ledger and the airdrops. Four across or two by two,
-   never three with an orphan underneath: an auto-fit band drops to three columns at about 1030px and
-   leaves the fourth figure alone on a row of its own, which reads as a layout fault rather than as
-   the fourth of four. */
-.stat-band {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px;
-  margin: 36px 0 40px; padding: 28px 0; border-bottom: 1px solid var(--border-hairline);
-}
-.stat-band > * { min-width: 0; }
-@media (max-width: 1040px) {
-  .stat-band { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 32px; }
-}
-/* One under another on a phone, which is what the brief's own auto-fit band does at this width. Two
-   up, the labels are different heights ("Wallets above the line" takes two lines, "Eligible supply"
-   one) and the figures beside each other sit at different heights. */
-@media (max-width: 560px) {
-  .stat-band { grid-template-columns: minmax(0, 1fr); gap: 22px; }
-}
-
 /* A dense table keeps its column widths and scrolls sideways inside its own box, rather than
    compressing a timestamp column to 45px on a phone. The page itself never scrolls horizontally.
    `min-width: 0` is load-bearing: a grid or flex item defaults to `min-width: auto` and a wide table
@@ -164,9 +145,6 @@ button:focus-visible,
    headers. A reference table fills its column and wraps instead, which is not settable from here:
    LedgerTable's width is an inline style, so it is done through its `style` prop (components/site
    → `fitTable`). The wrapper stays, as the last resort on a very narrow phone. */
-
-/* Under a chart: the first day, a note, the last day. */
-.bars-axis { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); }
 
 /* Rows with a bronze index: the loop's steps, the roadmap, the vault steps. */
 .row-index { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--bronze-600); width: 26px; flex: none; }
@@ -520,17 +498,11 @@ button:focus-visible,
   .vpanel, .vpanel__content { transition: none; }
 }
 
-/* 5c. Ledger and airdrops -------------------------------------------- */
-.kv-list { border-top: 1px solid var(--border-hairline); }
-.kv-note { margin-top: 14px; font-size: 13px; color: var(--text-muted); }
-.positions { display: flex; flex-direction: column; gap: 24px; }
-.pos__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
-.pos__stats > * { min-width: 0; }
+/* 5c. Card feet ------------------------------------------------------- */
+/* What a card says about itself, under a rule at its foot. The rest of this section (the stat band,
+   the position cards, the wallet check, the kv lists) moved to the analytics site on 2026-09-15 with
+   the two pages that used it: apps/analytics/app/styles/pages.css. */
 .card-foot { border-top: 1px solid var(--border-hairline); margin-top: 14px; padding-top: 14px; font-size: 13px; color: var(--text-muted); }
-.card-foot--row { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.check { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
-.check__field { flex: 1; min-width: 220px; }
-.check__result { display: flex; align-items: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; font-size: 14px; color: var(--text-secondary); }
 
 /* 5d. Portfolio -------------------------------------------------------- */
 /* Four metric cards, then the history with the vaults and the line under it, and the next payment
