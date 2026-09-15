@@ -2,3 +2,6 @@
    adds only its own layout on top — same materials, different room. */
 @import "@ouro/ds/styles.css";
 @import "./styles/analytics.css";
+/* The two pages that moved here from ourolayer.com, scoped under `.page` so the site's
+   `.section-head` and `.table-scroll` cannot reach the comparison page above. */
+@import "./styles/pages.css";

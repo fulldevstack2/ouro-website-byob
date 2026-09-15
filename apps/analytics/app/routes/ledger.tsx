@@ -2,9 +2,10 @@ import { Link } from "react-router";
 
 import type { Route } from "./+types/ledger";
 import { Badge, Callout, Card, LedgerTable, Stat, type BadgeTone, type LedgerColumn } from "@ouro/ds";
+import { OuroFoot } from "~/components/OuroFoot";
 import { AddressCell, Bars, Container, KVRow, MicroLabel, PageHeader, SectionHead, body14, mono } from "~/components/site";
 import { COLLECTION_SPLIT_USD, COLLECT_THRESHOLD_USD } from "~/content/protocol";
-import { externalLinkProps, site } from "~/content/site";
+import { externalLinkProps, ouroUrl, site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
 import { navWithV4, useReserveV4, type ReserveV4Row } from "~/hooks/useReserveV4";
 import { pageMeta } from "~/lib/meta";
@@ -274,10 +275,13 @@ export default function Ledger() {
    * did not read, which is nothing today and is disclosed the moment it is not.
    */
   const v4 = useReserveV4();
-  const nav = navWithV4(t?.navUsd, v4.rows);
-  const positions = (t?.positions ?? 0) + v4.rows.length;
-  const inRange = (t?.inRange ?? 0) + v4.rows.filter((r) => r.inRange).length;
-  const unvalued = unindexedTotal === null ? null : Math.max(0, unindexedTotal - v4.rows.length);
+  const nav = navWithV4(t?.navUsd, v4);
+  // Every count below waits on the same read the NAV does: a "2 positions" that becomes "3" a second
+  // later is the same jump as a NAV that grows, and both are corrections the page never had to make.
+  const counted = t !== undefined && t !== null && !v4.loading;
+  const positions = counted ? t.positions + v4.rows.length : null;
+  const inRange = counted ? t.inRange + v4.rows.filter((r) => r.inRange).length : null;
+  const unvalued = !counted || unindexedTotal === null ? null : Math.max(0, unindexedTotal - v4.rows.length);
 
   /**
    * One bar per UTC day, from the last snapshot of that day, over a fixed 30-day window ending today.
@@ -358,9 +362,11 @@ export default function Ledger() {
           label="Treasury NAV"
           value={fmtUsd(nav)}
           footnote={
-            `Owned liquidity, marked to market · ${fmtNum(positions)} position${positions === 1 ? "" : "s"}` +
-            (v4.rows.length > 0 ? `, ${v4.rows.length === 1 ? "one of them" : `${fmtNum(v4.rows.length)} of them`} in Uniswap v4 and read from the chain` : "") +
-            (unvalued === null ? " · excludes liquidity held in an unread venue" : unvalued > 0 ? ` · excludes ${fmtNum(unvalued)} held elsewhere` : "")
+            positions === null
+              ? "Owned liquidity, marked to market"
+              : `Owned liquidity, marked to market · ${fmtNum(positions)} position${positions === 1 ? "" : "s"}` +
+                (v4.rows.length > 0 ? `, ${v4.rows.length === 1 ? "one of them" : `${fmtNum(v4.rows.length)} of them`} in Uniswap v4 and read from the chain` : "") +
+                (unvalued === null ? " · excludes liquidity held in an unread venue" : unvalued > 0 ? ` · excludes ${fmtNum(unvalued)} held elsewhere` : "")
           }
         />
         <Stat
@@ -404,7 +410,7 @@ export default function Ledger() {
         <div>
           <MicroLabel style={{ marginBottom: 12 }}>The Reserve</MicroLabel>
           <div className="kv-list">
-            <KVRow label="Positions held, earning now" value={t ? `${fmtNum(positions)} · ${fmtNum(inRange)} in range` : "—"} />
+            <KVRow label="Positions held, earning now" value={positions === null ? "—" : `${fmtNum(positions)} · ${fmtNum(inRange)} in range`} />
             <KVRow label="Wallet that holds them" value={d ? <AddressCell address={d.lp as `0x${string}`} /> : "—"} />
             <KVRow label="Gas left to collect with" value={d ? `${fmtEth(d.gas.eth)} ETH${d.gas.usd === null ? "" : ` · ${fmtUsd(d.gas.usd)}`}` : "—"} />
             <KVRow
@@ -470,22 +476,31 @@ export default function Ledger() {
             <div style={{ ...body14, fontStyle: "italic" }}>{MONITOR_API ? "No movements indexed yet. The first one writes row one." : "The monitor's origin is not set for this build."}</div>
           )}
           <div className="card-foot">
-            Every add, withdrawal and fee collection the Reserve has made, priced at the moment it happened. Method in the <Link to="/docs/">docs</Link>.
+            Every add, withdrawal and fee collection the Reserve has made, priced at the moment it happened. Method in the{" "}
+            <a href={ouroUrl("/docs/")} {...externalLinkProps(ouroUrl("/docs/"))}>
+              docs ↗
+            </a>
+            .
           </div>
         </Card>
       </div>
 
-      {/* The addresses live in the docs, which is the one page that publishes every address on this
-          site. A second copy here was a second thing to keep right. */}
+      {/* The addresses live in the docs, on ourolayer.com, which is the one page that publishes every
+          Ouro address. A second copy here was a second thing to keep right, and it is now a second
+          thing on a second site. */}
       <div style={{ ...body14, marginTop: 40, maxWidth: 620 }}>
         <p style={{ margin: 0 }}>
           The Reserve wallet, the pools it is an LP in and the contracts behind them are published with every other Ouro address in the docs, each one linked
           to the explorer.
         </p>
         <p style={{ margin: "12px 0 0" }}>
-          <Link to="/docs/#d09">Read the addresses →</Link>
+          <a href={ouroUrl("/docs/#d09")} {...externalLinkProps(ouroUrl("/docs/#d09"))}>
+            Read the addresses on ourolayer.com ↗
+          </a>
         </p>
       </div>
+
+      <OuroFoot />
     </Container>
   );
 }

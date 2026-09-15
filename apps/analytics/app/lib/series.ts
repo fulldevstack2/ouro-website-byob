@@ -9,6 +9,7 @@
  *     paid_usd / day        63 d   11 d     17 d   ← charted
  *     tax_usd / day         71 d   12 d     21 d   ← charted
  *     epochs.recipients      200     94       43   ← charted
+ *     hours between cycles   199     93       42   ← charted (a gap needs two cycles, hence one fewer)
  *     epochs.holders         200      0       43   $OURO records none
  *     price / taxed share   10 d    0 d     10 d   market snapshots only, nothing for $OURO
  *
@@ -83,24 +84,46 @@ export async function fetchTaxPerDay(keys: { key: string; symbol: string }[], da
 }
 
 /**
- * Wallets paid, per payout cycle.
+ * Wallets paid per cycle, and the hours between one payout and the next.
  *
  * Per cycle rather than per day on purpose: a day holds a variable number of cycles for every one of
  * these projects (INDEX's gaps run from four minutes to two and a half days), so a daily total mixes
  * "more wallets" with "more cycles" into one line and neither can be read out of it.
+ *
+ * Both series come off the same epoch page, which for INDEX is 790 KB. Fetching it twice to derive
+ * two series from one response would double the largest download on the page for nothing.
+ *
+ * The gaps are NOT derived from the recipients series. A cycle whose wallet count the indexer could
+ * not resolve is dropped from that one, and a dropped cycle silently merges two gaps into a single
+ * one twice as long, which reads as a slowdown that never happened. Timing comes from every closed
+ * cycle carrying a timestamp, whether or not its wallet count survived.
  */
-export async function fetchRecipientsPerCycle(keys: { key: string; symbol: string }[], limit = 200): Promise<Series[]> {
+export async function fetchCycleSeries(
+  keys: { key: string; symbol: string }[],
+  limit = 200,
+): Promise<{ recipients: Series[]; gaps: Series[] }> {
   const out = await Promise.all(
     keys.map(async ({ key, symbol }) => {
       const d = await getJson<{ epochs: EpochRow[] }>(`/v1/${key}/epochs?limit=${limit}`);
-      const points = (d?.epochs ?? [])
-        .filter((e) => e.status === "closed" && typeof e.recipients === "number" && (e.endTs ?? e.startTs))
+      const closed = (d?.epochs ?? []).filter((e) => e.status === "closed" && (e.endTs ?? e.startTs));
+
+      const recipients = closed
+        .filter((e) => typeof e.recipients === "number")
         .map((e) => ({ t: (e.endTs ?? e.startTs) as number, v: e.recipients as number }))
         .sort((a, b) => a.t - b.t);
-      return { key, symbol, points };
+
+      const ts = closed.map((e) => (e.endTs ?? e.startTs) as number).sort((a, b) => a - b);
+      const gaps: Point[] = [];
+      for (let i = 1; i < ts.length; i++) {
+        const hours = ((ts[i] as number) - (ts[i - 1] as number)) / 3600;
+        // A gap of zero is one payout recorded twice, not a cadence of no time at all.
+        if (hours > 0) gaps.push({ t: ts[i] as number, v: hours });
+      }
+
+      return { recipients: { key, symbol, points: recipients }, gaps: { key, symbol, points: gaps } };
     }),
   );
-  return out;
+  return { recipients: out.map((o) => o.recipients), gaps: out.map((o) => o.gaps) };
 }
 
 /**
@@ -136,45 +159,29 @@ export function withinDays(points: Point[], days: number | null): Point[] {
   return points.filter((p) => p.t >= cut);
 }
 
-/**
- * Every project's daily figures, added together.
- *
- * For the headline band only, and only for dollars airdropped: a day is the same unit for all three
- * projects, so summing is meaningful in a way that summing their per-cycle figures would not be. A
- * project with no value for a day contributes nothing to it rather than a zero, which is the same
- * rule every cell on the page follows.
- */
-export function combineDaily(series: Series[], days: number | null = null): Point[] {
-  const byDay = new Map<number, number>();
-  for (const s of series) {
-    for (const p of withinDays(s.points, days)) {
-      byDay.set(p.t, (byDay.get(p.t) ?? 0) + p.v);
-    }
-  }
-  return [...byDay.entries()].map(([t, v]) => ({ t, v })).sort((a, b) => a.t - b.t);
-}
-
 export interface SeriesState {
   paid: Series[];
   tax: Series[];
   recipients: Series[];
+  /** Hours between one payout and the next, timed at the later of the two. */
+  gaps: Series[];
   loading: boolean;
 }
 
-/** Both series, fetched once on mount. History moves slowly; there is nothing to poll for. */
+/** Every series, fetched once on mount. History moves slowly; there is nothing to poll for. */
 export function useSeries(keys: { key: string; symbol: string }[]): SeriesState {
-  const [state, setState] = useState<SeriesState>({ paid: [], tax: [], recipients: [], loading: true });
+  const [state, setState] = useState<SeriesState>({ paid: [], tax: [], recipients: [], gaps: [], loading: true });
   const signature = keys.map((k) => k.key).join(",");
 
   useEffect(() => {
     let alive = true;
     void (async () => {
-      const [paid, tax, recipients] = await Promise.all([
+      const [paid, tax, cycles] = await Promise.all([
         fetchPaidPerDay(keys),
         fetchTaxPerDay(keys),
-        fetchRecipientsPerCycle(keys),
+        fetchCycleSeries(keys),
       ]);
-      if (alive) setState({ paid, tax, recipients, loading: false });
+      if (alive) setState({ paid, tax, recipients: cycles.recipients, gaps: cycles.gaps, loading: false });
     })();
     return () => {
       alive = false;

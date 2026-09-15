@@ -5,7 +5,7 @@ import type { Route } from "./+types/home";
 import { Badge, Button, Callout, Card, LedgerTable, Stat, type BadgeTone, type LedgerColumn } from "@ouro/ds";
 import { AirdropCalc, Container, LoopPlate, MicroLabel, SectionHead, SplitBar, SplitRows, TokenIcon, body14, legRows, legWedges, mono } from "~/components/site";
 import { FEE_SPLIT, FEE_SPLIT_LABEL, LINE_TOKENS, PROTOCOL_CONTRACTS, TAX_SPLIT, TOKEN_ICONS, TRADE_TAX_PCT, explorerAddressUrl, shortAddress } from "~/content/protocol";
-import { externalLinkProps, site } from "~/content/site";
+import { analyticsUrl, externalLinkProps, site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
 import { navWithV4, useReserveV4, type ReserveV4Row } from "~/hooks/useReserveV4";
 import { pageMeta } from "~/lib/meta";
@@ -17,10 +17,9 @@ import {
   fmtPctSigned,
   fmtUsd,
   fmtUsdSigned,
-  fmtWhen,
   useMonitor,
   type DailyRow,
-  type OuroCycle,
+  type OuroYield,
   type Reserve,
   type ReservePosition,
 } from "@ouro/monitor-client";
@@ -74,7 +73,7 @@ function Hero() {
             <Button size="lg" arrow href={site.links.buy} {...externalLinkProps(site.links.buy)}>
               Buy {site.ticker}
             </Button>
-            <Button size="lg" variant="secondary" to="/ledger/">
+            <Button size="lg" variant="secondary" arrow href={analyticsUrl("/ledger/")}>
               See the pools
             </Button>
           </div>
@@ -113,50 +112,79 @@ function allTime(days: DailyRow[] | undefined) {
 
 /**
  * The figures beside the headline, read from the chain through ouro-monitor: what the protocol owns
- * in liquidity, what it has paid holders, and the last cycle. A dash while a read is in flight; the
- * change over the day appears only once the window actually covers a day.
+ * in liquidity, what it has paid holders, and what those payouts annualise to. A dash while a read is
+ * in flight; the change over the day appears only once the window actually covers a day.
+ *
+ * The rate replaced the last cycle's amount here on 2026-09-15. One cycle's dollars answered "what
+ * does a payout look like" and nothing a reader can act on: $309 means nothing without knowing whose
+ * balance earned it. The rate is the figure this hero used to lead with, and every payout is still one
+ * click away on the analytics site.
  */
 function HeroCard() {
   const clock = useClock();
   const v4 = useReserveV4();
   const reserve = useMonitor<Reserve>(MONITOR_API ? "/v1/reserve?hours=25" : null, 300_000);
   const daily = useMonitor<{ token: string; days: DailyRow[] }>(MONITOR_API ? "/v1/ouro/daily?days=366" : null, 300_000);
-  const epochs = useMonitor<{ token: string; epochs: OuroCycle[] }>(MONITOR_API ? "/v1/ouro/epochs?limit=5" : null, 120_000);
+  // Same request and window the vaults page's rate comes from (hooks/usePrices.ts), so the two pages
+  // cannot disagree about what a wallet above the line earns.
+  const yields = useMonitor<OuroYield>(MONITOR_API ? "/v1/ouro/yield?days=7" : null, 300_000);
 
   const d = reserve.data;
   const t = d?.totals;
   // The headline counts the Uniswap v4 position the monitor cannot value; the change over the day
   // stays on the monitor's own figure, because its 24 hour baseline is that figure and no other.
   const monitorNav = t?.navUsd ?? null;
-  const nav = navWithV4(monitorNav, v4.rows);
+  const nav = navWithV4(monitorNav, v4);
   const delta = (() => {
     const first = (d?.history ?? []).find((s) => s.nav_usd !== null && s.nav_usd > 0);
-    if (!d || !first || monitorNav === null || first.nav_usd === null) return null;
+    // Withheld until the figure it qualifies is on screen: the monitor answers a second before the
+    // chain read does, and a percentage change sitting next to a dash qualifies nothing.
+    if (!d || !first || nav === null || monitorNav === null || first.nav_usd === null) return null;
     if ((d.generatedAt - first.ts) / 3600 < 20) return null;
     return (monitorNav - first.nav_usd) / first.nav_usd;
   })();
   const unindexed = (d?.unindexed ?? []).reduce((n, u) => n + (u.count ?? 0), 0);
   const unvalued = Math.max(0, unindexed - v4.rows.length);
   const all = allTime(daily.data?.days);
-  const last = (epochs.data?.epochs ?? []).find((c) => (c.status === "closed" || c.status === "aborted") && c.paidUsd !== null) ?? null;
 
-  const positions = (t?.positions ?? 0) + v4.rows.length;
-  const navNote = t
-    ? `Marked to market · ${fmtNum(positions)} ${positions === 1 ? "position" : "positions"}${delta !== null ? " · past 24 hours" : ""}${
-        unvalued > 0 ? ` · ${fmtNum(unvalued)} more in Uniswap v4, not valued` : ""
-      }`
-    : "Marked to market, from the Reserve's positions";
+  /**
+   * The rate, and the window it was measured over, which it never appears without.
+   *
+   * `caveat` comes from the monitor and MUST be shown whenever it is set: the same payouts annualise
+   * to wildly different rates depending only on the basis, and that sentence names the history this
+   * one actually rests on. When it is null the rate covers a full week, and the basis is stated in
+   * the shortest form that is still a basis. A hero percentage is the most screenshot-able thing on
+   * the site; it does not go out unqualified.
+   */
+  const rate = yields.data;
+  const rateNote = !rate
+    ? "From payouts actually made, at the rate of the last seven days."
+    : rate.aprPct === null
+      ? (rate.withheld ?? "Needs a payout and a price to measure")
+      : (rate.caveat ??
+        (rate.basisDays === null ? "From payouts actually made" : `${fmtNum(rate.basisDays, 0)}-day basis · ${fmtNum(rate.cycles)} cycles`));
+
+  // Counted only once the chain read has settled, for the same reason the figure above it is: a
+  // note that says "2 positions" and then says "3" is the same jump, one line down.
+  const positions = t && !v4.loading ? t.positions + v4.rows.length : null;
+  const navNote =
+    positions === null
+      ? "Marked to market, from the Reserve's positions"
+      : `Marked to market · ${fmtNum(positions)} ${positions === 1 ? "position" : "positions"}${delta !== null ? " · past 24 hours" : ""}${
+          unvalued > 0 ? ` · ${fmtNum(unvalued)} more in Uniswap v4, not valued` : ""
+        }`;
 
   return (
     <Card label="Read from the chain" action={<span style={{ ...mono, fontSize: 11, color: "var(--text-faint)" }}>{clock ? `Updated ${clock}` : ""}</span>} padding={28}>
       <Stat size="xl" label="Protocol-owned liquidity" value={fmtUsd(nav)} delta={delta === null ? null : fmtPctSigned(delta, 1)} footnote={navNote} />
       <div className="hero__pair">
         <Stat size="sm" label="Airdropped to holders" value={fmtUsd(all?.paidUsd)} footnote={all ? `${fmtNum(all.cycles)} cycles${all.since ? ` since ${all.since}` : ""}` : "Every cycle, valued when sent"} />
-        <Stat size="sm" label="Airdrop every 2 hours" value={fmtUsd(last?.paidUsd)} footnote={last ? `${fmtWhen(last.endTs ?? last.startTs)} · ${fmtNum(last.recipients)} wallets` : "Every two hours"} />
+        <Stat size="sm" label="Airdrop rate, annualised" value={rate?.aprPct == null ? "—" : `${fmtNum(rate.aprPct, 0)}%`} footnote={rateNote} />
       </div>
+      {/* Both of these are on the analytics site now. Same pages, same paths, another origin. */}
       <div className="hero__links">
-        <Link to="/ledger/">Open the ledger →</Link>
-        <Link to="/airdrops/">Every payout →</Link>
+        <a href={analyticsUrl("/ledger/")}>Open the ledger ↗</a>
+        <a href={analyticsUrl("/airdrops/")}>Every payout ↗</a>
       </div>
     </Card>
   );
@@ -224,7 +252,7 @@ function SplitSection() {
 
 const STEPS: { n: string; title: string; text: string }[] = [
   { n: "01", title: "Trade", text: "Every $OURO swap pays a 5% tax, in ETH." },
-  { n: "02", title: "Buy", text: "2% buys tokens for holders. 2% buys liquidity in the chain's deepest pools." },
+  { n: "02", title: "Buy", text: "3.3% buys liquidity in the chain's deepest pools. 1% buys tokens for holders." },
   { n: "03", title: "Own", text: "That liquidity is the Reserve. The protocol keeps it." },
   { n: "04", title: "Yield", text: "The Reserve earns swap fees. 80% is airdropped, 20% compounds." },
 ];
@@ -359,7 +387,7 @@ function ReserveSection() {
         kicker="The Reserve"
         title="CASHCAT, PONS and microduck."
         sub="Protocol-owned positions in the chain's deepest pools. Never handed out."
-        action={<Link to="/ledger/">Full ledger →</Link>}
+        action={<a href={analyticsUrl("/ledger/")}>Full ledger ↗</a>}
       />
       <div className="table-scroll">
         <LedgerTable columns={POOL_COLS} rows={rows} />
@@ -389,7 +417,7 @@ const CMP_HEAD: { label: string; sym: string | null; ouro?: boolean }[] = [
 ];
 
 const CMP_ROWS: [string, string, string, string][] = [
-  ["What the tax buys", "All handed out", "All handed out", "2% out, 2% kept as LP"],
+  ["What the tax buys", "All handed out", "All handed out", "1% out, 3.3% kept as LP"],
   ["Holders are paid from", "The tax", "The tax", "Tax + pool fees"],
   ["When volume cools", "Payouts stop", "Payouts stop", "Pools keep earning"],
 ];
@@ -397,7 +425,7 @@ const CMP_ROWS: [string, string, string, string][] = [
 function DifferenceSection() {
   return (
     <Container id="difference" className="home-section">
-      <SectionHead kicker="The difference" title="They spend the tax. Ouro keeps half working." />
+      <SectionHead kicker="The difference" title="They spend the tax. Ouro keeps most of it working." />
       <div className="cmp">
         <div className="cmp-head cmp-head--blank" aria-hidden="true" />
         {CMP_HEAD.map((h) => (

@@ -2,14 +2,15 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import { Link } from "react-router";
 
 import type { Route } from "./+types/vaults";
-import { Badge, Callout, LedgerTable, type LedgerColumn } from "@ouro/ds";
+import { Badge, Callout, LedgerTable, Stat, type LedgerColumn } from "@ouro/ds";
 import { Container, PageHeader, SectionHead, body14, fitTable, mono } from "~/components/site";
 import { VaultsStatic } from "~/components/vaults/VaultFrame";
-import { LINE_TOKENS } from "~/content/protocol";
+import { FLOATING_SUPPLY_TOKENS, LINE_TOKENS } from "~/content/protocol";
 import { site } from "~/content/site";
 import { TERMS } from "~/content/vaults";
+import { useVaultsPooled } from "~/hooks/useVaultsPooled";
 import { pageMeta } from "~/lib/meta";
-import { fmtNum } from "@ouro/monitor-client";
+import { fmtNum, fmtPct } from "@ouro/monitor-client";
 
 /**
  * The wallet half of the page, loaded on the client only. The prerender (a real render pass in node)
@@ -30,6 +31,25 @@ function VaultsSection() {
   );
 }
 
+/**
+ * The headline figure in the header's right-hand slot: how much of the floating supply is pooled in
+ * the vaults. It is the live section's own read, handed up through hooks/useVaultsPooled, so the
+ * header and the bar over the cards cannot state the same total two different ways. A dash until that
+ * read lands, which on a page with no JavaScript is always.
+ */
+function PooledShare() {
+  const tokens = useVaultsPooled();
+  return (
+    <Stat
+      align="end"
+      size="lg"
+      label="Supply pooled"
+      value={tokens === null ? "—" : fmtPct(tokens / FLOATING_SUPPLY_TOKENS, 2)}
+      footnote={tokens === null ? "Reading the chain" : `${fmtNum(tokens / 1e6, 1)}M of ${fmtNum(FLOATING_SUPPLY_TOKENS / 1e6)}M OURO floating`}
+    />
+  );
+}
+
 const LINE = fmtNum(LINE_TOKENS);
 const LEDE = `Pool your $OURO with others, clear the ${LINE} line together, and get paid in OURO, ETH or dollars.`;
 
@@ -47,7 +67,7 @@ const STEPS: { lead: string; text: string }[] = [
   { lead: "The pool clears the line,", text: "so the airdrop lands in the vault every two hours." },
   {
     lead: "A keeper sells it into what your vault pays.",
-    text: `You keep ${100 - TERMS.performanceFeePct}%. ${TERMS.performanceFeePct}% of profit funds more airdrops and ops. Withdraw any time.`,
+    text: `You keep ${100 - TERMS.performanceFeePct}%. ${TERMS.performanceFeePct}% of profit goes into the LP pools. Withdraw any time.`,
   },
 ];
 
@@ -57,7 +77,7 @@ const PARAM_COLS: LedgerColumn[] = [
 ];
 const PARAM_ROWS = [
   ["Performance fee", `${TERMS.performanceFeePct}% of harvest gains, cap ${TERMS.maxPerformanceFeePct}%`],
-  ["Fee split: airdrops / ops", `${TERMS.feeSplit.airdrops}% / ${TERMS.feeSplit.ops}% of the gain · policy`],
+  ["Where the fee goes", `LP pools, ${TERMS.feeSplit.lp}% of the gain · policy`],
   ["Deposit and withdrawal fees", "0"],
   ["Gains vest over", `${TERMS.profitUnlock}, cap ${TERMS.maxProfitUnlock}`],
   ["Swap venue", "Uniswap UniversalRouter"],
@@ -73,9 +93,12 @@ export default function Vaults() {
         title="The vaults."
         lede={LEDE}
         aside={
-          <Badge tone="positive" dot>
-            Live on {site.chain.name}
-          </Badge>
+          <div className="page-head__figure">
+            <PooledShare />
+            <Badge tone="positive" dot>
+              Live on {site.chain.name}
+            </Badge>
+          </div>
         }
       />
 
@@ -96,8 +119,8 @@ export default function Vaults() {
           </div>
         </div>
         <div className="stack" style={{ paddingTop: 20 }}>
-          <Callout tone="caution" title="New and unaudited">
-            The contracts are new and unaudited. Yield is Ouro&apos;s airdrop only and shrinks when trading cools. Withdrawals never pause.
+          <Callout tone="caution" title="New contracts">
+            The contracts are new. Yield is Ouro&apos;s airdrop only and shrinks when trading cools. Withdrawals never pause.
           </Callout>
           <Callout title="Say you hold 20,000 OURO">
             Too small alone. In the dollars vault the airdrop lands in the pool, a keeper sells it for USDG, and you collect your share. Your 20,000 OURO

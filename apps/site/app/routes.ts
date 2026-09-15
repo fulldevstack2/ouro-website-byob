@@ -9,18 +9,16 @@ export default [
   // figure still read "Pending".
   route("vaults", "routes/vaults.tsx"),
   route("monitor", "routes/monitor.tsx"),
-  route("ledger", "routes/ledger.tsx"),
-  route("airdrops", "routes/airdrops.tsx"),
+  // /ledger and /airdrops MOVED to the analytics site on 2026-09-15 (apps/analytics), which is now
+  // the one place everything read off the chain lives. Their paths are unchanged there, and this
+  // site 301s both of them across (netlify.toml), so every link already posted still resolves.
   // Added 2026-09-10: the connected wallet's view of the airdrop (its balance, every payout it
   // received, its vault deposits). ?address=0x… shows another wallet and is deliberately offered
   // nowhere on the site; it is read on the client only, since the route is prerendered.
   route("portfolio", "routes/portfolio.tsx"),
-  // Held back 2026-09-08: referral is not going ahead for now. A product decision this time, not a
-  // readiness one — it was briefly re-registered on the 8th. UNREGISTERED, not shelved: `hidden` in
-  // NAV only takes a page out of the chrome, and this one must not be pre-rendered, indexed or
-  // reachable — unknown URLs get a real 404 (see netlify.toml). Nothing is deleted: the route file
-  // and everything it imports are untouched, and ouro-monitor goes on answering /v1/referrals, so
-  // re-adding this line ships it.
-  // route("referral", "routes/referral.tsx"),
+  // /referral was DELETED on 2026-09-15, route and page and content file together: the programme is
+  // not going ahead, and it had sat unregistered since 2026-09-08 with its own hardcoded copy of the
+  // ops leg, which went stale the moment the tax split was rebalanced. ouro-monitor still answers
+  // /v1/referrals, so reviving it means writing the page again rather than uncommenting a line.
   route("docs", "routes/docs.tsx"),
 ] satisfies RouteConfig;

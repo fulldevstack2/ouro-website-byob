@@ -23,14 +23,37 @@
   # Keep CORS_ORIGINS on the monitor's Render service in step with the origins that read it.
   MONITOR_API_URL = "https://ouro-monitor.onrender.com"
 
-  # WalletConnect project id for /referral, from cloud.reown.com. A PUBLIC identifier that ships in
-  # the client bundle, not a secret, but it must be OURO'S OWN project: WalletConnect attributes
-  # sessions and analytics to whoever owns the id, so borrowing another product's would file Ouro's
-  # wallet traffic under that product. Vite inlines it at BUILD time, so a deploy is required to
-  # change it. Left empty deliberately until the project exists: app/lib/wagmi.ts then builds an
-  # injected-only config, so browser extension wallets keep working and only the QR / mobile path is
-  # missing. That is a degraded page, not a broken one.
-  WALLETCONNECT_PROJECT_ID = "0031ff4cbef4968b799fc2910156439c"
+# /ledger and /airdrops moved to the analytics site on 2026-09-15 (apps/analytics), keeping their
+# paths. Both URLs have been posted and linked for weeks, so they are sent on rather than 404'd, and
+# 302 rather than 301 ONLY while the destination is the temporary Netlify subdomain below: a 301 is
+# cached by browsers more or less forever, so it would keep sending readers to a throwaway host long
+# after the real one is live. Put these back to 301 with the real domain. The trailing-slash form is
+# the canonical one on both sites; the bare path is matched too, since that is what a hand-typed URL
+# looks like. Keep these in step with site.links.analytics in app/content/site.ts — the app cannot
+# read this file and this file cannot read the app.
+[[redirects]]
+  from = "/ledger"
+  to = "https://resilient-souffle-95850c.netlify.app/ledger/"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/ledger/*"
+  to = "https://resilient-souffle-95850c.netlify.app/ledger/"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/airdrops"
+  to = "https://resilient-souffle-95850c.netlify.app/airdrops/"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/airdrops/*"
+  to = "https://resilient-souffle-95850c.netlify.app/airdrops/"
+  status = 302
+  force = true
 
 # One address for the site. The *.netlify.app subdomain stays reachable by default, which would give
 # us a second indexable copy of every page and split the same visitor across two hostnames in

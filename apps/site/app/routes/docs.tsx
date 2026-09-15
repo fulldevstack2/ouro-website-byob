@@ -17,7 +17,7 @@ import {
   VENUE,
   type AddressEntry,
 } from "~/content/protocol";
-import { site } from "~/content/site";
+import { analyticsUrl, site } from "~/content/site";
 import { VAULT_CONTRACTS } from "~/content/vaults";
 import { pageMeta } from "~/lib/meta";
 import { smoothScrollNextNavigation } from "~/lib/scroll";
@@ -82,7 +82,7 @@ const CANT: { lead: string; text: string }[] = [
 const FAQ: { q: string; a: string }[] = [
   {
     q: "How is Ouro different from HOOD10 or The Index?",
-    a: "They hand out every tax point, so payouts stop when volume cools. Ouro airdrops 2% of a trade, keeps another 2% as fee-earning liquidity, and airdrops 80% of those fees.",
+    a: "They hand out every tax point, so payouts stop when volume cools. Ouro keeps 3.3% of a trade as fee-earning liquidity, airdrops 1% outright, and airdrops 80% of the fees that liquidity earns.",
   },
   { q: "What do I have to do to get paid?", a: "Hold at least 100,000 $OURO in your own wallet. No stake, lock or claim. Exchange and bridge balances do not count." },
   { q: "I hold less than 100,000 $OURO. What then?", a: "Pool with others in the vaults. Deposits clear the line together; you earn in OURO, ETH or dollars." },
@@ -143,8 +143,8 @@ export default function Docs() {
         <div className="docs-body">
           <Doc id="d01" n="01" title="Overview">
             <P>
-              A 5% tax on every $OURO trade buys tokens: 2% is airdropped to holders, 2% becomes protocol-owned liquidity (the Reserve), 1% covers ops and the
-              launchpad. 80% of the Reserve&apos;s fees are airdropped too.
+              A 5% tax on every $OURO trade buys tokens: 3.3% becomes protocol-owned liquidity (the Reserve), 1% is airdropped to holders, 0.7% covers ops and
+              the launchpad. 80% of the Reserve&apos;s fees are airdropped too.
             </P>
           </Doc>
 
@@ -163,8 +163,8 @@ export default function Docs() {
           <Doc id="d04" n="04" title="The Reserve">
             <P>
               Protocol-owned LP in liquid Robinhood Chain tokens. It opened with <strong>CASHCAT</strong> and <strong>PONS</strong>, and{" "}
-              <strong>microduck</strong> is the third, held as an ETH pair in a Uniswap v4 pool, which the <Link to="/ledger/">Ledger</Link> reads straight from
-              the chain. It builds toward five, each capped at 20–25% of the treasury. The tradeoff against holding is divergence; the Ledger publishes both.
+              <strong>microduck</strong> is the third, held as an ETH pair in a Uniswap v4 pool, which the{" "}
+              <a href={analyticsUrl("/ledger/")}>Ledger ↗</a> reads straight from the chain. It builds toward five, each capped at 20–25% of the treasury. The tradeoff against holding is divergence; the Ledger publishes both.
             </P>
           </Doc>
 
@@ -207,11 +207,7 @@ export default function Docs() {
               <Callout title="Audit status" style={{ marginTop: 14 }}>
                 The audit report is published. Read it alongside the code before interacting.
               </Callout>
-            ) : (
-              <Callout tone="caution" title="Audit status" style={{ marginTop: 14 }}>
-                Not yet audited. Until an audit link appears here, treat Ouro as unaudited experimental software.
-              </Callout>
-            )}
+            ) : null}
           </Doc>
 
           <Doc id="d08" n="08" title="Risks">
@@ -227,8 +223,8 @@ export default function Docs() {
           <Doc id="d09" n="09" title="Addresses" wide>
             <P>
               On-chain and readable. Team vest: Sablier, uncancellable; cliff Mar 2027, ends Sep 2027. The pools the Reserve is an LP in and the vault
-              contracts are here too, which is where the <Link to="/ledger/">Ledger</Link> and the <Link to="/vaults/">vaults page</Link> send anyone looking
-              for them.
+              contracts are here too, which is where the <a href={analyticsUrl("/ledger/")}>Ledger ↗</a> and the <Link to="/vaults/">vaults page</Link> send anyone
+              looking for them.
             </P>
             <div className="stack stack--wide" style={{ marginTop: 14 }}>
               <div className="table-scroll">
@@ -250,7 +246,7 @@ export default function Docs() {
             <div style={{ fontSize: 13, lineHeight: 1.6, color: "var(--text-muted)", marginTop: 12, maxWidth: 640 }}>
               The ETH/OURO pool and the Reserve&apos;s ETH / microduck pool are Uniswap v4 pools, ids inside the PoolManager rather than contracts of their
               own, so they are the two rows here without an explorer link. What the Reserve holds in those pools, and what it has earned there, is on the{" "}
-              <Link to="/ledger/">Ledger</Link>.
+              <a href={analyticsUrl("/ledger/")}>Ledger ↗</a>.
             </div>
           </Doc>
 

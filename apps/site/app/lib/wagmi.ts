@@ -39,9 +39,14 @@ export const robinhoodChain = defineChain({
  * not a secret. Ouro needs its OWN project rather than borrowing another product's, because the id
  * is what WalletConnect attributes sessions and analytics to.
  *
- * Without one we still build a working config, just injected-only: a browser extension wallet keeps
- * working and only the QR / mobile path is missing. That is a much better failure than a page that
- * throws on load because an env var was not set at build time.
+ * Written here as a constant, on purpose. There used to be a build-time define
+ * (`__WALLETCONNECT_PROJECT_ID__`) fed by a Netlify variable; both belonged to the /referral page,
+ * nothing ever read them, and they went with it on 2026-09-15. A value that is public, that changes
+ * about never, and whose absence quietly costs the wallet modal its QR path is better checked in than
+ * configured in a dashboard nobody looks at.
+ *
+ * Empty is still handled rather than fatal: `hasWalletConnect` below falls the config back to
+ * injected-only, so a browser extension wallet keeps working and only the QR / mobile path is missing.
  */
 const projectId = "0031ff4cbef4968b799fc2910156439c";
 

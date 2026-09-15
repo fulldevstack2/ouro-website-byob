@@ -94,13 +94,20 @@ export function useReserveV4(): ReserveV4 {
 }
 
 /**
- * What the v4 positions add to the treasury, or null if any one of them is unpriced: a sum missing a
- * leg reads exactly like a complete one, which is the failure this page guards against. No positions
- * read is zero, not unknown, so a page with none still shows its NAV.
+ * What the v4 positions add to the treasury, or null if any one of them is unpriced, or the read is
+ * still in flight: a sum missing a leg reads exactly like a complete one, which is the failure this
+ * page guards against.
+ *
+ * In flight is UNKNOWN, not zero, and the distinction is the whole reason this takes the state rather
+ * than the rows. The monitor answers in about a second and the chain read lands a second after it, so
+ * treating the empty first second as "nothing here" published the monitor's own NAV, thousands of
+ * dollars light, and then jumped it. No position CONFIGURED is genuinely zero, so a build with none
+ * still shows its NAV on the monitor's first answer.
  */
-export function v4ValueUsd(rows: ReserveV4Row[]): number | null {
+export function v4ValueUsd(v4: ReserveV4): number | null {
+  if (v4.loading) return null;
   let sum = 0;
-  for (const r of rows) {
+  for (const r of v4.rows) {
     if (r.valueUsd === null) return null;
     sum += r.valueUsd;
   }
@@ -108,8 +115,8 @@ export function v4ValueUsd(rows: ReserveV4Row[]): number | null {
 }
 
 /** The monitor's NAV plus what the site read itself, withheld unless both sides are known. */
-export function navWithV4(monitorNav: number | null | undefined, rows: ReserveV4Row[]): number | null {
-  const extra = v4ValueUsd(rows);
+export function navWithV4(monitorNav: number | null | undefined, v4: ReserveV4): number | null {
+  const extra = v4ValueUsd(v4);
   if (monitorNav === null || monitorNav === undefined || extra === null) return null;
   return monitorNav + extra;
 }

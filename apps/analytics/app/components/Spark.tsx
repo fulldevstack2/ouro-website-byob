@@ -17,8 +17,6 @@ import type { Point } from "~/lib/series";
 export interface SparkProps {
   points: Point[];
   format: (v: number) => string;
-  /** `inverse` is the ink band; `ink` is a white card. */
-  tone?: "inverse" | "ink";
   height?: number;
   label: string;
   /** Shown under the bars when nothing is hovered. */
@@ -27,13 +25,13 @@ export interface SparkProps {
 
 const fmtDay = (t: number) => new Date(t * 1000).toISOString().slice(5, 10);
 
-export function Spark({ points, format, tone = "ink", height = 84, label, caption }: SparkProps) {
+export function Spark({ points, format, height = 84, label, caption }: SparkProps) {
   const [hover, setHover] = useState<number | null>(null);
   // Bars grow in when the series arrives or the window changes, not when a card is re-ranked.
   const entering = useEnter(1000);
 
   if (points.length < 2) {
-    return <span className={`spark-empty spark-${tone}`}>not enough history yet</span>;
+    return <span className="spark-empty">not enough history yet</span>;
   }
 
   const W = 600;
@@ -45,7 +43,7 @@ export function Spark({ points, format, tone = "ink", height = 84, label, captio
   const active = hover === null ? null : points[hover];
 
   return (
-    <span className={`spark spark-${tone}`}>
+    <span className="spark">
       <svg
         /* Remounted when the window changes, so the bars grow back in rather than snapping to a new
            set of heights. Keyed on what the window actually changes: how many days, from when. */

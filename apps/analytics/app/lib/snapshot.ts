@@ -30,7 +30,7 @@ import type { Series, SeriesState } from "~/lib/series";
 import { byKey } from "~/registry";
 
 /** Bumped whenever `ProjectRow` changes shape, so an old snapshot is dropped rather than read. */
-const VERSION = "2026-09-14";
+const VERSION = "2026-09-15";
 const KEY = `airdrop-meta:${VERSION}`;
 
 /** Older than this and it is not worth painting: the reader would be looking at yesterday. */
@@ -50,6 +50,7 @@ interface Stored {
   paid: Series[];
   tax: Series[];
   recipients: Series[];
+  gaps: Series[];
 }
 
 function read(): Stored | null {
@@ -83,6 +84,7 @@ export interface Painted {
   paid: Series[];
   tax: Series[];
   recipients: Series[];
+  gaps: Series[];
   generatedAt: number | null;
   /** What is on screen right now. The status pill says this out loud. */
   source: PaintSource;
@@ -121,6 +123,7 @@ export function usePainted(live: ProjectsState, series: SeriesState): Painted {
       paid: series.paid,
       tax: series.tax,
       recipients: series.recipients,
+      gaps: series.gaps,
     });
   }, [isLive, live.generatedAt, live.rows, series]);
 
@@ -130,6 +133,7 @@ export function usePainted(live: ProjectsState, series: SeriesState): Painted {
       paid: series.paid,
       tax: series.tax,
       recipients: series.recipients,
+      gaps: series.gaps,
       generatedAt: live.generatedAt,
       source: "live",
       cachedAt: null,
@@ -162,6 +166,7 @@ export function usePainted(live: ProjectsState, series: SeriesState): Painted {
         paid: pick(series.paid, cache.paid),
         tax: pick(series.tax, cache.tax),
         recipients: pick(series.recipients, cache.recipients),
+        gaps: pick(series.gaps, cache.gaps),
         generatedAt: cache.generatedAt,
         source: "cache",
         cachedAt: cache.at,
@@ -175,6 +180,7 @@ export function usePainted(live: ProjectsState, series: SeriesState): Painted {
     paid: series.paid,
     tax: series.tax,
     recipients: series.recipients,
+    gaps: series.gaps,
     generatedAt: null,
     source: "empty",
     cachedAt: null,

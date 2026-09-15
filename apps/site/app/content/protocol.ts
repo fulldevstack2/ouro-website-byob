@@ -39,11 +39,16 @@ export interface SplitLeg {
  * The home page's bars, the docs' §02 and §03, and the parameter table all read these, so the
  * figures cannot drift between the three places the site states them. The rate above is fixed at
  * launch; everything below it is operator policy.
+ *
+ * Rebalanced on 2026-09-15: LP went from 2% to 3.3%, the airdrop from 2% to 1%, and ops from 0.7% to
+ * 0.4%. The airdrop leg is spent the moment it is paid, while the LP leg earns for as long as the
+ * position is open, so weight moved onto LP is what keeps the airdrop paying when volume cools. The
+ * letscash leg is the only one that did not move: it is theirs, not ours.
  */
 export const TAX_SPLIT: SplitLeg[] = [
-  { label: "Airdrop: buys tokens and hands them to holders", short: "airdrop", pct: 2, tone: "ink" },
-  { label: "LP: buys the Reserve and keeps it", short: "LP", pct: 2, tone: "accent" },
-  { label: "Ops: gas, infra, listings", short: "ops", pct: 0.7, tone: "soft" },
+  { label: "LP: buys the Reserve and keeps it", short: "LP", pct: 3.3, tone: "accent" },
+  { label: "Airdrop: buys tokens and hands them to holders", short: "airdrop", pct: 1, tone: "ink" },
+  { label: "Ops: gas, infra, listings", short: "ops", pct: 0.4, tone: "soft" },
   { label: "letscash: the launchpad's platform fee", short: "letscash", pct: 0.3, tone: "faint" },
 ];
 
@@ -52,7 +57,7 @@ export const FEE_SPLIT: SplitLeg[] = [
   { label: "Reserve: tops up the positions, so the next cycle earns more", short: "Reserve", pct: 100 - FEE_SPLIT_HOLDERS_PCT, tone: "accent" },
 ];
 
-/** "2%", "0.7%", "80%": a leg's share, with no trailing zero on a whole number. */
+/** "3.3%", "0.4%", "80%": a leg's share, with no trailing zero on a whole number. */
 export const legPct = (leg: SplitLeg) => `${leg.pct}%`;
 
 /** "80 / 20": the fee split as one figure, for a heading and for the parameter table. */

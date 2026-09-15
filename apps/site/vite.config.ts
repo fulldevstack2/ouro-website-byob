@@ -21,14 +21,6 @@ export default defineConfig({
      * Setting it to the empty string is still honoured, and gives the "not configured" state.
      */
     __MONITOR_API__: JSON.stringify(process.env.MONITOR_API_URL ?? "https://ouro-monitor.onrender.com"),
-    /**
-     * WalletConnect project id for the /referral wallet connection. A PUBLIC identifier, not a
-     * secret: it ships in the client bundle and is what WalletConnect attributes sessions to, so
-     * Ouro needs its own rather than borrowing another product's. Unset is handled, not fatal —
-     * app/lib/wagmi.ts falls back to an injected-only config, so extension wallets still work and
-     * only the QR / mobile path is missing.
-     */
-    __WALLETCONNECT_PROJECT_ID__: JSON.stringify(process.env.WALLETCONNECT_PROJECT_ID ?? process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? ""),
   },
   resolve: {
     tsconfigPaths: true,

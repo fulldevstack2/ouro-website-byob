@@ -46,6 +46,41 @@ body {
 }
 .wordmark .dim { color: var(--text-muted); font-weight: var(--weight-regular); }
 
+/* The page tabs. Mono and quiet, because the chrome is not the page: the one that is open is the
+   only one set in the primary ink, and it carries a rule under it rather than a pill, which would
+   compete with the segmented controls the comparison page uses for its own measures. */
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab-link {
+  flex: none;
+  padding: 6px 10px;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.tab-link:hover { color: var(--text-primary); text-decoration: none; }
+.tab-link.active { color: var(--text-primary); border-bottom-color: var(--accent); }
+
+/* On a phone the bar becomes three rows: the wordmark, the tabs, then the disclosure. The tabs take
+   the full width so they scroll in their own lane rather than squeezing the wordmark. */
+@media (max-width: 720px) {
+  .nav-inner { gap: 10px 16px; }
+  .tabs { order: 3; width: 100%; margin-inline: -4px; }
+  .disclosure { order: 2; }
+}
+
 /* The operator disclosure. It is in the chrome on every page, not in an about page, because this
    site ranks projects it does not run on a domain one of them owns. */
 .disclosure {
@@ -139,99 +174,12 @@ h1 {
   100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--positive) 0%, transparent); }
 }
 
-/* ── the headline band ──────────────────────────────────────────────────────
-   The one slab of ink on the page, and the only place a figure is set larger than the headline. It
-   states what the whole meta adds up to, which is the fact a reader arrives for and the one figure
-   the page never used to carry. */
-.band {
-  position: relative;
-  overflow: hidden;
-  background: var(--surface-inverse);
-  color: var(--text-inverse);
-  border-radius: var(--radius-lg);
-  padding: 26px 28px 24px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 400px);
-  gap: 24px 36px;
-  align-items: end;
-  box-shadow: var(--shadow-card);
-}
-.band::after {
-  content: "";
-  position: absolute;
-  right: -110px;
-  top: -150px;
-  width: 380px;
-  height: 380px;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--bronze-400) 26%, transparent), transparent 68%);
-  pointer-events: none;
-}
-@media (max-width: 860px) {
-  .band { grid-template-columns: minmax(0, 1fr); }
-}
-.band-head { min-width: 0; }
-.band-label {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-caps);
-  text-transform: uppercase;
-  color: var(--text-inverse-muted);
-  margin-bottom: 12px;
-}
-.band-figure {
-  display: block;
-  font-family: var(--font-mono);
-  font-weight: var(--weight-semibold);
-  font-size: clamp(40px, 7vw, 64px);
-  line-height: 1;
-  letter-spacing: var(--tracking-mono-big);
-  font-variant-numeric: tabular-nums;
-}
-.band-figure.dash { color: var(--text-inverse-muted); }
-.band-sub {
-  margin: 14px 0 0;
-  max-width: 48ch;
-  font-size: var(--text-sm);
-  line-height: 1.5;
-  color: var(--text-inverse-muted);
-  text-wrap: pretty;
-}
-.band-spark { min-width: 0; position: relative; }
-.band-stats {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px 24px;
-  border-top: 1px solid color-mix(in srgb, var(--text-inverse) 14%, transparent);
-  padding-top: 20px;
-  margin-top: 2px;
-}
-@media (max-width: 560px) {
-  .band-stats { grid-template-columns: minmax(0, 1fr); }
-}
-.band-stat { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.band-stat .band-label { margin-bottom: 0; }
-.band-value {
-  font-family: var(--font-mono);
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-lg);
-  letter-spacing: var(--tracking-tight);
-  font-variant-numeric: tabular-nums;
-  color: var(--text-inverse);
-}
-.band-value.dash { color: var(--text-inverse-muted); }
-.band-note { font-size: var(--text-2xs); line-height: 1.4; color: var(--text-inverse-muted); }
-
 /* ── sparklines ─────────────────────────────────────────────────────────────
    Bars, not a line: these are daily totals, and a line between them draws values nobody measured. */
 .spark { display: block; min-width: 0; }
 .spark-svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
 .spark-bar { fill: var(--accent); transition: opacity var(--dur-fast) var(--ease-out); }
 .spark-bar.on { fill: var(--accent-strong); }
-.spark-inverse .spark-bar { fill: var(--bronze-300); }
-.spark-inverse .spark-bar.on { fill: var(--bronze-100); }
 .spark-readout {
   display: block;
   margin-top: 7px;
@@ -242,15 +190,12 @@ h1 {
   min-height: 1.4em;
 }
 .spark-readout b { font-weight: var(--weight-medium); color: var(--text-primary); }
-.spark-inverse .spark-readout { color: var(--text-inverse-muted); }
-.spark-inverse .spark-readout b { color: var(--text-inverse); }
 .spark-empty {
   display: block;
   font-size: var(--text-2xs);
   color: var(--text-faint);
   padding: 22px 0;
 }
-.spark-empty.spark-inverse { color: var(--text-inverse-muted); }
 
 /* ── sections and controls ──────────────────────────────────────────────── */
 .section { padding-block: 30px; }
@@ -822,22 +767,10 @@ table.matrix {
   background-size: 400% 100%;
   animation: shimmer 1.5s var(--ease-out) infinite;
 }
-.band .skel {
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--text-inverse) 7%, transparent) 25%,
-    color-mix(in srgb, var(--text-inverse) 15%, transparent) 37%,
-    color-mix(in srgb, var(--text-inverse) 7%, transparent) 63%
-  );
-  background-size: 400% 100%;
-}
 @keyframes shimmer {
   0% { background-position: 100% 0; }
   100% { background-position: 0 0; }
 }
-.skel-big { width: min(320px, 72%); height: clamp(40px, 7vw, 64px); }
-.skel-small { width: 92px; height: 22px; }
-.skel-spark { width: 100%; height: 100px; border-radius: var(--radius-sm); }
 .skel-cardfig { width: 62%; height: clamp(23px, 3vw, 31px); margin-top: 15px; }
 .skel-kv { width: 54px; height: 13px; }
 .skel-cardspark { width: 100%; height: 58px; }
@@ -846,12 +779,11 @@ table.matrix {
 /* ── motion ─────────────────────────────────────────────────────────────────
    Three kinds, and nothing outside them:
 
-     · ARRIVAL  — something new is on screen: the band and cards on load, a section coming into
-                  view, a chart being drawn, bars growing in when the window changes.
+     · ARRIVAL  — something new is on screen: the cards on load, a section coming into view, a
+                  chart being drawn, bars growing in when the window changes.
      · CHANGE   — something moved: a card sliding to a new rank, a figure that just ticked.
      · LIVENESS — the page is reading a chain that does not stop: the status dot, the poll bar
-                  filling toward the next read, the expanding ring at the live end of every series,
-                  the slow drift behind the band.
+                  filling toward the next read, the expanding ring at the live end of every series.
 
    All of it is transform and opacity, all of it is killed by the reduced-motion block at the foot of
    this file, and none of it is load-bearing: every figure is legible with every animation removed. */
@@ -865,7 +797,6 @@ table.matrix {
    would out-specify the card's hover lift for the rest of the session. The `.enter` class is dropped
    a second after mount (see `useEnter`), because React reorders a list by re-inserting its nodes and
    a re-inserted element restarts every CSS animation on it. */
-.band.enter { animation: rise 560ms var(--ease-out) backwards; }
 .card.enter { animation: rise 520ms var(--ease-out) backwards; }
 
 /* Sections that start below the fold, lifted into place as they arrive. Set by JS after first
@@ -890,18 +821,6 @@ table.matrix {
   }
 }
 [data-tick="on"] { animation: tick 1.15s var(--ease-out); border-radius: 2px; }
-@keyframes tick-inverse {
-  0% {
-    background-color: color-mix(in srgb, var(--bronze-300) 30%, transparent);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--bronze-300) 30%, transparent);
-  }
-  100% {
-    background-color: transparent;
-    box-shadow: 0 0 0 4px transparent;
-  }
-}
-.band [data-tick="on"] { animation: tick-inverse 1.15s var(--ease-out); }
-
 /* Time to the next read. Restarted by a key change whenever one lands, so it is a real countdown
    and not a loop that happens to take thirty seconds. */
 .poll {
@@ -926,33 +845,6 @@ table.matrix {
 @keyframes poll {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
-}
-
-/* The band's glow, never quite still. 26 seconds end to end: slow enough that it reads as depth
-   rather than as something animating. */
-.band::after { animation: drift 26s var(--ease-out) infinite alternate; }
-@keyframes drift {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to { transform: translate3d(-46px, 30px, 0) scale(1.16); }
-}
-
-/* A hairline of light crossing the band's divider, every few seconds. */
-.band-stats { position: relative; }
-.band-stats::before {
-  content: "";
-  position: absolute;
-  top: -1px;
-  left: 0;
-  width: 26%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--bronze-200), transparent);
-  opacity: 0.8;
-  animation: sweep 6.5s linear infinite;
-  pointer-events: none;
-}
-@keyframes sweep {
-  from { transform: translateX(-110%); }
-  to { transform: translateX(400%); }
 }
 
 /* A series drawing itself. `pathLength=1` on the path makes one keyframe work for any shape. */
@@ -1004,9 +896,9 @@ details[open] > .table-scroll {
 
 @media (prefers-reduced-motion: reduce) {
   /* The pseudo-element selectors are not redundant: a bare `*` does not match `::before` or
-     `::after`, so the band's drifting glow went on drifting for a reader who asked it not to. */
+     `::after`, and pseudo-elements on this page animate too. */
   *, *::before, *::after { animation: none !important; transition: none !important; }
   /* Left running, these would freeze mid-state instead of simply not being there. */
-  .poll, .band-stats::before, .chart-pulse { display: none; }
+  .poll, .chart-pulse { display: none; }
   [data-reveal] { opacity: 1 !important; transform: none !important; }
 }
