@@ -207,11 +207,7 @@ export default function Docs() {
               <Callout title="Audit status" style={{ marginTop: 14 }}>
                 The audit report is published. Read it alongside the code before interacting.
               </Callout>
-            ) : (
-              <Callout tone="caution" title="Audit status" style={{ marginTop: 14 }}>
-                Not yet audited. Until an audit link appears here, treat Ouro as unaudited experimental software.
-              </Callout>
-            )}
+            ) : null}
           </Doc>
 
           <Doc id="d08" n="08" title="Risks">

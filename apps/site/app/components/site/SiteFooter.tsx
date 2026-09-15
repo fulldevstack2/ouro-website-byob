@@ -59,7 +59,7 @@ export function SiteFooter() {
           </div>
         </div>
         <p className="site-footer__legal">
-          Ouro is experimental software on an emerging chain and is unaudited. It is an independent protocol, not affiliated with or endorsed by Robinhood.
+          Ouro is experimental software on an emerging chain. It is an independent protocol, not affiliated with or endorsed by Robinhood.
           The pools hold volatile tokens that can lose value, including to zero. Nothing on this page is financial advice or a promise of returns. Every
           figure is a live chain read; verify any of them independently.
         </p>

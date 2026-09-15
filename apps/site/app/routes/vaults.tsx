@@ -119,8 +119,8 @@ export default function Vaults() {
           </div>
         </div>
         <div className="stack" style={{ paddingTop: 20 }}>
-          <Callout tone="caution" title="New and unaudited">
-            The contracts are new and unaudited. Yield is Ouro&apos;s airdrop only and shrinks when trading cools. Withdrawals never pause.
+          <Callout tone="caution" title="New contracts">
+            The contracts are new. Yield is Ouro&apos;s airdrop only and shrinks when trading cools. Withdrawals never pause.
           </Callout>
           <Callout title="Say you hold 20,000 OURO">
             Too small alone. In the dollars vault the airdrop lands in the pool, a keeper sells it for USDG, and you collect your share. Your 20,000 OURO

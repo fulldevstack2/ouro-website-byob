@@ -17,10 +17,9 @@ import {
   fmtPctSigned,
   fmtUsd,
   fmtUsdSigned,
-  fmtWhen,
   useMonitor,
   type DailyRow,
-  type OuroCycle,
+  type OuroYield,
   type Reserve,
   type ReservePosition,
 } from "@ouro/monitor-client";
@@ -113,15 +112,22 @@ function allTime(days: DailyRow[] | undefined) {
 
 /**
  * The figures beside the headline, read from the chain through ouro-monitor: what the protocol owns
- * in liquidity, what it has paid holders, and the last cycle. A dash while a read is in flight; the
- * change over the day appears only once the window actually covers a day.
+ * in liquidity, what it has paid holders, and what those payouts annualise to. A dash while a read is
+ * in flight; the change over the day appears only once the window actually covers a day.
+ *
+ * The rate replaced the last cycle's amount here on 2026-09-15. One cycle's dollars answered "what
+ * does a payout look like" and nothing a reader can act on: $309 means nothing without knowing whose
+ * balance earned it. The rate is the figure this hero used to lead with, and every payout is still one
+ * click away on the analytics site.
  */
 function HeroCard() {
   const clock = useClock();
   const v4 = useReserveV4();
   const reserve = useMonitor<Reserve>(MONITOR_API ? "/v1/reserve?hours=25" : null, 300_000);
   const daily = useMonitor<{ token: string; days: DailyRow[] }>(MONITOR_API ? "/v1/ouro/daily?days=366" : null, 300_000);
-  const epochs = useMonitor<{ token: string; epochs: OuroCycle[] }>(MONITOR_API ? "/v1/ouro/epochs?limit=5" : null, 120_000);
+  // Same request and window the vaults page's rate comes from (hooks/usePrices.ts), so the two pages
+  // cannot disagree about what a wallet above the line earns.
+  const yields = useMonitor<OuroYield>(MONITOR_API ? "/v1/ouro/yield?days=7" : null, 300_000);
 
   const d = reserve.data;
   const t = d?.totals;
@@ -140,7 +146,23 @@ function HeroCard() {
   const unindexed = (d?.unindexed ?? []).reduce((n, u) => n + (u.count ?? 0), 0);
   const unvalued = Math.max(0, unindexed - v4.rows.length);
   const all = allTime(daily.data?.days);
-  const last = (epochs.data?.epochs ?? []).find((c) => (c.status === "closed" || c.status === "aborted") && c.paidUsd !== null) ?? null;
+
+  /**
+   * The rate, and the window it was measured over, which it never appears without.
+   *
+   * `caveat` comes from the monitor and MUST be shown whenever it is set: the same payouts annualise
+   * to wildly different rates depending only on the basis, and that sentence names the history this
+   * one actually rests on. When it is null the rate covers a full week, and the basis is stated in
+   * the shortest form that is still a basis. A hero percentage is the most screenshot-able thing on
+   * the site; it does not go out unqualified.
+   */
+  const rate = yields.data;
+  const rateNote = !rate
+    ? "From payouts actually made, at the rate of the last seven days."
+    : rate.aprPct === null
+      ? (rate.withheld ?? "Needs a payout and a price to measure")
+      : (rate.caveat ??
+        (rate.basisDays === null ? "From payouts actually made" : `${fmtNum(rate.basisDays, 0)}-day basis · ${fmtNum(rate.cycles)} cycles`));
 
   // Counted only once the chain read has settled, for the same reason the figure above it is: a
   // note that says "2 positions" and then says "3" is the same jump, one line down.
@@ -157,7 +179,7 @@ function HeroCard() {
       <Stat size="xl" label="Protocol-owned liquidity" value={fmtUsd(nav)} delta={delta === null ? null : fmtPctSigned(delta, 1)} footnote={navNote} />
       <div className="hero__pair">
         <Stat size="sm" label="Airdropped to holders" value={fmtUsd(all?.paidUsd)} footnote={all ? `${fmtNum(all.cycles)} cycles${all.since ? ` since ${all.since}` : ""}` : "Every cycle, valued when sent"} />
-        <Stat size="sm" label="Airdrop every 2 hours" value={fmtUsd(last?.paidUsd)} footnote={last ? `${fmtWhen(last.endTs ?? last.startTs)} · ${fmtNum(last.recipients)} wallets` : "Every two hours"} />
+        <Stat size="sm" label="Airdrop rate, annualised" value={rate?.aprPct == null ? "—" : `${fmtNum(rate.aprPct, 0)}%`} footnote={rateNote} />
       </div>
       {/* Both of these are on the analytics site now. Same pages, same paths, another origin. */}
       <div className="hero__links">

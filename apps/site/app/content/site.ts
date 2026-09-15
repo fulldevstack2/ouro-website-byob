@@ -53,7 +53,12 @@ export const site = {
       "https://rpc.mainnet.chain.robinhood.com",
     ],
   },
-  /** Set to true once the audit report is published; it swaps the docs "Audit status" callout. */
+  /**
+   * Set to true once the audit report is published; it shows the docs' "Audit status" callout.
+   *
+   * While it is false the docs say nothing about an audit either way. The "not yet audited" caution
+   * that used to stand in its place was removed on 2026-09-15.
+   */
   auditPublished: false,
   links: {
     x: `https://x.com/${xHandle.replace(/^@/, "")}`,

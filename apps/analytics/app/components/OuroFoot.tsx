@@ -22,8 +22,8 @@ export function OuroFoot() {
         </a>
       </span>
       <span className="page-foot__legal">
-        Ouro is experimental, unaudited software on an emerging chain, and is not affiliated with or endorsed by Robinhood. The pools hold volatile tokens
-        that can lose value, including to zero. Nothing here is financial advice or a promise of returns.
+        Ouro is experimental software on an emerging chain, and is not affiliated with or endorsed by Robinhood. The pools hold volatile tokens that can
+        lose value, including to zero. Nothing here is financial advice or a promise of returns.
       </span>
     </footer>
   );
