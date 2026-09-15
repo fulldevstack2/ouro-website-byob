@@ -35,15 +35,18 @@ export function VaultList({ children }: { children: ReactNode }) {
   );
 }
 
-/** The bar over the cards: the app's name and the pooled total on the left, the wallet on the right. */
-export function VaultBar({ pooled, share, right }: { pooled: ReactNode; share: ReactNode; right: ReactNode }) {
+/**
+ * The bar over the cards: the app's name and the pooled total on the left, the wallet on the right.
+ *
+ * Every digit of the total, because the page header states the same figure as a share and rounds the
+ * token count to make the point. One of the two has to be exact and this is the one with room for it.
+ */
+export function VaultBar({ pooled, right }: { pooled: ReactNode; right: ReactNode }) {
   return (
     <div className="vbar">
       <div className="vbar__title">
         <span className="vbar__name">Ouro Vaults</span>
-        <span className="vbar__pooled">
-          {pooled} OURO pooled · {share} of floating supply
-        </span>
+        <span className="vbar__pooled">{pooled} OURO pooled</span>
       </div>
       <div className="vbar__wallet">{right}</div>
     </div>
@@ -151,7 +154,7 @@ export const CARD_INDEX = ["01", "02", "03", "04", "05", "06"];
 export function VaultsStatic() {
   return (
     <>
-      <VaultBar pooled="—" share="—" right={<Button size="sm" disabled>Connect wallet</Button>} />
+      <VaultBar pooled="—" right={<Button size="sm" disabled>Connect wallet</Button>} />
       <VaultList>
         {LIVE_VAULTS.map((v, i) => (
           <VaultCard

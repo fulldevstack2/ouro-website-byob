@@ -128,10 +128,12 @@ function HeroCard() {
   // The headline counts the Uniswap v4 position the monitor cannot value; the change over the day
   // stays on the monitor's own figure, because its 24 hour baseline is that figure and no other.
   const monitorNav = t?.navUsd ?? null;
-  const nav = navWithV4(monitorNav, v4.rows);
+  const nav = navWithV4(monitorNav, v4);
   const delta = (() => {
     const first = (d?.history ?? []).find((s) => s.nav_usd !== null && s.nav_usd > 0);
-    if (!d || !first || monitorNav === null || first.nav_usd === null) return null;
+    // Withheld until the figure it qualifies is on screen: the monitor answers a second before the
+    // chain read does, and a percentage change sitting next to a dash qualifies nothing.
+    if (!d || !first || nav === null || monitorNav === null || first.nav_usd === null) return null;
     if ((d.generatedAt - first.ts) / 3600 < 20) return null;
     return (monitorNav - first.nav_usd) / first.nav_usd;
   })();
@@ -140,12 +142,15 @@ function HeroCard() {
   const all = allTime(daily.data?.days);
   const last = (epochs.data?.epochs ?? []).find((c) => (c.status === "closed" || c.status === "aborted") && c.paidUsd !== null) ?? null;
 
-  const positions = (t?.positions ?? 0) + v4.rows.length;
-  const navNote = t
-    ? `Marked to market · ${fmtNum(positions)} ${positions === 1 ? "position" : "positions"}${delta !== null ? " · past 24 hours" : ""}${
-        unvalued > 0 ? ` · ${fmtNum(unvalued)} more in Uniswap v4, not valued` : ""
-      }`
-    : "Marked to market, from the Reserve's positions";
+  // Counted only once the chain read has settled, for the same reason the figure above it is: a
+  // note that says "2 positions" and then says "3" is the same jump, one line down.
+  const positions = t && !v4.loading ? t.positions + v4.rows.length : null;
+  const navNote =
+    positions === null
+      ? "Marked to market, from the Reserve's positions"
+      : `Marked to market · ${fmtNum(positions)} ${positions === 1 ? "position" : "positions"}${delta !== null ? " · past 24 hours" : ""}${
+          unvalued > 0 ? ` · ${fmtNum(unvalued)} more in Uniswap v4, not valued` : ""
+        }`;
 
   return (
     <Card label="Read from the chain" action={<span style={{ ...mono, fontSize: 11, color: "var(--text-faint)" }}>{clock ? `Updated ${clock}` : ""}</span>} padding={28}>

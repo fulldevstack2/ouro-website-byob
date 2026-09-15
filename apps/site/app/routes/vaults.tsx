@@ -2,14 +2,15 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import { Link } from "react-router";
 
 import type { Route } from "./+types/vaults";
-import { Badge, Callout, LedgerTable, type LedgerColumn } from "@ouro/ds";
+import { Badge, Callout, LedgerTable, Stat, type LedgerColumn } from "@ouro/ds";
 import { Container, PageHeader, SectionHead, body14, fitTable, mono } from "~/components/site";
 import { VaultsStatic } from "~/components/vaults/VaultFrame";
-import { LINE_TOKENS } from "~/content/protocol";
+import { FLOATING_SUPPLY_TOKENS, LINE_TOKENS } from "~/content/protocol";
 import { site } from "~/content/site";
 import { TERMS } from "~/content/vaults";
+import { useVaultsPooled } from "~/hooks/useVaultsPooled";
 import { pageMeta } from "~/lib/meta";
-import { fmtNum } from "@ouro/monitor-client";
+import { fmtNum, fmtPct } from "@ouro/monitor-client";
 
 /**
  * The wallet half of the page, loaded on the client only. The prerender (a real render pass in node)
@@ -27,6 +28,25 @@ function VaultsSection() {
     <Suspense fallback={<VaultsStatic />}>
       <VaultsLive />
     </Suspense>
+  );
+}
+
+/**
+ * The headline figure in the header's right-hand slot: how much of the floating supply is pooled in
+ * the vaults. It is the live section's own read, handed up through hooks/useVaultsPooled, so the
+ * header and the bar over the cards cannot state the same total two different ways. A dash until that
+ * read lands, which on a page with no JavaScript is always.
+ */
+function PooledShare() {
+  const tokens = useVaultsPooled();
+  return (
+    <Stat
+      align="end"
+      size="lg"
+      label="Supply pooled"
+      value={tokens === null ? "—" : fmtPct(tokens / FLOATING_SUPPLY_TOKENS, 2)}
+      footnote={tokens === null ? "Reading the chain" : `${fmtNum(tokens / 1e6, 1)}M of ${fmtNum(FLOATING_SUPPLY_TOKENS / 1e6)}M OURO floating`}
+    />
   );
 }
 
@@ -73,9 +93,12 @@ export default function Vaults() {
         title="The vaults."
         lede={LEDE}
         aside={
-          <Badge tone="positive" dot>
-            Live on {site.chain.name}
-          </Badge>
+          <div className="page-head__figure">
+            <PooledShare />
+            <Badge tone="positive" dot>
+              Live on {site.chain.name}
+            </Badge>
+          </div>
         }
       />
 

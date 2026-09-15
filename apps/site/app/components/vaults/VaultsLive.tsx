@@ -1,5 +1,5 @@
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { formatUnits } from "viem";
 import { useAccount, useChainId, useReadContracts, useSwitchChain } from "wagmi";
 
@@ -8,12 +8,12 @@ import { KVRow, MicroLabel, body14, mono } from "~/components/site";
 import { CARD_INDEX, VaultBar, VaultCard, VaultList, VaultsStatic } from "~/components/vaults/VaultFrame";
 import { WalletButton } from "~/components/wallet/WalletButton";
 import { WalletProvider } from "~/components/wallet/WalletProvider";
-import { FLOATING_SUPPLY_TOKENS } from "~/content/protocol";
 import { externalLinkProps, site } from "~/content/site";
 import { LIVE_VAULTS, TOKEN_DECIMALS, type LiveVault } from "~/content/vaults";
 import { usePrices, type Prices } from "~/hooks/usePrices";
+import { publishPooled } from "~/hooks/useVaultsPooled";
 import { useVaultActions, useVaultView, type TxState, type VaultActions, type VaultView } from "~/hooks/useVault";
-import { ago, fmtAge, fmtNum, fmtPct, fmtUsd } from "@ouro/monitor-client";
+import { ago, fmtAge, fmtNum, fmtUsd } from "@ouro/monitor-client";
 import { fmtAmount, parseAmount, streamPerDay, vaultAbi } from "~/lib/vaultChain";
 import { YIELD_DISPLAY_CAP_PCT, fmtYieldPct, projectedYieldPct, realisedYield, toNumber, usdValue } from "~/lib/vaultYield";
 import { hasWalletConnect, robinhoodChain } from "~/lib/wagmi";
@@ -41,14 +41,13 @@ function LiveSection() {
   const prices = usePrices();
   const pooled = useCombinedPooled();
   const pooledTokens = toNumber(pooled, OURO_DECIMALS);
+  // Up to the page header, which states the same total as a share of the floating supply and has no
+  // way to read the chain itself. See hooks/useVaultsPooled.
+  useEffect(() => publishPooled(pooledTokens), [pooledTokens]);
 
   return (
     <>
-      <VaultBar
-        pooled={pooled === undefined ? "—" : fmtAmount(pooled, OURO_DECIMALS, 0)}
-        share={pooledTokens === null ? "—" : fmtPct(pooledTokens / FLOATING_SUPPLY_TOKENS, 2)}
-        right={<WalletButton />}
-      />
+      <VaultBar pooled={pooled === undefined ? "—" : fmtAmount(pooled, OURO_DECIMALS, 0)} right={<WalletButton />} />
       <VaultList>
         {LIVE_VAULTS.map((v, i) => (
           <VaultPanel key={v.entry.address} n={CARD_INDEX[i] ?? String(i + 1)} vault={v} prices={prices} ready={ready} />

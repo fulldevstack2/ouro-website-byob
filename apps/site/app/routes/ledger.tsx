@@ -274,10 +274,13 @@ export default function Ledger() {
    * did not read, which is nothing today and is disclosed the moment it is not.
    */
   const v4 = useReserveV4();
-  const nav = navWithV4(t?.navUsd, v4.rows);
-  const positions = (t?.positions ?? 0) + v4.rows.length;
-  const inRange = (t?.inRange ?? 0) + v4.rows.filter((r) => r.inRange).length;
-  const unvalued = unindexedTotal === null ? null : Math.max(0, unindexedTotal - v4.rows.length);
+  const nav = navWithV4(t?.navUsd, v4);
+  // Every count below waits on the same read the NAV does: a "2 positions" that becomes "3" a second
+  // later is the same jump as a NAV that grows, and both are corrections the page never had to make.
+  const counted = t !== undefined && t !== null && !v4.loading;
+  const positions = counted ? t.positions + v4.rows.length : null;
+  const inRange = counted ? t.inRange + v4.rows.filter((r) => r.inRange).length : null;
+  const unvalued = !counted || unindexedTotal === null ? null : Math.max(0, unindexedTotal - v4.rows.length);
 
   /**
    * One bar per UTC day, from the last snapshot of that day, over a fixed 30-day window ending today.
@@ -358,9 +361,11 @@ export default function Ledger() {
           label="Treasury NAV"
           value={fmtUsd(nav)}
           footnote={
-            `Owned liquidity, marked to market · ${fmtNum(positions)} position${positions === 1 ? "" : "s"}` +
-            (v4.rows.length > 0 ? `, ${v4.rows.length === 1 ? "one of them" : `${fmtNum(v4.rows.length)} of them`} in Uniswap v4 and read from the chain` : "") +
-            (unvalued === null ? " · excludes liquidity held in an unread venue" : unvalued > 0 ? ` · excludes ${fmtNum(unvalued)} held elsewhere` : "")
+            positions === null
+              ? "Owned liquidity, marked to market"
+              : `Owned liquidity, marked to market · ${fmtNum(positions)} position${positions === 1 ? "" : "s"}` +
+                (v4.rows.length > 0 ? `, ${v4.rows.length === 1 ? "one of them" : `${fmtNum(v4.rows.length)} of them`} in Uniswap v4 and read from the chain` : "") +
+                (unvalued === null ? " · excludes liquidity held in an unread venue" : unvalued > 0 ? ` · excludes ${fmtNum(unvalued)} held elsewhere` : "")
           }
         />
         <Stat
@@ -404,7 +409,7 @@ export default function Ledger() {
         <div>
           <MicroLabel style={{ marginBottom: 12 }}>The Reserve</MicroLabel>
           <div className="kv-list">
-            <KVRow label="Positions held, earning now" value={t ? `${fmtNum(positions)} · ${fmtNum(inRange)} in range` : "—"} />
+            <KVRow label="Positions held, earning now" value={positions === null ? "—" : `${fmtNum(positions)} · ${fmtNum(inRange)} in range`} />
             <KVRow label="Wallet that holds them" value={d ? <AddressCell address={d.lp as `0x${string}`} /> : "—"} />
             <KVRow label="Gas left to collect with" value={d ? `${fmtEth(d.gas.eth)} ETH${d.gas.usd === null ? "" : ` · ${fmtUsd(d.gas.usd)}`}` : "—"} />
             <KVRow
