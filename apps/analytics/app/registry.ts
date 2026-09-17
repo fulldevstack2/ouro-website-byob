@@ -346,14 +346,19 @@ export const LAUNCHPAD_FIXTURE: Project = {
 /**
  * How the comparison table is sorted by default.
  *
- * It is a stated, factual order, and it is never "Ouro first". All-time paid is the honest default
- * for a page about airdrops: it ranks by the thing the page is actually about, and it currently puts
- * a project this site does not operate at the top. The column header names the order, and every
- * column sorts.
+ * Rate per line, per day: what a holder above the line is actually paid, which is the figure a
+ * reader comparing these tokens is here for. All-time paid held this slot until 2026-09-17 and
+ * ranks by accumulated size instead, so the oldest token leads it whatever it pays today.
+ *
+ * Note what the change costs. The new default currently puts Ouro, whose domain this sits on, at
+ * the top, where the old one put a project this site does not operate. The order is still a stated,
+ * factual one, the heading names it, every row of the table re-ranks it in one press, and the
+ * operator disclosure is in the chrome of every page. Keep all four, or this becomes a ranking that
+ * ranks its own author first and says nothing about it.
  */
 export type SortKey = Metric | "symbol";
 
-export const DEFAULT_SORT: SortKey = "paidAllTime";
+export const DEFAULT_SORT: SortKey = "ratePerLine";
 
 /** Every row that carries a `sort`, plus the alphabetical fallback. The table label IS the control. */
 export const SORTABLE: SortKey[] = [...METRICS.filter((m) => m.sort).map((m) => m.key), "symbol"];

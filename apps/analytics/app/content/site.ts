@@ -39,6 +39,15 @@ export const site = {
   links: {
     /** Block explorer for Robinhood Chain (address and transaction links on both pages). */
     explorer: "https://robinhoodchain.blockscout.com",
+    /**
+     * Where a reader tells us a figure is wrong.
+     *
+     * This page reports on projects Ouro does not run, off adapters we wrote, so the figures can be
+     * wrong in ways only the project itself would spot. A correction route in the chrome is the
+     * cheap half of that; answering one is the other half. Ouro's own channel, same handle as
+     * apps/site, which is the operator disclosure being consistent rather than a second identity.
+     */
+    telegram: "https://t.me/ourolayer",
   },
 };
 

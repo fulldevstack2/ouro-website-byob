@@ -429,6 +429,38 @@ h2 {
 /* ── the comparison table ───────────────────────────────────────────────── */
 .table-scroll { overflow-x: auto; margin-top: 18px; }
 
+/* The sheet the comparison table sits on.
+ *
+ * It was the one block on this page reading as GROUND rather than as something on it: the cards
+ * above and the chart panels below are white sheets, and the table was bare on --page, the warm grey
+ * the design system put there so white would read as paper. Two things followed from that, and both
+ * were legibility, not taste. The 11px sub-lines under every figure ran --text-faint, which is toned
+ * to clear AA on white and does not clear it on the grey. And --surface-tint, the row and column
+ * wash, is by its own definition a step BELOW the page, so on the page it lightened rather than
+ * banded, and the ranked row read as a hole rather than a highlight.
+ *
+ * Flat, like the cards: hairline and radius, no shadow. The shadow is their hover state, and a
+ * table does not hover.
+ */
+.table-scroll.sheet {
+  background: var(--surface-card);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-lg);
+
+  /* The ladder, restated for paper: --surface-tint is a step below the PAGE and vanishes on white,
+     so each step is re-cut a step below --paper instead.
+
+     One hue, three strengths, and deliberately no grey. The neutral step used to be --page itself,
+     which is the one colour on this site that means "behind the sheet": filling a row with it made
+     the highlight read as a hole punched through the paper rather than a wash laid on it. Bronze
+     cannot be mistaken for the ground, so the whole ladder is bronze and intensity alone carries
+     the order — the pointer passing through, a state that stays (the ranked row, a pinned column),
+     and the two at once. */
+  --matrix-hover: var(--accent-faint);
+  --matrix-state: color-mix(in srgb, var(--accent-soft) 75%, var(--paper));
+  --matrix-state-hot: var(--accent-soft);
+}
+
 table.matrix {
   border-collapse: collapse;
   width: 100%;
@@ -448,9 +480,9 @@ table.matrix {
 }
 .matrix tbody tr { border-bottom: 1px solid var(--border-hairline); }
 .matrix tbody tr:last-child { border-bottom: 0; }
-.matrix tbody tr:hover { background: var(--surface-tint); }
+.matrix tbody tr:hover { background: var(--matrix-hover, var(--surface-tint)); }
 .matrix tbody tr.sorted,
-.matrix tbody tr.sorted:hover { background: var(--accent-faint); }
+.matrix tbody tr.sorted:hover { background: var(--matrix-state, var(--accent-faint)); }
 
 /* Band heads. Fourteen undifferentiated rows is a wall; three named runs of rows is a table. */
 .matrix tr.group-row,
@@ -468,9 +500,14 @@ table.matrix {
 .matrix tbody:first-of-type tr.group-row th { padding-top: 14px; }
 
 /* Tracing a column. Hover lights it, a selected card pins it; neither changes what is on the page. */
-.matrix td.col-hot, .matrix th.col-hot { background: var(--surface-tint); }
-.matrix td.col-pin, .matrix th.col-pin { background: var(--accent-faint); }
-.matrix td.col-pin.col-hot, .matrix th.col-pin.col-hot { background: var(--accent-soft); }
+.matrix td.col-hot, .matrix th.col-hot { background: var(--matrix-hover, var(--surface-tint)); }
+.matrix td.col-pin, .matrix th.col-pin { background: var(--matrix-state, var(--accent-faint)); }
+.matrix td.col-pin.col-hot,
+.matrix th.col-pin.col-hot { background: var(--matrix-state-hot, var(--accent-soft)); }
+/* Where the pointer's column crosses the ranked row. A cell paints over its row, so without this the
+   hover tint replaces the ranked band and the crossing reads as a lighter notch cut out of it. Two
+   signals at once go UP the ladder, never down. */
+.matrix tbody tr.sorted td.col-hot { background: var(--matrix-state-hot, var(--accent-soft)); }
 
 .metric-name {
   color: var(--text-secondary);
@@ -751,6 +788,11 @@ table.matrix {
   color: var(--text-faint);
 }
 .foot a { color: var(--text-muted); }
+
+/* The correction route. It is the one line in the foot the reader can act on, so it goes last, takes
+   the full width once the stated lines have wrapped, and carries the accent its neighbours do not. */
+.foot-contact { flex-basis: 100%; color: var(--text-muted); }
+.foot-contact a { color: var(--text-accent); text-underline-offset: 2px; }
 
 /* ── loading ────────────────────────────────────────────────────────────────
    A resting shape, never a dash. On this page a dash is a statement about our coverage, so printing

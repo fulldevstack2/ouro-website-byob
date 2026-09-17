@@ -65,7 +65,8 @@ export function Leaderboard({
   paid: Record<string, Point[]>;
   loading: boolean;
 }) {
-  // Sorting by name still has to headline something, and all-time paid is the page's own default.
+  // Sorting by name still has to headline something, and all-time paid is the plainest figure on
+  // the page: the one quantity that needs no basis read alongside it.
   const ranked: Metric = sort === "symbol" ? "paidAllTime" : sort;
   const support = SUPPORT.filter((m) => m !== ranked).slice(0, 3);
 

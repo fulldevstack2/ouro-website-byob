@@ -1,3 +1,4 @@
+import { Corrections } from "~/components/Corrections";
 import { externalLinkProps, site } from "~/content/site";
 
 /**
@@ -21,6 +22,7 @@ export function OuroFoot() {
           ourolayer.com ↗
         </a>
       </span>
+      <Corrections />
       <span className="page-foot__legal">
         Ouro is experimental software on an emerging chain, and is not affiliated with or endorsed by Robinhood. The pools hold volatile tokens that can
         lose value, including to zero. Nothing here is financial advice or a promise of returns.
