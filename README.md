@@ -95,10 +95,9 @@ Three rules the rendering enforces:
   at all — it is summed from a `limit=200` page of its cycles, which is a ceiling rather than a
   guarantee. That asymmetry is the argument for `GET /v1/projects`; when that lands, `useProjects()`
   becomes one call and everything below `ProjectRow` is deleted. Nothing else should change.
-- **$OURO's holders-above-the-line is a dash.** The count lives on `/v1/ouro/holders`, which is the
-  payout registry itself — uncached by design and not something a public dashboard should poll. The
-  last cycle's recipient count was NOT substituted for it: printing 315 under the header that shows
-  INDEX's 4,088 would be two different quantities wearing one label.
+- **$OURO's holders-above-the-line is measured from `/v1/ouro/holders`.** The full registry is
+  polled on a slow cadence (same as the airdrops page) and only `counts.eligible` is kept. Prefer a
+  count-only field on `/v1/projects` when that lands, so the dashboard does not download the list.
 - **The prerendered HTML has no figures in it.** Every number is fetched in the browser, so a crawler
   or a link preview sees the table with dashes. Fixing it properly means build-time data, which wants
   `/v1/projects` first.
