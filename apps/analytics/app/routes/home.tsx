@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import type { Route } from "./+types/home";
 import { Charts, type MeasureKey } from "~/components/Charts";
+import { Corrections } from "~/components/Corrections";
 import { DASH } from "~/components/Coverage";
 import { Elapsed } from "~/components/Elapsed";
 import { Leaderboard } from "~/components/Leaderboard";
@@ -197,8 +198,8 @@ export default function Home() {
       <footer className="container foot">
         <span>Read from Robinhood Chain · nothing reported by hand</span>
         <span>Operated by Ouro · unaffiliated with the other projects listed</span>
-        <span>{DASH} means not measured, not zero</span>
         <span>Price, value and volume: DexScreener, polled every 30 s</span>
+        <Corrections />
       </footer>
     </>
   );

@@ -49,7 +49,7 @@ export function Matrix({
   };
 
   return (
-    <div className="table-scroll" onPointerLeave={() => setHot(null)}>
+    <div className="table-scroll sheet" onPointerLeave={() => setHot(null)}>
       <table className="matrix">
         <thead>
           <tr>
