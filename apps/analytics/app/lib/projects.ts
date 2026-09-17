@@ -16,6 +16,7 @@
 import {
   useMonitor,
   type OuroCycle,
+  type OuroHolders,
   type OuroYield,
   type Summary,
   type TokenSummary,
@@ -224,6 +225,8 @@ function fromOuro(
   cycles: OuroCycle[] | null,
   now: number,
   volume: TokenMarket,
+  /** Eligible wallets from `/v1/ouro/holders` — same quantity INDEX/HOOD10 expose on `/v1/summary`. */
+  holdersAboveLine: number | null,
 ): ProjectRow {
   const row = {
     ...blankRow(project),
@@ -254,16 +257,11 @@ function fromOuro(
     cyclesTruncated: (cycles?.length ?? 0) >= OURO_CYCLE_PAGE,
     assets: lastCycle?.assets?.map((a) => ({ address: a.address, symbol: a.symbol })) ?? null,
     /**
-     * NOT the recipient count.
-     *
-     * `/v1/summary` gives INDEX a true holders-above-the-line (4,088 as this was written). The
-     * equivalent for $OURO lives on `/v1/ouro/holders`, which is the payout registry itself —
-     * uncached by design, and not something a public dashboard should poll. Putting the last
-     * cycle's recipient count here instead would have printed 315 under the same column header as
-     * INDEX's 4,088: two different quantities, one label, and $OURO looking an order of magnitude
-     * smaller than it is. `/v1/projects` should serve the count without the list.
+     * Same quantity as INDEX/HOOD10's `holders.aboveLine`: wallets at or above the dividend line,
+     * after exclusion policy. Sourced from `/v1/ouro/holders` counts (polled slowly) rather than
+     * last-cycle recipients, which is a different number under the same column header.
      */
-    holdersAboveLine: null,
+    holdersAboveLine,
     recipientsLast: lastCycle?.recipients ?? null,
     ratePerLineUsdPerDay: y?.perLineUsdPerDay ?? null,
     aprPct: y?.aprPct ?? null,
@@ -301,8 +299,14 @@ export function useProjects(intervalMs = 30_000): ProjectsState {
   const indexCycles = useMonitor<{ epochs: OuroCycle[] }>("/v1/index/epochs?limit=200", intervalMs);
   /** HOOD10's periods, live since its backfill was re-enabled on 2026-09-12. */
   const hood10Cycles = useMonitor<{ epochs: OuroCycle[] }>("/v1/hood10/epochs?limit=200", intervalMs);
+  /**
+   * $OURO holders-above-the-line. The payload is the payout registry (~180 KB, uncached), so this
+   * polls on the same slow cadence as the airdrops page rather than every `intervalMs`. Prefer a
+   * count-only field on `/v1/projects` or `/v1/summary` when those land.
+   */
+  const ouroHolders = useMonitor<OuroHolders>("/v1/ouro/holders?min=100000", 120_000);
 
-  const polls = [summary, ouroYield, ouroCycles, indexCycles, hood10Cycles];
+  const polls = [summary, ouroYield, ouroCycles, indexCycles, hood10Cycles, ouroHolders];
   const configured = !polls.some((p) => p.error === "not-configured");
 
   const markets = useMarkets(PROJECTS.map((p) => ({ token: p.token, canonicalPoolId: p.canonicalPoolId })));
@@ -311,7 +315,14 @@ export function useProjects(intervalMs = 30_000): ProjectsState {
   const rows = PROJECTS.map((project) => {
     const market = markets[project.token.toLowerCase()] ?? EMPTY_MARKET;
     if (project.key === "ouro") {
-      return fromOuro(project, ouroYield.data, ouroCycles.data?.epochs ?? null, now, market);
+      return fromOuro(
+        project,
+        ouroYield.data,
+        ouroCycles.data?.epochs ?? null,
+        now,
+        market,
+        ouroHolders.data?.counts.eligible ?? null,
+      );
     }
     const cycles =
       project.key === "index"

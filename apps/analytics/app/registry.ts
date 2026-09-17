@@ -253,8 +253,8 @@ export const PROJECTS: Project[] = [
       paid24h: { state: "measured" },
       assets: { state: "measured", note: "per cycle, per asset" },
       holders: {
-        state: "not_indexed",
-        note: "the count lives on the payout registry endpoint, which is uncached by design and not for a dashboard to poll. It needs /v1/projects",
+        state: "measured",
+        note: "from the payout registry's eligible count (polled slowly until /v1/projects serves it)",
       },
       // No note: "in the most recent cycle" is already the column hint, and saying it again in
       // every cell is exactly the wallpaper that teaches a reader to skip the notes that differ.
