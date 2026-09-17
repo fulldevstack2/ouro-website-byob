@@ -18,23 +18,17 @@ export const site = {
   ticker: "$OURO",
   xHandle: "@ourolayer",
   /**
-   * Robinhood Chain, and every public endpoint that works, in the order they are tried. All keyless,
-   * so they ship in the client bundle by design. The list and its order are apps/site's, measured
-   * there on 2026-09-10: the chain's own endpoint goes LAST despite holding the freshest head,
-   * because it is the one that rejects batched requests and returns empty state reads. One failing
-   * hands over to the next (app/lib/rpc.ts).
+   * The chain these pages report on, by name, for the footer and the page furniture.
+   *
+   * No RPC endpoints any more. This app talked to the chain for exactly one thing — reading the
+   * Reserve's Uniswap v4 position, which the monitor did not index — and since 2026-09-17 it does,
+   * so every figure here comes from the monitor over HTTP. The endpoint list, `app/lib/rpc.ts` and
+   * `app/lib/dexQuote.ts` went with it. apps/site keeps its own copies: its wallet connection needs
+   * them, and this page has no wallet.
    */
   chain: {
     name: "Robinhood Chain",
     id: 4663,
-    rpcUrls: [
-      "https://robinhood-rpc.publicnode.com",
-      "https://rpc-robinhood.blockmachine.io",
-      "https://rpc.ordofi.network",
-      "https://robinhood.rpc.blxrbdn.com",
-      "https://robinhood.api.pocket.network",
-      "https://rpc.mainnet.chain.robinhood.com",
-    ],
   },
   links: {
     /** Block explorer for Robinhood Chain (address and transaction links on both pages). */

@@ -130,9 +130,9 @@ export const PROTOCOL_CONTRACTS: AddressEntry[] = [
  * 0.30% pool**. `lpFeeBps` on `/v1/reserve` publishes that, and the Ledger shows both numbers.
  *
  * The microduck leg is the third name and the odd one out: it is an ETH pair in a Uniswap v4 pool,
- * so it is an id inside the PoolManager rather than a contract (hence `poolId` and no explorer
- * link), and ouro-monitor reads v3 only, so `/v1/reserve` counts it in `unindexed` and values it
- * nowhere. The site reads that one position itself: see `RESERVE_V4_POSITIONS` below.
+ * so it is an id inside the PoolManager rather than a contract, hence `poolId` and no explorer link.
+ * ouro-monitor has indexed it like the others since 2026-09-17, out of the pool's storage rather
+ * than out of events, so nothing on this site reads it directly any more.
  *
  * There is also a v3 microduck / WETH pool (1%, `0xb87C3c63b53d19984f3b4A927e26B667e32087E8`) that
  * the Reserve is NOT in. It is not listed, because this table is what the Reserve holds.
@@ -141,41 +141,6 @@ export const RESERVE_POOLS: AddressEntry[] = [
   { name: "CASHCAT / WETH · 0.30% (Uniswap v3)", address: "0xd42A491087a15E5afd51FEb3606066Cc152d2b09" },
   { name: "PONS / WETH · 0.30% (Uniswap v3)", address: "0xEd50bDeeA8aDC232f159486192a4157281D722ff" },
   { name: "ETH / microduck · 1.00% (Uniswap v4)", address: "0x7ce69a29e50d26fa96f7331516789fb834cd542469c86bce303b4352c85b2327", poolId: true },
-];
-
-export interface V4PositionEntry {
-  /** The position NFT in `V4_POSITION_MANAGER`. */
-  tokenId: bigint;
-  /** `keccak256(abi.encode(poolKey))`, verified against the 25 bytes the position itself stores. */
-  poolId: `0x${string}`;
-  /** The constituent side, which the row is named and marked for. Must be the pool's `currency1`. */
-  token: { symbol: string; address: `0x${string}`; decimals: number };
-  /**
-   * The other side. Native ETH is `address(0)` in a v4 pool key and has no contract, so it is priced
-   * off WETH's market, which is the same ether.
-   */
-  quote: { symbol: string; decimals: number; priceAddress: `0x${string}` };
-}
-
-/**
- * The Reserve's Uniswap v4 positions, listed one by one because they cannot be discovered: the v4
- * PositionManager is not enumerable (`tokenOfOwnerByIndex` reverts) and its ids run to the millions,
- * so there is no way to ask the chain "what does this wallet hold". Each entry is checked against the
- * chain before anything is drawn from it (owner, pool key and liquidity), so a stale one disappears
- * from the page rather than printing a figure nobody holds.
- *
- * Today that is one position: 0.2 ETH and ~387k microduck between ticks 101200 and 132000, opened
- * 2026-09-13, LP fee 10024 pips (1.0024%). The pool also carries a v4 protocol fee of 1000 pips each
- * way, 0.1% of the input of every swap, which goes to the PoolManager's fee controller and not to us,
- * the v4 counterpart of the 1/6 skim on the v3 pools above.
- */
-export const RESERVE_V4_POSITIONS: V4PositionEntry[] = [
-  {
-    tokenId: 2598892n,
-    poolId: "0x7ce69a29e50d26fa96f7331516789fb834cd542469c86bce303b4352c85b2327",
-    token: { symbol: "microduck", address: "0xD5f1afEA47b1A9eab414D2ee740cF1d6d039E725", decimals: 18 },
-    quote: { symbol: "ETH", decimals: 18, priceAddress: "0x0Bd7D308f8E1639FAb988df18A8011f41EAcAD73" },
-  },
 ];
 
 /**

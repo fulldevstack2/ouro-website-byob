@@ -144,11 +144,23 @@ export interface ReserveSide {
 
 export interface ReservePosition {
   tokenId: string;
+  /**
+   * `"v3"` or `"v4"`. On a v4 position `pool` is a 32-byte pool id inside the PoolManager singleton,
+   * NOT a contract — it has no explorer page, so it must never be rendered as an address link.
+   */
+  venue: string;
+  /** The PositionManager holding this position's NFT. Differs per venue, so it is per position. */
+  positionManager: string;
   pool: string;
-  /** The pool's tier, in hundredths of a bip: 3000 = 0.30%. */
+  /** The pool's tier, in hundredths of a bip: 3000 = 0.30%. Arbitrary in v4, not one of four tiers. */
   feeBps: number;
-  /** What the LP actually keeps after the pool's protocol skim. Both Reserve pools: 2500, not 3000. */
+  /** What the LP actually keeps after the pool's protocol skim. Both Reserve v3 pools: 2500, not 3000. */
   lpFeeBps: { fee0: number; fee1: number } | null;
+  /**
+   * v4 only: the protocol fee in hundredths of a bip, one direction, taken off each swap BEFORE the
+   * LP fee rather than out of it — so unlike v3's skim it does not reduce `lpFeeBps`. Null on v3.
+   */
+  protocolFeeBps: number | null;
   tickLower: number;
   tickUpper: number;
   tick: number | null;

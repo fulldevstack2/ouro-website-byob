@@ -7,7 +7,6 @@ import { AirdropCalc, Container, LoopPlate, MicroLabel, SectionHead, SplitBar, S
 import { FEE_SPLIT, FEE_SPLIT_LABEL, LINE_TOKENS, PROTOCOL_CONTRACTS, TAX_SPLIT, TOKEN_ICONS, TRADE_TAX_PCT, explorerAddressUrl, shortAddress } from "~/content/protocol";
 import { analyticsUrl, externalLinkProps, site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
-import { navWithV4, useReserveV4, type ReserveV4Row } from "~/hooks/useReserveV4";
 import { pageMeta } from "~/lib/meta";
 import {
   MONITOR_API,
@@ -122,7 +121,6 @@ function allTime(days: DailyRow[] | undefined) {
  */
 function HeroCard() {
   const clock = useClock();
-  const v4 = useReserveV4();
   const reserve = useMonitor<Reserve>(MONITOR_API ? "/v1/reserve?hours=25" : null, 300_000);
   const daily = useMonitor<{ token: string; days: DailyRow[] }>(MONITOR_API ? "/v1/ouro/daily?days=366" : null, 300_000);
   // Same request and window the vaults page's rate comes from (hooks/usePrices.ts), so the two pages
@@ -131,10 +129,10 @@ function HeroCard() {
 
   const d = reserve.data;
   const t = d?.totals;
-  // The headline counts the Uniswap v4 position the monitor cannot value; the change over the day
-  // stays on the monitor's own figure, because its 24 hour baseline is that figure and no other.
+  // Every venue the Reserve holds liquidity in is in the monitor's own NAV now, v4 included, so the
+  // headline and its 24 hour change come from one figure again.
   const monitorNav = t?.navUsd ?? null;
-  const nav = navWithV4(monitorNav, v4);
+  const nav = monitorNav;
   const delta = (() => {
     const first = (d?.history ?? []).find((s) => s.nav_usd !== null && s.nav_usd > 0);
     // Withheld until the figure it qualifies is on screen: the monitor answers a second before the
@@ -143,8 +141,7 @@ function HeroCard() {
     if ((d.generatedAt - first.ts) / 3600 < 20) return null;
     return (monitorNav - first.nav_usd) / first.nav_usd;
   })();
-  const unindexed = (d?.unindexed ?? []).reduce((n, u) => n + (u.count ?? 0), 0);
-  const unvalued = Math.max(0, unindexed - v4.rows.length);
+  const unvalued = (d?.unindexed ?? []).reduce((n, u) => n + (u.count ?? 0), 0);
   const all = allTime(daily.data?.days);
 
   /**
@@ -164,14 +161,12 @@ function HeroCard() {
       : (rate.caveat ??
         (rate.basisDays === null ? "From payouts actually made" : `${fmtNum(rate.basisDays, 0)}-day basis · ${fmtNum(rate.cycles)} cycles`));
 
-  // Counted only once the chain read has settled, for the same reason the figure above it is: a
-  // note that says "2 positions" and then says "3" is the same jump, one line down.
-  const positions = t && !v4.loading ? t.positions + v4.rows.length : null;
+  const positions = t?.positions ?? null;
   const navNote =
     positions === null
       ? "Marked to market, from the Reserve's positions"
       : `Marked to market · ${fmtNum(positions)} ${positions === 1 ? "position" : "positions"}${delta !== null ? " · past 24 hours" : ""}${
-          unvalued > 0 ? ` · ${fmtNum(unvalued)} more in Uniswap v4, not valued` : ""
+          unvalued > 0 ? ` · ${fmtNum(unvalued)} more in a venue the monitor does not read` : ""
         }`;
 
   return (
@@ -306,8 +301,10 @@ function rangeBadge(p: ReservePosition): { tone: BadgeTone; label: string } {
 }
 
 function poolRow(p: ReservePosition) {
-  // The basket token first, WETH second, whatever order the pool sorts them in.
-  const [tok, quote] = p.side0.symbol === "WETH" ? [p.side1, p.side0] : [p.side0, p.side1];
+  // The basket token first, the ether leg second, whatever order the pool sorts them in. A v4 pool
+  // names native ether `ETH` rather than `WETH`, and matching only the latter put one row in the
+  // table the other way round from the rest.
+  const [tok, quote] = p.side0.symbol === "WETH" || p.side0.symbol === "ETH" ? [p.side1, p.side0] : [p.side0, p.side1];
   const sym = tok.symbol ?? "?";
   const fees = p.uncollectedFeesUsd === null || p.collectedFeesUsd === null ? null : p.uncollectedFeesUsd + p.collectedFeesUsd;
   const net = p.netVsHoldingUsd;
@@ -339,47 +336,17 @@ function poolRow(p: ReservePosition) {
   };
 }
 
-/**
- * The v4 row, which comes from the chain rather than the monitor (hooks/useReserveV4). It carries a
- * value and a range and nothing else: fees and the mark against holding both need a position's
- * history, which only the monitor keeps, and it keeps it for Uniswap v3 only. A dash is that gap
- * stated, never a zero.
- */
-function v4PoolRow(r: ReserveV4Row) {
-  const sym = r.entry.token.symbol;
-  return {
-    pool: (
-      <span className="pair-cell">
-        <TokenIcon symbol={sym} src={TOKEN_ICONS[sym]} size={20} />
-        <span className="pair-cell__name">
-          {sym} / {r.entry.quote.symbol}
-        </span>
-        <span className="pair-cell__sub">{fmtFeeTier(r.feeBps)} · v4</span>
-      </span>
-    ),
-    val: <span style={{ fontSize: 13, fontWeight: 600 }}>{fmtUsd(r.valueUsd)}</span>,
-    fees: <span style={{ fontSize: 13, color: "var(--text-faint)" }}>—</span>,
-    net: <span style={{ fontSize: 13, color: "var(--text-faint)" }}>—</span>,
-    range: (
-      <Badge tone={r.inRange ? "positive" : "caution"} dot>
-        {r.inRange ? "In range" : "Out of range"}
-      </Badge>
-    ),
-  };
-}
-
 function ReserveSection() {
   const reserve = useMonitor<Reserve>(MONITOR_API ? "/v1/reserve?hours=1" : null, 120_000);
-  const v4 = useReserveV4();
   const d = reserve.data;
   const held = (d?.positions ?? []).filter((p) => p.held);
-  const rows = [...held.map(poolRow), ...v4.rows.map(v4PoolRow)];
+  const rows = held.map(poolRow);
   let empty: ReactNode = null;
   if (!MONITOR_API) empty = "The monitor's origin is not set for this build, so the positions cannot be read.";
   else if (!d && reserve.error) empty = "The monitor did not answer. The positions appear as soon as it does.";
   else if (!d) empty = "Reading the chain…";
   else if (d.indexedTo === null) empty = "The monitor is still reading the Reserve's history.";
-  else if (rows.length === 0) empty = v4.loading ? "Reading the chain…" : "No positions held yet.";
+  else if (rows.length === 0) empty = "No positions held yet.";
 
   return (
     <Container id="reserve" className="home-section">
@@ -395,9 +362,9 @@ function ReserveSection() {
       {empty && <div style={{ ...body14, fontStyle: "italic", padding: "12px 0" }}>{empty}</div>}
       <div className="cols-2 cols-2--tight" style={{ marginTop: 24 }}>
         <div style={body14}>
-          Each name is capped at 20–25% of the treasury, building toward five. The microduck position is in a Uniswap v4 pool and its row is read straight from
-          the chain: the monitor indexes v3 only, so its fees and its mark against holding stay blank until it does. Adds and retirements happen by public
-          governance, on-chain.
+          Each name is capped at 20–25% of the treasury, building toward five. The microduck position is in a Uniswap v4 pool, which reports none of the token
+          amounts the others do, so its cost basis and its fee income are rebuilt from the pool's own storage. Every row here is read the same way and means the
+          same thing. Adds and retirements happen by public governance, on-chain.
         </div>
         <Callout tone="caution" title="The pools can lose value">
           Constituents are volatile tokens, not stocks, and any of them can fail. Owned liquidity can lose to simply holding. Nothing here is a promise of

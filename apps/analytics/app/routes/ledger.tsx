@@ -7,7 +7,6 @@ import { AddressCell, Bars, Container, KVRow, MicroLabel, PageHeader, SectionHea
 import { COLLECT_THRESHOLD_USD } from "~/content/protocol";
 import { externalLinkProps, ouroUrl, site } from "~/content/site";
 import { useClock } from "~/hooks/useClock";
-import { navWithV4, useReserveV4, type ReserveV4Row } from "~/hooks/useReserveV4";
 import { pageMeta } from "~/lib/meta";
 import {
   MONITOR_API,
@@ -99,11 +98,20 @@ function pairOf(p: ReservePosition): string {
 }
 
 /**
- * One position. The two figures that matter sit next to each other on purpose: fees earned, and what
- * the same tokens would have been worth simply held. Reading either alone is how an LP convinces
- * itself a losing position is working.
+ * One position, whichever Uniswap it is in.
+ *
+ * The two figures that matter sit next to each other on purpose: fees earned, and what the same
+ * tokens would have been worth simply held. Reading either alone is how an LP convinces itself a
+ * losing position is working.
+ *
+ * ONE CARD FOR BOTH VENUES, and that is the point of it. Until the monitor indexed v4 this page drew
+ * a second, poorer card for the v4 position with two of its three figures dashed, and a reader had
+ * to know which Uniswap a row was in to know whether its number meant anything. The venue now
+ * changes two rows and nothing else: v4 adds its protocol fee, which is charged differently, and its
+ * pool is an id inside the PoolManager rather than a contract, so that row has no link to give.
  */
 function PositionCard({ p, explorer }: { p: ReservePosition; explorer: string | null }) {
+  const v4 = p.venue === "v4";
   const rangeBadge: { tone: BadgeTone; label: string } = !p.held
     ? { tone: "neutral", label: "No longer held" }
     : p.inRange === null
@@ -111,7 +119,8 @@ function PositionCard({ p, explorer }: { p: ReservePosition; explorer: string | 
       : p.inRange
         ? { tone: "positive", label: "In range · earning" }
         : { tone: "caution", label: "Out of range · earning nothing" };
-  const poolHref = explorer ? `${explorer}/address/${p.pool}` : null;
+  // A v4 pool id is a key inside the singleton, not an address: linking it would 404.
+  const poolHref = explorer && !v4 ? `${explorer}/address/${p.pool}` : null;
 
   return (
     <Card
@@ -151,6 +160,16 @@ function PositionCard({ p, explorer }: { p: ReservePosition; explorer: string | 
             </>
           }
         />
+        {p.protocolFeeBps !== null && (
+          <KVRow
+            label="Protocol fee, taken off each swap before the LP fee"
+            value={
+              <>
+                {fmtFeeTier(p.protocolFeeBps)} <span style={{ color: "var(--text-faint)" }}>to the v4 fee controller</span>
+              </>
+            }
+          />
+        )}
         <KVRow label="Share of the pool's active liquidity" value={p.shareOfActiveLiquidity === null ? "—" : fmtPct(p.shareOfActiveLiquidity, 3)} />
         <KVRow
           label="Range, and where the price is"
@@ -162,88 +181,18 @@ function PositionCard({ p, explorer }: { p: ReservePosition; explorer: string | 
         />
         <KVRow label="Opened, and topped up since" value={`${fmtWhen(p.firstTs)} · ${fmtNum(p.adds)} add${p.adds === 1 ? "" : "s"}, ${fmtNum(p.collects)} collect${p.collects === 1 ? "" : "s"}`} />
         <KVRow
-          label="Pool"
+          label={v4 ? "Pool id (Uniswap v4)" : "Pool"}
           value={
             poolHref ? (
               <a href={poolHref} {...externalLinkProps(poolHref)} className="mono-link" style={{ fontSize: 13 }}>
                 {shortHash(p.pool)} ↗
               </a>
             ) : (
-              shortHash(p.pool)
+              <span style={{ ...mono, fontSize: 13 }}>{shortHash(p.pool)}</span>
             )
           }
           border="none"
         />
-      </div>
-    </Card>
-  );
-}
-
-/**
- * A Uniswap v4 position, read from the chain rather than from the monitor, which indexes v3 only.
- *
- * Same card as the others so it reads as one treasury, with the two figures it cannot carry left as
- * dashes and said plainly: fees and the mark against holding both need a position's history, and
- * nothing keeps that history for v4 yet. A v4 pool is an id inside the PoolManager, not a contract,
- * so the last row has no explorer link to give.
- */
-function V4PositionCard({ r }: { r: ReserveV4Row }) {
-  const badge: { tone: BadgeTone; label: string } = r.inRange
-    ? { tone: "positive", label: "In range · earning" }
-    : { tone: "caution", label: "Out of range · earning nothing" };
-  return (
-    <Card
-      label={
-        <>
-          {r.entry.token.symbol} / {r.entry.quote.symbol}{" "}
-          <span style={{ ...mono, textTransform: "none", letterSpacing: 0, color: "var(--text-faint)" }}>#{r.entry.tokenId.toString()}</span>
-        </>
-      }
-      action={
-        <Badge tone={badge.tone} dot>
-          {badge.label}
-        </Badge>
-      }
-    >
-      <div className="pos__stats">
-        <Stat
-          label="Marked to market"
-          value={fmtUsd(r.valueUsd)}
-          footnote={`${fmtTokens(r.amountQuote)} ${r.entry.quote.symbol} + ${fmtTokens(r.amountToken)} ${r.entry.token.symbol}`}
-        />
-        <Stat label="Fees earned" value="—" footnote="Not tracked for Uniswap v4 yet" />
-        <Stat label="Against simply holding" value="—" footnote="Needs the position's history, which the monitor keeps for v3" />
-      </div>
-
-      <div className="kv-list" style={{ marginTop: 20 }}>
-        <KVRow
-          label="Pool fee, and what the Reserve keeps of it"
-          value={
-            <>
-              {fmtFeeTier(r.feeBps)} <span style={{ color: "var(--text-faint)" }}>tier →</span> {fmtFeeTier(r.feeBps)}{" "}
-              <span style={{ color: "var(--text-faint)" }}>to the LP</span>
-            </>
-          }
-        />
-        <KVRow
-          label="Protocol fee, taken off each swap before the LP fee"
-          value={
-            <>
-              {fmtFeeTier(r.protocolFeeBps)} <span style={{ color: "var(--text-faint)" }}>to the v4 fee controller</span>
-            </>
-          }
-        />
-        <KVRow label="Share of the pool's active liquidity" value={r.shareOfActiveLiquidity === null ? "—" : fmtPct(r.shareOfActiveLiquidity, 3)} />
-        <KVRow
-          label="Range, and where the price is"
-          value={
-            <>
-              [{fmtNum(r.tickLower)}, {fmtNum(r.tickUpper)}) <span style={{ color: "var(--text-faint)" }}>at</span> {fmtNum(r.tick)}
-            </>
-          }
-        />
-        <KVRow label="Read from" value="The chain, directly" />
-        <KVRow label="Pool id (Uniswap v4)" value={<span style={{ ...mono, fontSize: 13 }}>{shortHash(r.entry.poolId)}</span>} border="none" />
       </div>
     </Card>
   );
@@ -267,19 +216,11 @@ export default function Ledger() {
   const unindexedTotal = unindexed.some((u) => u.count === null) ? null : unindexed.reduce((n, u) => n + (u.count ?? 0), 0);
   const sb = status === "empty" && unindexed.length > 0 ? { ...STATUS_BADGE[status], label: "No v3 positions" } : STATUS_BADGE[status];
 
-  /**
-   * The Uniswap v4 side of the treasury, which the monitor counts but does not value, read from the
-   * chain here instead. `unvalued` is what is left over: positions the monitor counts that this page
-   * did not read, which is nothing today and is disclosed the moment it is not.
-   */
-  const v4 = useReserveV4();
-  const nav = navWithV4(t?.navUsd, v4);
-  // Every count below waits on the same read the NAV does: a "2 positions" that becomes "3" a second
-  // later is the same jump as a NAV that grows, and both are corrections the page never had to make.
-  const counted = t !== undefined && t !== null && !v4.loading;
-  const positions = counted ? t.positions + v4.rows.length : null;
-  const inRange = counted ? t.inRange + v4.rows.filter((r) => r.inRange).length : null;
-  const unvalued = !counted || unindexedTotal === null ? null : Math.max(0, unindexedTotal - v4.rows.length);
+  const nav = t?.navUsd ?? null;
+  // The monitor counts every venue it indexes, so these are simply its own figures now.
+  const positions = t?.positions ?? null;
+  const inRange = t?.inRange ?? null;
+  const unvalued = unindexedTotal;
 
   /**
    * One bar per UTC day, from the last snapshot of that day, over a fixed 30-day window ending today.
@@ -351,10 +292,10 @@ export default function Ledger() {
           totals show a dash. The positions themselves, and their token amounts, are unaffected.
         </Callout>
       )}
-      {/* The monitor counts positions it cannot value, and the site reads those itself (hooks/
-          useReserveV4), so what used to be a "counted but not valued" callout here is now a valued
-          card among the others. What is left to disclose is anything the monitor counts that the
-          site did NOT read, and that belongs in the NAV footnote, where the figure it qualifies is. */}
+      {/* No "counted but not valued" callout here any more: the monitor indexes Uniswap v4 as well
+          as v3, so a v4 position is an ordinary card among the others and an ordinary line in the
+          totals. What is left to disclose is a venue the monitor still does not read at all, and
+          that belongs in the NAV footnote, beside the figure it qualifies. */}
       <div className="stat-band">
         <Stat
           label="Treasury NAV"
@@ -363,7 +304,6 @@ export default function Ledger() {
             positions === null
               ? "Owned liquidity, marked to market"
               : `Owned liquidity, marked to market · ${fmtNum(positions)} position${positions === 1 ? "" : "s"}` +
-                (v4.rows.length > 0 ? `, ${v4.rows.length === 1 ? "one of them" : `${fmtNum(v4.rows.length)} of them`} in Uniswap v4 and read from the chain` : "") +
                 (unvalued === null ? " · excludes liquidity held in an unread venue" : unvalued > 0 ? ` · excludes ${fmtNum(unvalued)} held elsewhere` : "")
           }
         />
@@ -371,11 +311,12 @@ export default function Ledger() {
           label="Fees earned"
           value={fmtUsd(t?.feesTotalUsd)}
           footnote={
-            t?.uncollectedFeesUsd === null || t?.uncollectedFeesUsd === undefined
+            (t?.uncollectedFeesUsd === null || t?.uncollectedFeesUsd === undefined
               ? `Collected at ${THRESHOLD} of accrued fees`
               : t.uncollectedFeesUsd >= COLLECT_THRESHOLD_USD
                 ? `${fmtUsd(t.uncollectedFeesUsd)} uncollected · at or over the ${THRESHOLD} collection threshold`
-                : `${fmtUsd(t.uncollectedFeesUsd)} of ${THRESHOLD} uncollected · ${fmtUsd(COLLECT_THRESHOLD_USD - t.uncollectedFeesUsd)} to go before a collection`
+                : `${fmtUsd(t.uncollectedFeesUsd)} of ${THRESHOLD} uncollected · ${fmtUsd(COLLECT_THRESHOLD_USD - t.uncollectedFeesUsd)} to go before a collection`) +
+            ""
           }
         />
         <Stat label="Divergence loss" value={fmtUsdSigned(t?.divergenceUsd)} footnote="What the pools gave up by rebalancing as prices moved" />
@@ -401,9 +342,10 @@ export default function Ledger() {
               <span>{new Date(firstDay.t * 1000).toISOString().slice(5, 10)} · first position in the window</span>
             </div>
           )}
-          {/* The daily series is the monitor's own snapshots, so it is the v3 positions only. Said
-              here rather than left for a reader to work out from a chart that ends below the NAV. */}
-          {v4.rows.length > 0 && <div className="kv-note">The day by day series is the monitor&apos;s, so it is the Uniswap v3 positions only.</div>}
+          {/* The snapshots taken before the monitor indexed Uniswap v4 counted the v3 positions
+              only, so bars older than that sit below the NAV above them by a whole venue. Said here
+              rather than left for a reader to work out from a chart that does not line up. */}
+          <div className="kv-note">Bars before 17 September 2026 are the Uniswap v3 positions only, which is when the Reserve&apos;s v4 liquidity was first indexed.</div>
         </div>
         <div>
           <MicroLabel style={{ marginBottom: 12 }}>The Reserve</MicroLabel>
@@ -432,9 +374,6 @@ export default function Ledger() {
       <div className="positions">
         {held.map((p) => (
           <PositionCard key={p.tokenId} p={p} explorer={explorer} />
-        ))}
-        {v4.rows.map((r) => (
-          <V4PositionCard key={r.entry.tokenId.toString()} r={r} />
         ))}
         {closed.map((p) => (
           <PositionCard key={p.tokenId} p={p} explorer={explorer} />
