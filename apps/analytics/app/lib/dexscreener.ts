@@ -20,6 +20,10 @@
  * airdrop. The canonical pool is matched by `pairAddress`, which for these Uniswap v4 pools is
  * exactly the pool id the registry carries.
  *
+ * Price and FDV come from that same canonical pool when Dex returns it; otherwise from the deepest
+ * pool where the project token is the *base* (never the quote). Taking deepest liquidity alone
+ * misprices HOOD10 by ~800× when LIME/HOOD10 (HOOD10 as quote) out-liquids HOOD10/ETH.
+ *
  * Checked against the indexer's own numbers the day this was written: INDEX $1,568,859 / 4.8% here
  * against $1,574,144 / 4.8% there, HOOD10 $168,110 / 50.2% against $167,444 / 50.4%. Agreement to a
  * fraction of a percent, and it covers $OURO, which the indexer does not.
@@ -36,7 +40,7 @@ export const DEXSCREENER_CHAIN = "robinhood";
 export const CACHE_MS = 30_000;
 
 export interface TokenMarket {
-  /** Spot price from the deepest pool. */
+  /** Spot price from the canonical pool, else the deepest base-token pool. */
   priceUsd: number | null;
   /** Summed 24h volume across every pool the token trades in. */
   totalUsd: number | null;
@@ -50,7 +54,7 @@ export interface TokenMarket {
   /** How many pools the token trades in. Context for the share. */
   pools: number | null;
   /**
-   * Fully diluted value, from the deepest pool.
+   * Fully diluted value, from the same pool as `priceUsd`.
    *
    * Taken from the same payload as `priceUsd` deliberately. FDV is price x supply, so sourcing the
    * two from different providers lets a reader divide one by the other and derive a supply neither
@@ -72,12 +76,15 @@ export const EMPTY_MARKET: TokenMarket = {
   liquidityUsd: null,
 };
 
-interface Pair {
+/** Dex pair fields we read. Exported for tests. */
+export interface DexPair {
   pairAddress?: string;
   priceUsd?: string | number;
   volume?: { h24?: number };
   liquidity?: { usd?: number };
   fdv?: number;
+  baseToken?: { address?: string };
+  quoteToken?: { address?: string };
 }
 
 /**
@@ -100,47 +107,75 @@ export function clearMarketCache(): void {
   inflight.clear();
 }
 
-function summarise(pairs: Pair[], canonicalPoolId: string): TokenMarket {
+function addrEq(a: string | undefined, b: string): boolean {
+  return (a ?? "").toLowerCase() === b.toLowerCase();
+}
+
+function numOrNull(v: string | number | undefined): number | null {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Pick the pair that prices the project token.
+ *
+ * 1. Canonical taxed pool, when present (registry `canonicalPoolId`).
+ * 2. Else deepest liquidity among pairs where the project token is `baseToken`.
+ *
+ * Never use a quote-token pair's `priceUsd` — that is the other asset's price (LIME/HOOD10, mmETH/OURO).
+ */
+export function pickPricePair(pairs: DexPair[], token: string, canonicalPoolId: string): DexPair | null {
+  if (pairs.length === 0) return null;
+  const canon = canonicalPoolId.toLowerCase();
+  const want = token.toLowerCase();
+
+  const canonical = pairs.find((p) => (p.pairAddress ?? "").toLowerCase() === canon);
+  if (canonical) return canonical;
+
+  let best: DexPair | null = null;
+  let deepest = -1;
+  for (const p of pairs) {
+    if (!addrEq(p.baseToken?.address, want)) continue;
+    const liq = Number(p.liquidity?.usd ?? 0);
+    if (!Number.isFinite(liq) || liq <= deepest) continue;
+    deepest = liq;
+    best = p;
+  }
+  return best;
+}
+
+/** Pure market reduction. Exported for unit tests. */
+export function summarise(pairs: DexPair[], token: string, canonicalPoolId: string): TokenMarket {
   if (pairs.length === 0) return EMPTY_MARKET;
   const canon = canonicalPoolId.toLowerCase();
 
   let totalUsd = 0;
   let canonicalUsd = 0;
   let liquidityUsd = 0;
-  let deepest = -1;
-  let fdvUsd: number | null = null;
-  let priceUsd: number | null = null;
   let sawCanonical = false;
 
   for (const p of pairs) {
     const v = Number(p.volume?.h24 ?? 0);
     const liq = Number(p.liquidity?.usd ?? 0);
     if (Number.isFinite(v)) totalUsd += v;
-    if (Number.isFinite(liq)) {
-      liquidityUsd += liq;
-      // FDV is a per-pair figure derived from that pair's price; take the deepest pool's, which is
-      // the least susceptible to a thin market's last trade.
-      if (liq > deepest) {
-        deepest = liq;
-        fdvUsd = Number.isFinite(Number(p.fdv)) ? Number(p.fdv) : null;
-        priceUsd = Number.isFinite(Number(p.priceUsd)) ? Number(p.priceUsd) : null;
-      }
-    }
+    if (Number.isFinite(liq)) liquidityUsd += liq;
     if ((p.pairAddress ?? "").toLowerCase() === canon) {
       sawCanonical = true;
       if (Number.isFinite(v)) canonicalUsd += v;
     }
   }
 
+  const priced = pickPricePair(pairs, token, canonicalPoolId);
+
   return {
-    priceUsd,
+    priceUsd: priced ? numOrNull(priced.priceUsd) : null,
     totalUsd,
     canonicalUsd: sawCanonical ? canonicalUsd : null,
     // A share needs both halves. No canonical pool in the response means we cannot say what fraction
     // was taxed — which is different from saying none of it was.
     taxedShare: sawCanonical && totalUsd > 0 ? canonicalUsd / totalUsd : null,
     pools: pairs.length,
-    fdvUsd,
+    fdvUsd: priced && Number.isFinite(Number(priced.fdv)) ? Number(priced.fdv) : null,
     liquidityUsd: liquidityUsd > 0 ? liquidityUsd : null,
   };
 }
@@ -156,9 +191,9 @@ export async function fetchMarket(token: string, canonicalPoolId: string, now = 
     try {
       const r = await fetch(`${API}/${DEXSCREENER_CHAIN}/${token}`, { headers: { accept: "application/json" } });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const body = (await r.json()) as Pair[] | { pairs?: Pair[] };
+      const body = (await r.json()) as DexPair[] | { pairs?: DexPair[] };
       const pairs = Array.isArray(body) ? body : (body?.pairs ?? []);
-      const value = summarise(pairs, canonicalPoolId);
+      const value = summarise(pairs, token, canonicalPoolId);
       cache.set(key, { at: Date.now(), value });
       return value;
     } catch {
