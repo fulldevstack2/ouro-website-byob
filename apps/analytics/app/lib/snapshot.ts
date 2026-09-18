@@ -30,7 +30,7 @@ import type { Series, SeriesState } from "~/lib/series";
 import { byKey } from "~/registry";
 
 /** Bumped whenever `ProjectRow` changes shape, so an old snapshot is dropped rather than read. */
-const VERSION = "2026-09-15";
+const VERSION = "2026-09-18";
 const KEY = `airdrop-meta:${VERSION}`;
 
 /** Older than this and it is not worth painting: the reader would be looking at yesterday. */

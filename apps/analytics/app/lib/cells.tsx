@@ -7,7 +7,7 @@
  */
 import type { ReactNode } from "react";
 
-import { fmtNum, fmtUsd } from "@ouro/monitor-client";
+import { fmtAge, fmtNum, fmtUsd } from "@ouro/monitor-client";
 
 import { Basis } from "~/components/Coverage";
 import { fmtHours } from "~/lib/cadence";
@@ -182,8 +182,27 @@ export function cell(metric: Metric, row: ProjectRow): Cell {
     case "tax":
       return { value: `${(p.taxBps / 100).toFixed(p.taxBps % 100 === 0 ? 0 : 1)}%` };
 
-    case "wallet":
-      return { value: p.coverage.wallet.state === "measured" ? "available" : null };
+    /**
+     * Liquidity the protocol itself owns, marked to market.
+     *
+     * A blank here would be the project's design, not our coverage: INDEX and HOOD10 spend the whole
+     * tax on the basket they pay out, so there is nothing to own. The registry says that in the cell
+     * (`state: "none"`) rather than leaving a bare dash to be read as a gap.
+     *
+     * The figure is the Reserve's NAV alone. `Treasury` also carries the position count and what the
+     * NAV excludes, the way the Ledger's own footnote does; this cell deliberately prints neither.
+     */
+    case "treasury": {
+      // "none", not a dash. Every other blank on this page means we did not measure something, and
+      // spending the dash on a project that genuinely keeps no liquidity is the one blank that
+      // would not be about our coverage. The reason rides underneath it either way.
+      if (p.coverage.treasury.state === "none") return { value: "none" };
+      const t = row.treasury;
+      if (t.navUsd === null) return { value: null };
+      return {
+        value: fmtUsd(t.navUsd, { compact: true }),
+      };
+    }
   }
 }
 
@@ -203,7 +222,7 @@ export function compactBasis(metric: Metric, row: ProjectRow): string | null {
       if (row.aprPct === null) return null;
       const parts: string[] = [];
       if (row.aprBasisDays !== null) parts.push(`${row.aprBasisDays}-day basis`);
-      if (row.aprHistoryDays !== null) parts.push(`${row.aprHistoryDays.toFixed(1)} d of history`);
+      if (row.aprHistoryDays !== null) parts.push(`${fmtAge(row.aprHistoryDays)} of history`);
       return parts.length ? parts.join(" · ") : null;
     }
     case "ratePerLine":

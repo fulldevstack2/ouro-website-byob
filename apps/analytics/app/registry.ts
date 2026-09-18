@@ -15,7 +15,8 @@
  *
  *   · INDEX's tax is ESTIMATED — 3% of the ETH leg of every swap on the hook pool, because the hook
  *     emits nothing. Ouro's is measured. HOOD10's will be exact (`FeeAccrued`) once it is indexed.
- *   · Per-wallet payout history exists for OURO alone, because only that source writes receipts.
+ *   · Protocol-owned liquidity exists for OURO alone — not because the other two are unindexed, but
+ *     because they keep none. That is a `none`, not a `not_indexed`, and the difference matters.
  *   · OURO's APR rests on days of history. INDEX's rests on thousands of epochs.
  *
  * Printing those side by side without saying which is which is not neutrality — it is being quiet
@@ -36,7 +37,17 @@ export type CoverageState =
   /** Derived, because the contract does not emit what would settle it. Stated wherever it is shown. */
   | "estimated"
   /** Nothing indexed for it yet. A dash with a reason — never a zero, and never silence. */
-  | "not_indexed";
+  | "not_indexed"
+  /**
+   * The project does not have this thing at all. The reason, and NO badge.
+   *
+   * Distinct from `not_indexed` on purpose. "Not indexed" is an admission about us; printing it
+   * where the project simply has nothing to report would blame our coverage for their design, and
+   * on the protocol-owned liquidity row it would read as though INDEX and HOOD10 might have a
+   * treasury we failed to find. They do not: their whole tax leaves as the basket they pay out. For
+   * the same reason the cell writes "none" instead of spending the dash on it — see `cell()`.
+   */
+  | "none";
 
 export interface CoverageRecord {
   state: CoverageState;
@@ -64,7 +75,7 @@ export type Metric =
   | "payoutRhythm"
   | "lastPaid"
   | "tax"
-  | "wallet";
+  | "treasury";
 
 /**
  * The bands the table is read in.
@@ -117,7 +128,15 @@ export const METRICS: MetricDef[] = [
   { key: "marketCap", label: "Fully diluted value", group: "market", sort: { order: "largest first" }, caption: "fully diluted value", rank: "fully diluted value" },
   { key: "volume24h", label: "24 h volume", hint: "and the taxed share of it", group: "market", sort: { order: "largest first" }, caption: "traded in 24 h", rank: "24 h volume" },
   { key: "tax", label: "Tax funding it", group: "market", sort: { order: "highest first" }, caption: "trade tax", rank: "the tax funding it" },
-  { key: "wallet", label: "Per-wallet history", group: "market" },
+  /**
+   * Not sortable, and that is deliberate.
+   *
+   * One of the three projects keeps a treasury, so ranking by this row would put Ouro first on a
+   * page Ouro operates, with two dashes under it, every time it was pressed. The row is worth
+   * showing because the difference between these designs is real; it is not worth offering as an
+   * order. See DEFAULT_SORT for the same argument made about the column the table opens on.
+   */
+  { key: "treasury", label: "Protocol-owned liquidity", hint: "marked to market", group: "market" },
 ];
 
 export interface Project {
@@ -228,7 +247,7 @@ export const PROJECTS: Project[] = [
         state: "estimated",
         note: "3% of the ETH leg of every swap on the hook pool; the hook emits nothing to settle it",
       },
-      wallet: { state: "not_indexed", note: "payout receipts are not indexed for this project" },
+      treasury: { state: "none", note: "the whole tax buys the basket it pays out, so none is kept as liquidity" },
     },
   },
   {
@@ -268,7 +287,7 @@ export const PROJECTS: Project[] = [
       payoutRhythm: { state: "measured", note: "measured from up to its last 200 closed cycles" },
       lastPaid: { state: "measured", note: "closed cycles only" },
       tax: { state: "measured", note: "exact: the hook emits FeeAccrued per swap" },
-      wallet: { state: "measured", note: "every receipt, with the transaction that paid it" },
+      treasury: { state: "measured", note: "bought with 3.3 of the 5-point tax, and never handed out" },
     },
   },
   {
@@ -307,7 +326,7 @@ export const PROJECTS: Project[] = [
       lastPaid: { state: "measured", note: "closed cycles only" },
       // The one place HOOD10 is better instrumented than INDEX: its hook emits FeeAccrued per swap.
       tax: { state: "measured", note: "exact: the hook emits FeeAccrued per swap" },
-      wallet: { state: "not_indexed", note: "payout receipts are not indexed for this project" },
+      treasury: { state: "none", note: "the whole tax buys the basket it pays out, so none is kept as liquidity" },
     },
   },
 ];

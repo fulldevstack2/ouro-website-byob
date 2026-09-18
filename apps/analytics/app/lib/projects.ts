@@ -18,6 +18,7 @@ import {
   type OuroCycle,
   type OuroHolders,
   type OuroYield,
+  type Reserve,
   type Summary,
   type TokenSummary,
 } from "@ouro/monitor-client";
@@ -25,6 +26,25 @@ import {
 import { cadenceStats, type CadenceStats } from "~/lib/cadence";
 import { EMPTY_MARKET, useMarkets, type TokenMarket } from "~/lib/dexscreener";
 import { PROJECTS, type Project, type SortKey } from "~/registry";
+
+/** Protocol-owned liquidity, and what the figure leaves out. */
+export interface Treasury {
+  /** Net asset value of the owned positions, marked to market. */
+  navUsd: number | null;
+  /** Positions behind that figure. */
+  positions: number | null;
+  /**
+   * Positions held in venues the indexer does not read, which `navUsd` therefore excludes.
+   *
+   * `null` means a venue could not be read at all, which is a stronger caveat than a count: we
+   * cannot say how much is missing. Zero means nothing is. The Ledger makes the same distinction in
+   * its own NAV footnote, and a treasury figure that quietly omitted a venue would read as the
+   * whole of it.
+   */
+  unreadVenuePositions: number | null;
+}
+
+const EMPTY_TREASURY: Treasury = { navUsd: null, positions: null, unreadVenuePositions: null };
 
 /** What every project page and the comparison table read. The future `/v1/projects` row. */
 export interface ProjectRow {
@@ -96,6 +116,15 @@ export interface ProjectRow {
    * distribution instead of a status badge.
    */
   cadence: CadenceStats;
+
+  /**
+   * Liquidity the protocol itself owns, marked to market.
+   *
+   * Nulls all the way down for a project that keeps none, which is INDEX and HOOD10 — the registry's
+   * `none` coverage is what says so in the cell, because a null here cannot tell "keeps none" apart
+   * from "not read yet" and the page must never let a reader confuse the two.
+   */
+  treasury: Treasury;
 }
 
 /**
@@ -181,6 +210,7 @@ function blankRow(project: Project): ProjectRow {
     aprBasisDays: null,
     aprHistoryDays: null,
     cadence: cadenceStats([], Math.floor(Date.now() / 1000)),
+    treasury: EMPTY_TREASURY,
   };
 }
 
@@ -257,6 +287,8 @@ function fromOuro(
    * includes Sablier and the PoolManager.
    */
   holdersAboveLine: number | null,
+  /** The Reserve, for the one project on this page that owns liquidity. */
+  reserve: Reserve | null,
 ): ProjectRow {
   const row = {
     ...blankRow(project),
@@ -273,8 +305,26 @@ function fromOuro(
 
   const lastClosed = (cycles ?? []).find((c) => c.status === "closed") ?? null;
   const lastCycle = lastClosed ?? cycles?.[0] ?? null;
+
+  /**
+   * A venue reporting zero is not news; a venue that could not be read is, because that is coverage
+   * we cannot claim. One unreadable venue makes the whole exclusion unknown rather than a count,
+   * which is why this collapses to null the moment any entry has none. Same rule as the Ledger's.
+   */
+  const unread = (reserve?.unindexed ?? []).filter((u) => u.count === null || u.count > 0);
+  const unreadVenuePositions = unread.some((u) => u.count === null)
+    ? null
+    : unread.reduce((n, u) => n + (u.count ?? 0), 0);
+
   return {
     ...row,
+    treasury: {
+      // Null while the Reserve has never been synced, which the monitor already reports as null
+      // totals rather than an empty treasury.
+      navUsd: reserve?.totals.navUsd ?? null,
+      positions: reserve?.totals.positions ?? null,
+      unreadVenuePositions: reserve ? unreadVenuePositions : null,
+    },
     priceUsd: volume.priceUsd,
     // A real fully diluted value now, rather than the eligible supply at spot standing in for one.
     marketCapUsd: volume.fdvUsd,
@@ -331,8 +381,14 @@ export function useProjects(intervalMs = 30_000): ProjectsState {
    * `intervalMs`. Prefer a count-only field on `/v1/projects` or `/v1/summary` when those land.
    */
   const ouroHolders = useMonitor<OuroHolders>("/v1/ouro/holders?min=100000", 120_000);
+  /**
+   * The Reserve, for the protocol-owned liquidity row. `hours=1` because only `totals` and
+   * `unindexed` are read here: the Ledger asks for 720 hours because it draws the history, and
+   * pulling a month of snapshots to render one cell would be the expensive way to get one number.
+   */
+  const reserve = useMonitor<Reserve>("/v1/reserve?hours=1", 120_000);
 
-  const polls = [summary, ouroYield, ouroCycles, indexCycles, hood10Cycles, ouroHolders];
+  const polls = [summary, ouroYield, ouroCycles, indexCycles, hood10Cycles, ouroHolders, reserve];
   const configured = !polls.some((p) => p.error === "not-configured");
 
   const markets = useMarkets(PROJECTS.map((p) => ({ token: p.token, canonicalPoolId: p.canonicalPoolId })));
@@ -348,6 +404,7 @@ export function useProjects(intervalMs = 30_000): ProjectsState {
         now,
         market,
         ouroHolders.data?.counts.paid ?? null,
+        reserve.data,
       );
     }
     const cycles =
@@ -406,8 +463,8 @@ export function metricValue(r: ProjectRow, key: SortKey): number | string | null
       return r.cadence.sinceLastH === null ? null : -r.cadence.sinceLastH;
     case "tax":
       return r.project.taxBps;
-    case "wallet":
-      return r.project.coverage.wallet.state === "measured" ? 1 : null;
+    case "treasury":
+      return r.treasury.navUsd;
   }
 }
 

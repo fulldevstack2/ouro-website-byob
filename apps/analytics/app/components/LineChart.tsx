@@ -31,9 +31,10 @@ export interface LineChartProps {
   /**
    * Formats the two axis labels, when they need writing differently from a single value.
    *
-   * Durations are why this exists: "2.5 d" set over "29.7 h" is two ticks of one axis in two units,
-   * which cannot be compared at a glance, while "2.5 d" on its own is the right way to say a
-   * duration. The axis locks to one unit; the tooltip keeps `format`.
+   * Durations are why this exists: written on their own they change units with their size, so an
+   * axis topping out at 58.5 h sets "2d 11h" over "29h 29m" and the reader has to do arithmetic to
+   * see that the first is twice the second. The axis locks to one pair of units; the tooltip keeps
+   * `format`, where a value has no neighbour it has to agree with.
    */
   formatAxis?: (v: number) => string;
   /** Formats a timestamp for the tooltip. */
@@ -42,20 +43,11 @@ export interface LineChartProps {
   /** Rendered when there is nothing to draw, so an empty panel still says why. */
   emptyNote?: string;
   height?: number;
-  /**
-   * Top of the y-axis, when the reader has asked every panel to share one.
-   *
-   * Off by default, because the projects do not share a scale and forcing one flattens the smaller
-   * two into the baseline. On demand it is the only way to read magnitudes across panels, and it is
-   * a fair comparison in a way a colour overlay is not: same ink, same axis, no series is the figure
-   * and the others ground.
-   */
-  yMax?: number | null;
 }
 
 const PAD = { top: 12, right: 10, bottom: 20, left: 46 };
 
-export function LineChart({ points, format, formatAxis, formatTime, label, emptyNote, height = 150, yMax }: LineChartProps) {
+export function LineChart({ points, format, formatAxis, formatTime, label, emptyNote, height = 150 }: LineChartProps) {
   const gradId = useId();
   const [hover, setHover] = useState<number | null>(null);
   // The series draws itself on arrival. Charts remount on a control change, which starts this over;
@@ -84,11 +76,10 @@ export function LineChart({ points, format, formatAxis, formatTime, label, empty
   // actually reaches.
   const peak = Math.max(...vs);
   const axis = formatAxis ?? format;
-  const vMax = yMax !== null && yMax !== undefined && yMax > 0 ? yMax : peak;
   const span = t1 - t0 || 1;
 
   const x = (t: number) => PAD.left + ((t - t0) / span) * iw;
-  const y = (v: number) => PAD.top + ih - (vMax > 0 ? (v / vMax) * ih : 0);
+  const y = (v: number) => PAD.top + ih - (peak > 0 ? (v / peak) * ih : 0);
 
   const line = points.map((p, i) => `${i === 0 ? "M" : "L"}${x(p.t).toFixed(2)},${y(p.v).toFixed(2)}`).join(" ");
   const area = `${line} L${x(t1).toFixed(2)},${(PAD.top + ih).toFixed(2)} L${x(t0).toFixed(2)},${(PAD.top + ih).toFixed(2)} Z`;
@@ -181,10 +172,10 @@ export function LineChart({ points, format, formatAxis, formatTime, label, empty
 
         {/* Axis labels name real values: the peak, the midpoint and zero. */}
         <text x={PAD.left - 6} y={PAD.top + 4} className="chart-axis" textAnchor="end">
-          {axis(vMax)}
+          {axis(peak)}
         </text>
         <text x={PAD.left - 6} y={PAD.top + ih / 2 + 4} className="chart-axis" textAnchor="end">
-          {axis(vMax / 2)}
+          {axis(peak / 2)}
         </text>
         <text x={PAD.left - 6} y={PAD.top + ih + 4} className="chart-axis" textAnchor="end">
           0
