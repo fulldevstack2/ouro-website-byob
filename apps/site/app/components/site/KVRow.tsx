@@ -15,7 +15,7 @@ export interface KVRowProps {
 
 /** Label-left / figure-right hairline row: a 14px label in the secondary ink, a 13px mono figure. */
 export function KVRow({ label, value, py = 11, border = "bottom", inverse = false, labelStyle, valueStyle }: KVRowProps) {
-  const line = inverse ? "1px solid var(--neutral-700)" : hairline;
+  const line = inverse ? "1px solid var(--border-inverse)" : hairline;
   return (
     <div
       style={{
@@ -43,7 +43,7 @@ export function KVRow({ label, value, py = 11, border = "bottom", inverse = fals
           lineHeight: 1.5,
           textAlign: "right",
           overflowWrap: "break-word",
-          color: inverse ? "#FFFFFF" : "var(--text-primary)",
+          color: inverse ? "var(--text-inverse)" : "var(--text-primary)",
           ...valueStyle,
         }}
       >

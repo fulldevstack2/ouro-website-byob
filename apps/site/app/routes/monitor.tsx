@@ -271,7 +271,7 @@ function TokenMonitor({ token, data, explorer, nowSec }: { token: MonitoredToken
 function Method({ n, title, children }: { n: string; title: string; children: ReactNode }) {
   return (
     <div style={{ display: "flex", gap: 14, padding: "12px 0", borderBottom: hairline }}>
-      <span style={{ ...mono, fontSize: 13, fontWeight: 600, color: "var(--bronze-600)", width: 26, flex: "none" }}>{n}</span>
+      <span style={{ ...mono, fontSize: 13, fontWeight: 600, color: "var(--accent)", width: 26, flex: "none" }}>{n}</span>
       <div style={body14}>
         <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{title}. </span>
         {children}

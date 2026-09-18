@@ -17,7 +17,7 @@ export interface CardProps {
 const TONES: Record<CardTone, CSSProperties> = {
   default: { background: "var(--surface-card)", border: "1px solid var(--border-hairline)", boxShadow: "var(--shadow-card)" },
   tint: { background: "var(--surface-tint)", border: "1px solid var(--border-hairline)" },
-  inverse: { background: "var(--surface-inverse)", border: "1px solid var(--surface-inverse)", color: "#fff" },
+  inverse: { background: "var(--surface-inverse)", border: "1px solid var(--surface-inverse)", color: "var(--text-inverse)" },
 };
 
 export function Card({ label, action, tone = "default", padding = 24, style, className, children }: CardProps) {

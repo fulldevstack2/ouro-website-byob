@@ -1,0 +1,92 @@
+/* Dark theme — opt-in via <html data-theme="dark">. Base ramps are unchanged;
+   only semantic aliases, shadows and the focus ring are remapped. Neutral near-black
+   (graphite), not the warm brown of a generic dark skin. */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Ramp steps the aliases below reference but the light token files never define */
+  --amber-300: #E3B85C;
+  --red-300: #E8927E;
+
+  /* Surfaces — page near-black; cards one step up */
+  --paper: #141414;
+  --page: #0A0A0A;
+  --surface-page: #0A0A0A;
+  --surface-card: #141414;
+  --surface-tint: #111111;
+  --surface-sunken: #050505;
+  --surface-inverse: #000000;
+  --surface-field: #0F0F0F;
+  --surface-hover: #1C1C1C;
+  --surface-inverse-hover: #141414;
+  --surface-on-inverse: var(--neutral-050);
+  --surface-on-inverse-hover: var(--bronze-200);
+  --surface-nav: color-mix(in srgb, var(--surface-page) 86%, transparent);
+
+  /* Text */
+  --text-primary: #F2F2F0;
+  --text-secondary: #C9C8C4;
+  --text-muted: #8A8985;
+  --text-faint: #5E5D5A;
+  --text-inverse: #F2F2F0;
+  --text-inverse-muted: #8A8985;
+  --text-accent: var(--bronze-300);
+  --text-positive: var(--green-300);
+  --text-negative: var(--red-300);
+  --text-caution: var(--amber-300);
+
+  /* Borders */
+  --border-hairline: #242424;
+  --border-soft: #333333;
+  --border-strong: #C9C8C4;
+  --border-accent: var(--bronze-400);
+  --border-inverse: #242424;
+
+  /* Tinted status surfaces */
+  --tint-neutral-bg: #1A1A1A;
+  --tint-neutral-fg: #C9C8C4;
+  --tint-neutral-border: #2E2E2E;
+  --tint-accent-bg: #1A170F;
+  --tint-accent-fg: var(--bronze-200);
+  --tint-accent-border: #3A3220;
+  --tint-positive-bg: #0E1F16;
+  --tint-positive-fg: #9ACDAB;
+  --tint-positive-border: #1B3A29;
+  --tint-negative-bg: #231210;
+  --tint-negative-fg: var(--red-300);
+  --tint-negative-border: #3F1F19;
+  --tint-caution-bg: #1C170C;
+  --tint-caution-fg: var(--amber-300);
+  --tint-caution-border: #3D3218;
+
+  /* Accents */
+  --accent: var(--bronze-300);
+  --accent-strong: var(--bronze-200);
+  --accent-soft: #2A2314;
+  --accent-faint: #1A170F;
+  --positive: var(--green-300);
+  --negative: var(--red-300);
+  --caution: var(--amber-300);
+
+  /* Depth — shadows read as darkness, not haze; cards lean on the hairline */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.40), 0 12px 32px -16px rgba(0, 0, 0, 0.65);
+  --shadow-pop: 0 2px 6px rgba(0, 0, 0, 0.50), 0 20px 48px -20px rgba(0, 0, 0, 0.75);
+  --focus-ring: 0 0 0 3px rgba(188, 152, 72, 0.22), 0 0 0 1px var(--bronze-400);
+}
+
+/* Primary button uses semantic text/surface now; these catch leftover inline ramp fills.
+   With Graphite & gold the neutral ramp is inverted in dark, so a neutral-900 fill is already light —
+   only force the label to ink. Fields painted white inline map to the dark field surface. */
+[data-theme="dark"] [style*="background: var(--neutral-900)"],
+[data-theme="dark"] [style*="background: var(--neutral-700)"] {
+  color: var(--text-inverse) !important;
+}
+[data-theme="dark"] [style*="var(--neutral-025)"] {
+  background: var(--surface-hover) !important;
+}
+[data-theme="dark"] [style*="background: rgb(255, 255, 255)"],
+[data-theme="dark"] [style*="background: #fff"],
+[data-theme="dark"] [style*="background: #FFF"],
+[data-theme="dark"] [style*="background: #FFFFFF"] {
+  background: var(--surface-field) !important;
+}

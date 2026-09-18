@@ -59,7 +59,7 @@ export function Stat({ label, value, unit, delta, footnote, size = "md", tone = 
             lineHeight: 1.05,
             letterSpacing: "var(--tracking-mono-big)",
             fontVariantNumeric: "tabular-nums",
-            color: inv ? "#fff" : "var(--text-primary)",
+            color: inv ? "var(--text-inverse)" : "var(--text-primary)",
           }}
         >
           <CountUp>{value}</CountUp>

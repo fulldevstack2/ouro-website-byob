@@ -110,8 +110,6 @@ function readInk(): Ink {
     collar: tok("--bronze-700", "#6A4E19"),
     tracer: tok("--bronze-800", "#4F3A13"),
     tracerHalo: tok("--bronze-400", "#BC9848"),
-    // The page ground, for the pip under the tracer's head. White here, since the redesign's paper is
-    // flat white; read from the token so it follows if that ever changes.
     paper: tok("--page", "#FFFFFF"),
     station: tok("--bronze-600", "#86641F"),
   };
@@ -450,6 +448,15 @@ export function LoopPlate({ steps, className }: LoopPlateProps) {
     const ro = new ResizeObserver(() => rebuild());
     ro.observe(host);
 
+    const onTheme = () => {
+      if (stage) {
+        stage.ink = readInk();
+        if (!raf) render();
+      }
+    };
+    const themeObs = new MutationObserver(onTheme);
+    themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
     const io = new IntersectionObserver(
       (entries) => {
         inView = entries.some((e) => e.isIntersecting);
@@ -518,6 +525,7 @@ export function LoopPlate({ steps, className }: LoopPlateProps) {
       disposed = true;
       sleep();
       ro.disconnect();
+      themeObs.disconnect();
       io.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
       reduceMq.removeEventListener("change", onReduce);
@@ -543,17 +551,17 @@ export function LoopPlate({ steps, className }: LoopPlateProps) {
           <path id="ouro-plate-outer" d={STILL.outer.d} />
           <path id="ouro-plate-inner" d={STILL.inner.d} />
         </defs>
-        <g fill="none" stroke="var(--bronze-600)" strokeWidth="0.52" opacity="0.44">
+        <g fill="none" stroke="var(--accent)" strokeWidth="0.52" opacity="0.44">
           {Array.from({ length: STILL.outer.traces }, (_, i) => (
             <use key={i} href="#ouro-plate-outer" transform={`rotate(${(i * STILL.outer.step).toFixed(3)})`} />
           ))}
         </g>
-        <g fill="none" stroke="var(--green-900)" strokeWidth="0.48" opacity="0.4">
+        <g fill="none" stroke="var(--text-positive)" strokeWidth="0.48" opacity="0.4">
           {Array.from({ length: STILL.inner.traces }, (_, i) => (
             <use key={i} href="#ouro-plate-inner" transform={`rotate(${(i * STILL.inner.step).toFixed(3)})`} />
           ))}
         </g>
-        <g fill="none" stroke="var(--bronze-700)">
+        <g fill="none" stroke="var(--accent-strong)">
           {RULES.map((r) => (
             <circle key={r.r} cx="0" cy="0" r={r.r * 100} strokeWidth={r.w * 0.5} opacity={r.a} />
           ))}

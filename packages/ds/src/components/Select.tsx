@@ -30,10 +30,10 @@ export function Select({ label, hint, options, style, selectStyle, className, on
           display: "flex",
           alignItems: "center",
           height: 40,
-          background: "var(--surface-card)",
+          background: "var(--surface-field)",
           borderRadius: "var(--radius-sm)",
-          border: focused ? "1px solid var(--bronze-600)" : "1px solid var(--border-soft)",
-          boxShadow: focused ? "0 0 0 3px var(--bronze-050)" : "none",
+          border: focused ? "1px solid var(--border-accent)" : "1px solid var(--border-soft)",
+          boxShadow: focused ? "var(--focus-ring)" : "none",
           transition: "border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out)",
           boxSizing: "border-box",
         }}

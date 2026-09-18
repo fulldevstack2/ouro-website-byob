@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router";
 
-import { Badge, Button } from "@ouro/ds";
+import { Badge, Button, ThemeToggle } from "@ouro/ds";
 import { VISIBLE_NAV, externalLinkProps, site } from "~/content/site";
 import { useCollapse } from "~/hooks/useCollapse";
 import { useOuroTicker } from "~/hooks/useOuroTicker";
@@ -119,6 +119,7 @@ export function SiteNav() {
           </nav>
           <span className="site-nav__right">
             <PriceTicker />
+            <ThemeToggle />
             <Button size="sm" href={site.links.buy} onClick={close} {...externalLinkProps(site.links.buy)}>
               Buy {site.ticker} ↗
             </Button>

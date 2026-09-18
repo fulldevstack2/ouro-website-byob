@@ -23,3 +23,17 @@ export { Select } from "./components/Select";
 export type { SelectOption, SelectProps } from "./components/Select";
 export { Tabs } from "./components/Tabs";
 export type { TabItem, TabsProps } from "./components/Tabs";
+export { ThemeToggle } from "./components/ThemeToggle";
+export type { ThemeToggleProps } from "./components/ThemeToggle";
+export {
+  THEME_BOOT_SCRIPT,
+  THEME_STORAGE_KEY,
+  applyStoredTheme,
+  isTheme,
+  readDocumentTheme,
+  readPreferredTheme,
+  readStoredTheme,
+  toggleTheme,
+  writeTheme,
+} from "./theme";
+export type { Theme } from "./theme";
