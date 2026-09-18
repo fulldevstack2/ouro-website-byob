@@ -175,7 +175,7 @@ export default function Home() {
           <div className="method-body">
             <p className="note">
               <strong>The rates are not comparing like with like, and the row says so.</strong> Every APR here is
-              real and measured, but they rest on very different things. A rate from nine days of payouts over a
+              real and measured, but they rest on very different things. A rate from a fortnight of payouts over a
               million dollars of eligible supply is not the same kind of number as one from thousands of epochs
               over twenty-eight times the base. That is why the window sits under the figure rather than behind a
               tooltip: the basis is not a footnote, it is half the rate.

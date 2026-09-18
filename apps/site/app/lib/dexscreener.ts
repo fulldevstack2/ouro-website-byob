@@ -1,7 +1,10 @@
 /**
  * DexScreener's public token endpoint: CORS-open, keyless, and it indexes the Robinhood Chain pools.
  * The site reads it for what ouro-monitor does not publish (a token's day-on-day change, and a price
- * when the monitor has none), always taking the deepest Robinhood Chain pool.
+ * when the monitor has none).
+ *
+ * Prefer the deepest pool where this token is the *base*. Quote-token pairs (e.g. mmETH/OURO,
+ * LIME/HOOD10) publish the other asset's priceUsd and must not win on liquidity alone.
  */
 export interface DexQuote {
   priceUsd: number | null;
@@ -14,6 +17,7 @@ interface DexPair {
   priceUsd?: string;
   priceChange?: { h24?: number };
   liquidity?: { usd?: number };
+  baseToken?: { address?: string };
 }
 
 export async function dexQuote(token: string, signal: AbortSignal): Promise<DexQuote> {
@@ -21,8 +25,9 @@ export async function dexQuote(token: string, signal: AbortSignal): Promise<DexQ
   const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${token}`, { signal, headers: { accept: "application/json" } });
   if (!r.ok) return none;
   const d = (await r.json()) as { pairs?: DexPair[] };
+  const want = token.toLowerCase();
   const best = (d.pairs ?? [])
-    .filter((p) => p.chainId === "robinhood" && p.priceUsd)
+    .filter((p) => p.chainId === "robinhood" && p.priceUsd && (p.baseToken?.address ?? "").toLowerCase() === want)
     .sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))[0];
   if (!best) return none;
   const price = Number(best.priceUsd);

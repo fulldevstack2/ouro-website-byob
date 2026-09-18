@@ -215,15 +215,15 @@ export const PROJECTS: Project[] = [
       price: MARKET_MEASURED,
       marketCap: MARKET_MEASURED,
       volume24h: VOLUME_MEASURED,
-      paidAllTime: { state: "measured", note: "USDG actually spent, per cycle" },
+      paidAllTime: { state: "measured", note: "basket paid_usd, valued when each cycle settled" },
       paid24h: { state: "measured" },
       assets: { state: "measured", note: "the cycle's own stock array" },
-      holders: { state: "measured", note: "replayed from the token's transfers" },
+      holders: { state: "measured", note: "on-chain holderCount() for wallets at or above the line" },
       recipients: { state: "measured" },
       ratePerLine: { state: "measured", note: "cycles are allocated pro-rata by balance" },
-      apr: { state: "measured", basisDays: 7 },
-      payoutRhythm: { state: "measured", note: "measured from its own cycles" },
-      lastPaid: { state: "measured" },
+      apr: { state: "measured", basisDays: 7, note: "paid USD / payable supply at the Dex price shown" },
+      payoutRhythm: { state: "measured", note: "measured from up to its last 200 closed cycles" },
+      lastPaid: { state: "measured", note: "closed cycles only" },
       tax: {
         state: "estimated",
         note: "3% of the ETH leg of every swap on the hook pool; the hook emits nothing to settle it",
@@ -254,7 +254,7 @@ export const PROJECTS: Project[] = [
       assets: { state: "measured", note: "per cycle, per asset" },
       holders: {
         state: "measured",
-        note: "from the payout registry's eligible count (polled slowly until /v1/projects serves it)",
+        note: "above the line after policy exclusions (Sablier / PoolManager out)",
       },
       // No note: "in the most recent cycle" is already the column hint, and saying it again in
       // every cell is exactly the wallpaper that teaches a reader to skip the notes that differ.
@@ -263,11 +263,11 @@ export const PROJECTS: Project[] = [
         state: "measured",
         note: "a floor for most wallets: the keeper's taper pays the three largest less than pro-rata",
       },
-      // The number the whole site can most easily mislead with. It ships with its window attached.
-      apr: { state: "measured", basisDays: 7, historyDays: 9.2, note: "young, so the rate tracks launch volume" },
-      payoutRhythm: { state: "measured", note: "measured from its own cycles" },
-      lastPaid: { state: "measured" },
-      tax: { state: "measured" },
+      // History length comes from `/v1/ouro/yield`; do not hard-code a launch-era figure here.
+      apr: { state: "measured", basisDays: 7, note: "paid USD / payable supply at the Dex price shown" },
+      payoutRhythm: { state: "measured", note: "measured from up to its last 200 closed cycles" },
+      lastPaid: { state: "measured", note: "closed cycles only" },
+      tax: { state: "measured", note: "exact: the hook emits FeeAccrued per swap" },
       wallet: { state: "measured", note: "every receipt, with the transaction that paid it" },
     },
   },
@@ -290,28 +290,21 @@ export const PROJECTS: Project[] = [
       marketCap: MARKET_MEASURED,
       volume24h: VOLUME_MEASURED,
       /**
-       * Indexed, and genuinely NOT valued.
-       *
-       * HOOD10 marks its payouts to GeckoTerminal daily closes, and the closes for its ten basket
-       * constituents at its 2026-08 periods do not resolve — so the epochs are real and the dollars
-       * are unknown. `/v1/summary` sums `paid_usd` to 0 against four closed periods that paid 576,
-       * 602, 676 and 652 wallets. lib/projects.ts withholds that zero rather than publishing it.
+       * Fully priced as of 2026-09-13 (indexer price-loader fix). Earlier totals that looked like a
+       * floor were understated because one unpriced basket leg nulls a whole period.
        */
-      /**
-       * Fully priced as of 2026-09-13. It was a floor of $34,247 over 4 of 43 periods until the
-       * indexer's price loader was fixed — it had been choosing DELTA's deepest pool, which was
-       * newer than its second-deepest and carried one day of candles, and one unpriced leg nulls a
-       * whole period. All 43 now carry a value and the total is $353,751.
-       */
-      paidAllTime: { state: "measured" },
+      paidAllTime: {
+        state: "measured",
+        note: "from PeriodClosed / Claimed events; Merkle root itself is unverified on-chain",
+      },
       paid24h: { state: "measured" },
       assets: { state: "measured", note: "the ten basket constituents, per period" },
       holders: { state: "measured", note: "replayed from the token's transfers" },
       recipients: { state: "measured" },
       ratePerLine: { state: "measured" },
-      apr: { state: "measured", basisDays: 7 },
-      payoutRhythm: { state: "measured", note: "measured from its own cycles" },
-      lastPaid: { state: "measured" },
+      apr: { state: "measured", basisDays: 7, note: "paid USD / payable supply at the Dex price shown" },
+      payoutRhythm: { state: "measured", note: "measured from up to its last 200 closed cycles" },
+      lastPaid: { state: "measured", note: "closed cycles only" },
       // The one place HOOD10 is better instrumented than INDEX: its hook emits FeeAccrued per swap.
       tax: { state: "measured", note: "exact: the hook emits FeeAccrued per swap" },
       wallet: { state: "not_indexed", note: "payout receipts are not indexed for this project" },
