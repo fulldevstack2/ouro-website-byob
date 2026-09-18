@@ -156,6 +156,36 @@ function pricingCoverage(cycles: OuroCycle[] | null, now: number, basisDays: num
   };
 }
 
+/**
+ * APR from paid USD and the Dex price the Matrix shows — same formula as ouro-monitor's
+ * `impliedAprPct`, so the rate cell and the price cell use one spot.
+ */
+export function aprAtPrice(
+  paidUsdPerDay: number | null | undefined,
+  eligibleTokens: number | null | undefined,
+  priceUsd: number | null | undefined,
+): number | null {
+  if (
+    paidUsdPerDay == null ||
+    eligibleTokens == null ||
+    eligibleTokens <= 0 ||
+    priceUsd == null ||
+    priceUsd <= 0
+  ) {
+    return null;
+  }
+  return (paidUsdPerDay / (eligibleTokens * priceUsd)) * 365 * 100;
+}
+
+/** Closed-cycle end times only — open / paying epochs must not move "last paid". */
+function closedCadence(cycles: OuroCycle[] | null, now: number): CadenceStats {
+  const closed = (cycles ?? []).filter((c) => c.status === "closed");
+  return cadenceStats(
+    closed.map((c) => c.endTs ?? c.startTs),
+    now,
+  );
+}
+
 /** An empty row: every figure null, so a project with no data renders dashes, never zeroes. */
 function blankRow(project: Project): ProjectRow {
   return {
@@ -187,9 +217,7 @@ function blankRow(project: Project): ProjectRow {
 /**
  * INDEX and HOOD10 both come out of `/v1/summary` already in one shape.
  *
- * `cycles` is that project's payout history, used only to measure its real cadence. HOOD10 has none
- * (never indexed), so its cadence stats come back empty and render as dashes — which is correct: we
- * cannot describe a rhythm we have not observed.
+ * `cycles` is that project's payout history, used only to measure its real cadence (closed only).
  */
 function fromSummary(
   project: Project,
@@ -201,7 +229,7 @@ function fromSummary(
   const row = {
     ...blankRow(project),
     volume,
-    cadence: cadenceStats((cycles ?? []).map((c) => c.endTs ?? c.startTs), now),
+    cadence: closedCadence(cycles, now),
     ...pricingCoverage(cycles, now, t?.yield?.basisDays ?? null),
   };
   if (!t) return row;
@@ -217,11 +245,8 @@ function fromSummary(
      * Two ways a zero arrives here and neither means "this project has paid nothing":
      *
      *  · `indexedTo === null` — the source has never synced, and the SQL sum over no rows is 0.
-     *  · Epochs ARE indexed but carry no USD value. HOOD10 does exactly this: it marks payouts to
-     *    GeckoTerminal daily closes, and the closes for its ten basket constituents at its 2026-08
-     *    periods do not resolve, so `paid_usd` sums to 0 against real epochs that really paid —
-     *    576, 602, 676 and 652 wallets in the first four. Rendering that as $0 would be a false
-     *    statement about a live competitor.
+     *  · Epochs ARE indexed but carry no USD value (a cycle with any unpriced leg). Rendering that
+     *    sum as $0 would be a false statement about a live competitor.
      *
      * A project that genuinely paid nothing in a window has no epochs in it, which `epochs === 0`
      * already distinguishes.
@@ -233,7 +258,8 @@ function fromSummary(
     holdersAboveLine: t.holders?.aboveLine ?? null,
     recipientsLast: t.holders?.recipientsLast ?? null,
     ratePerLineUsdPerDay: t.yield?.perLineUsdPerDay ?? null,
-    aprPct: t.yield?.aprPct ?? null,
+    // Prefer APR at the Dex price the Matrix shows; fall back to the monitor's Gecko-based APR.
+    aprPct: aprAtPrice(t.yield?.paidUsdPerDay, t.eligibleTokens, volume.priceUsd) ?? t.yield?.aprPct ?? null,
     aprBasisDays: t.yield?.basisDays ?? null,
     aprHistoryDays: null,
   };
@@ -255,7 +281,11 @@ function fromOuro(
   cycles: OuroCycle[] | null,
   now: number,
   volume: TokenMarket,
-  /** Eligible wallets from `/v1/ouro/holders` — same quantity INDEX/HOOD10 expose on `/v1/summary`. */
+  /**
+   * Wallets that share payouts: `/v1/ouro/holders` `counts.paid` (above the line after policy
+   * exclusions). Matches the payable set yield/APR use — not `counts.eligible`, which still
+   * includes Sablier and the PoolManager.
+   */
   holdersAboveLine: number | null,
   /** The Reserve, for the one project on this page that owns liquidity. */
   reserve: Reserve | null,
@@ -263,7 +293,7 @@ function fromOuro(
   const row = {
     ...blankRow(project),
     volume,
-    cadence: cadenceStats((cycles ?? []).map((c) => c.endTs ?? c.startTs), now),
+    cadence: closedCadence(cycles, now),
     ...pricingCoverage(cycles, now, y?.basisDays ?? null),
   };
   const priced = cycles?.filter((c) => c.paidUsd !== null) ?? null;
@@ -273,7 +303,8 @@ function fromOuro(
   const last24 = priced?.filter((c) => (c.endTs ?? 0) >= dayAgo) ?? null;
   const paid24h = last24 && last24.length > 0 ? last24.reduce((s, c) => s + (c.paidUsd ?? 0), 0) : null;
 
-  const lastCycle = cycles?.[0] ?? null;
+  const lastClosed = (cycles ?? []).find((c) => c.status === "closed") ?? null;
+  const lastCycle = lastClosed ?? cycles?.[0] ?? null;
 
   /**
    * A venue reporting zero is not news; a venue that could not be read is, because that is coverage
@@ -306,15 +337,10 @@ function fromOuro(
     cyclesAllTime: cycles?.filter((c) => c.status === "closed").length ?? null,
     cyclesTruncated: (cycles?.length ?? 0) >= OURO_CYCLE_PAGE,
     assets: lastCycle?.assets?.map((a) => ({ address: a.address, symbol: a.symbol })) ?? null,
-    /**
-     * Same quantity as INDEX/HOOD10's `holders.aboveLine`: wallets at or above the dividend line,
-     * after exclusion policy. Sourced from `/v1/ouro/holders` counts (polled slowly) rather than
-     * last-cycle recipients, which is a different number under the same column header.
-     */
     holdersAboveLine,
     recipientsLast: lastCycle?.recipients ?? null,
     ratePerLineUsdPerDay: y?.perLineUsdPerDay ?? null,
-    aprPct: y?.aprPct ?? null,
+    aprPct: aprAtPrice(y?.paidUsdPerDay, y?.eligibleTokens, volume.priceUsd) ?? y?.aprPct ?? null,
     aprBasisDays: y?.basisDays ?? null,
     aprHistoryDays: y?.historyDays ?? null,
   };
@@ -350,9 +376,9 @@ export function useProjects(intervalMs = 30_000): ProjectsState {
   /** HOOD10's periods, live since its backfill was re-enabled on 2026-09-12. */
   const hood10Cycles = useMonitor<{ epochs: OuroCycle[] }>("/v1/hood10/epochs?limit=200", intervalMs);
   /**
-   * $OURO holders-above-the-line. The payload is the payout registry (~180 KB, uncached), so this
-   * polls on the same slow cadence as the airdrops page rather than every `intervalMs`. Prefer a
-   * count-only field on `/v1/projects` or `/v1/summary` when those land.
+   * $OURO holders that share payouts (`counts.paid`). The payload is the payout registry (~180 KB,
+   * uncached), so this polls on the same slow cadence as the airdrops page rather than every
+   * `intervalMs`. Prefer a count-only field on `/v1/projects` or `/v1/summary` when those land.
    */
   const ouroHolders = useMonitor<OuroHolders>("/v1/ouro/holders?min=100000", 120_000);
   /**
@@ -377,7 +403,7 @@ export function useProjects(intervalMs = 30_000): ProjectsState {
         ouroCycles.data?.epochs ?? null,
         now,
         market,
-        ouroHolders.data?.counts.eligible ?? null,
+        ouroHolders.data?.counts.paid ?? null,
         reserve.data,
       );
     }

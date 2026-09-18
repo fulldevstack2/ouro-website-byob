@@ -463,9 +463,13 @@ function buildView(i: Inputs): PortfolioView {
       key: v.entry.address,
       title: `Deposit ${v.token.symbol} · Earn ${v.payoutSymbol}`,
       deposit: !viewing || !vaultPositions ? DASH : !pos || pos.assetsF === 0 ? "Nothing deposited" : amountUsd(pos.assetsF, pos.depositSymbol, pos.assetsUsd),
+      // The compounding vault has nothing to claim: its figure is the gain on the cost basis, which
+      // the monitor serves as `earnedF` with no raw amount beside it.
       collect:
         pos && pos.earnedF !== null && pos.earnedF > 0
-          ? `${fmtEarned(pos.earned, v.payoutDecimals)} ${pos.payoutSymbol}${pos.earnedUsd !== null ? ` (${fmtUsd(pos.earnedUsd)})` : ""} to collect`
+          ? v.kind === "compounding"
+            ? `${fmtTokens(pos.earnedF)} ${pos.payoutSymbol} earned${pos.earnedUsd !== null ? ` (${fmtUsd(pos.earnedUsd)})` : ""}`
+            : `${fmtEarned(pos.earned, v.payoutDecimals)} ${pos.payoutSymbol}${pos.earnedUsd !== null ? ` (${fmtUsd(pos.earnedUsd)})` : ""} to collect`
           : undefined,
     };
   });

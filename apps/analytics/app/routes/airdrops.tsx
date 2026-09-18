@@ -346,7 +346,7 @@ export default function Airdrops() {
       <div className="stat-band">
         <Stat label="Paid to holders" value={fmtUsd(all?.paidUsd)} footnote={all ? `${fmtNum(all.cycles)} cycles · valued when sent` : "Every cycle, valued when sent"} />
         <Stat label="Last cycle" value={fmtUsd(last?.paidUsd)} footnote={last ? `#${last.epoch} · ${fmtWhen(last.endTs ?? last.startTs)} · ${fmtNum(last.recipients)} wallets` : "None yet"} />
-        <Stat label="Wallets above the line" value={fmtNum(holders.data?.counts.eligible ?? null)} footnote={`${fmtNum(line)} OURO or more, in their own wallet`} />
+        <Stat label="Wallets above the line" value={fmtNum(holders.data?.counts.paid ?? null)} footnote={`${fmtNum(line)} OURO or more · after policy exclusions`} />
         <Stat
           label="Eligible supply"
           value={y?.eligibleTokens == null ? "—" : `${(y.eligibleTokens / 1e6).toFixed(1)}M`}

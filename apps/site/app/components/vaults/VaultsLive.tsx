@@ -1,5 +1,5 @@
 import { useConnectModal } from "@rainbow-me/rainbowkit";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { formatUnits } from "viem";
 import { useAccount, useChainId, useReadContracts, useSwitchChain } from "wagmi";
 
@@ -12,9 +12,10 @@ import { externalLinkProps, site } from "~/content/site";
 import { LIVE_VAULTS, TOKEN_DECIMALS, type LiveVault } from "~/content/vaults";
 import { usePrices, type Prices } from "~/hooks/usePrices";
 import { publishPooled } from "~/hooks/useVaultsPooled";
+import { gainIn, useVaultEarnings, type Gain, type VaultEarnings } from "~/hooks/useVaultEarnings";
 import { useVaultActions, useVaultView, type TxState, type VaultActions, type VaultView } from "~/hooks/useVault";
-import { ago, fmtAge, fmtNum, fmtUsd } from "@ouro/monitor-client";
-import { fmtAmount, parseAmount, streamPerDay, vaultAbi } from "~/lib/vaultChain";
+import { ago, fmtAge, fmtNum, fmtTokens, fmtUsd } from "@ouro/monitor-client";
+import { fmtAmount, parseAmount, vaultAbi } from "~/lib/vaultChain";
 import { YIELD_DISPLAY_CAP_PCT, fmtYieldPct, projectedYieldPct, realisedYield, toNumber, usdValue } from "~/lib/vaultYield";
 import { hasWalletConnect, robinhoodChain } from "~/lib/wagmi";
 
@@ -35,7 +36,7 @@ export default function VaultsLive() {
 }
 
 function LiveSection() {
-  const { isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const ready = isConnected && chainId === robinhoodChain.id;
   const prices = usePrices();
@@ -45,12 +46,28 @@ function LiveSection() {
   // way to read the chain itself. See hooks/useVaultsPooled.
   useEffect(() => publishPooled(pooledTokens), [pooledTokens]);
 
+  const earnings = useVaultEarnings(address);
+  const { behind, onConfirmed } = useIndexSync(earnings.indexedBlock, address);
+
   return (
     <>
-      <VaultBar pooled={pooled === undefined ? "—" : fmtAmount(pooled, OURO_DECIMALS, 0)} right={<WalletButton />} />
+      <VaultBar
+        pooled={pooled === undefined ? "—" : fmtAmount(pooled, OURO_DECIMALS, 0)}
+        earned={isConnected && earnings.configured ? (behind ? "Working out what you have earned" : `You have earned ${fmtUsd(earnings.lifetimeUsd)}`) : undefined}
+        right={<WalletButton />}
+      />
       <VaultList>
         {LIVE_VAULTS.map((v, i) => (
-          <VaultPanel key={v.entry.address} n={CARD_INDEX[i] ?? String(i + 1)} vault={v} prices={prices} ready={ready} />
+          <VaultPanel
+            key={v.entry.address}
+            n={CARD_INDEX[i] ?? String(i + 1)}
+            vault={v}
+            prices={prices}
+            ready={ready}
+            earnings={earnings}
+            earningsBehind={behind}
+            onConfirmed={onConfirmed}
+          />
         ))}
       </VaultList>
       <div style={{ ...body14, fontSize: 13, color: "var(--text-muted)", marginTop: 16 }}>
@@ -59,6 +76,27 @@ function LiveSection() {
       </div>
     </>
   );
+}
+
+/**
+ * Whether ouro-monitor's deposit and withdrawal index has caught up with this wallet's own latest
+ * vault transaction.
+ *
+ * It matters for one figure: the gain on the compounding vault is the balance less the cost basis,
+ * and the balance is read live while the basis comes from the index. In the seconds between a deposit
+ * being mined and the index reaching that block, the deposit is in the balance and not in the basis,
+ * and the whole deposit would read as gain. So the panels hold the figure back until the index has
+ * passed the block their transaction landed in. Latched, not read off the transaction state, so
+ * dismissing the status line does not drop the guard.
+ */
+function useIndexSync(indexedBlock: number | null, address: `0x${string}` | undefined) {
+  const [confirmedAt, setConfirmedAt] = useState(0);
+  // A change of wallet makes the previous wallet's block meaningless.
+  useEffect(() => setConfirmedAt(0), [address]);
+  const onConfirmed = useCallback((block: bigint) => setConfirmedAt((b) => Math.max(b, Number(block))), []);
+  // A monitor that has not answered at all leaves `indexedBlock` null, and that is a dash rather
+  // than a wait: there is nothing to catch up to.
+  return { behind: confirmedAt > 0 && indexedBlock !== null && indexedBlock < confirmedAt, onConfirmed };
 }
 
 /** Deposits across every live vault, one multicall. */
@@ -80,15 +118,6 @@ function withUsd(value: bigint | undefined, decimals: number, symbol: string, pr
   return usd === null || value === undefined ? amount : `${amount} (${fmtUsd(usd)})`;
 }
 
-/**
- * A pooled total short enough for a card figure: "142.0M", "88.2M", "67,148" under a million. The
- * bar above the cards carries every digit of the total; the card's figure is for reading across.
- */
-function compactPooled(value: bigint): string {
-  const n = toNumber(value, OURO_DECIMALS) ?? 0;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  return fmtNum(n);
-}
 
 /** Dollars per unit of what the vault pays out: OURO, USDG at a dollar, or ETH. */
 function payoutUsdFor(vault: LiveVault, prices: Prices): number | null {
@@ -98,11 +127,32 @@ function payoutUsdFor(vault: LiveVault, prices: Prices): number | null {
 
 type Tab = "deposit" | "withdraw";
 
-function VaultPanel({ n, vault, prices, ready }: { n: string; vault: LiveVault; prices: Prices; ready: boolean }) {
+function VaultPanel({
+  n,
+  vault,
+  prices,
+  ready,
+  earnings,
+  earningsBehind,
+  onConfirmed,
+}: {
+  n: string;
+  vault: LiveVault;
+  prices: Prices;
+  ready: boolean;
+  earnings: VaultEarnings;
+  earningsBehind: boolean;
+  onConfirmed: (block: bigint) => void;
+}) {
   const { address, isConnected } = useAccount();
   const view = useVaultView(vault, address);
   const actions = useVaultActions(vault);
   const nowSec = Date.now() / 1000;
+  // Up to the section, which holds every earned figure back until the monitor's index has passed it.
+  const confirmedBlock = actions.tx.block;
+  useEffect(() => {
+    if (confirmedBlock !== undefined) onConfirmed(confirmedBlock);
+  }, [confirmedBlock, onConfirmed]);
   const payoutUsd = payoutUsdFor(vault, prices);
   const tvlUsd = usdValue(view.totalAssets, OURO_DECIMALS, prices.ouroUsd);
   const yields = yieldFigure(vault, view, prices, tvlUsd, payoutUsd, nowSec);
@@ -137,17 +187,27 @@ function VaultPanel({ n, vault, prices, ready }: { n: string; vault: LiveVault; 
     <VaultCard
       n={n}
       vault={vault}
-      pooled={view.totalAssets === undefined ? "—" : compactPooled(view.totalAssets)}
+      pooled={tvlUsd === null ? "—" : fmtUsd(tvlUsd, { compact: true })}
       pooledNote={
         view.totalAssets === undefined
           ? "Reading the chain"
-          : `${fmtAmount(view.totalAssets, OURO_DECIMALS, 0)} OURO${tvlUsd === null ? ", awaiting a price" : ` · ${fmtUsd(tvlUsd)} today`}`
+          : `${fmtAmount(view.totalAssets, OURO_DECIMALS, 0)} OURO${tvlUsd === null ? ", awaiting a price" : ""}`
       }
       yieldLabel={yields.label}
       yieldValue={yields.value}
       yieldNote={yields.note}
       paused={view.paused === true}
-      rows={<LiveRows vault={vault} view={view} prices={prices} payoutUsd={payoutUsd} nowSec={nowSec} connected={isConnected} />}
+      rows={
+        <LiveRows
+          vault={vault}
+          view={view}
+          prices={prices}
+          payoutUsd={payoutUsd}
+          connected={isConnected}
+          gain={gainIn(earnings, vault.entry.address)}
+          gainBehind={earningsBehind}
+        />
+      }
       open={openTab !== null}
       actions={
         <>
@@ -230,25 +290,62 @@ function yieldFigure(vault: LiveVault, view: VaultView, prices: Prices, tvlUsd: 
 }
 
 /** The card's three rows. Pooled and the rate are the figures above, so neither is repeated here. */
-function LiveRows({ vault, view, prices, payoutUsd, nowSec, connected }: { vault: LiveVault; view: VaultView; prices: Prices; payoutUsd: number | null; nowSec: number; connected: boolean }) {
+function LiveRows({
+  vault,
+  view,
+  prices,
+  payoutUsd,
+  connected,
+  gain,
+  gainBehind,
+}: {
+  vault: LiveVault;
+  view: VaultView;
+  prices: Prices;
+  payoutUsd: number | null;
+  connected: boolean;
+  gain: Gain;
+  gainBehind: boolean;
+}) {
   const dep = vault.token.symbol;
   const compounding = vault.kind === "compounding";
-  const perDay = view.rewardRate !== undefined && view.periodFinish !== undefined ? streamPerDay(view.rewardRate, view.periodFinish, nowSec) : undefined;
   return (
     <>
       {compounding ? (
         <KVRow label={`1 ${dep} deposited is now worth`} value={`${fmtAmount(view.pricePerShare, OURO_DECIMALS, 6)} ${dep}`} />
       ) : (
-        <KVRow label={`${vault.payoutSymbol} earned so far`} value={withUsd(view.accountedPayout, vault.payoutDecimals, vault.payoutSymbol, payoutUsd)} />
+        <KVRow label={`${vault.payoutSymbol} earned`} value={withUsd(view.accountedPayout, vault.payoutDecimals, vault.payoutSymbol, payoutUsd)} />
       )}
+      <KVRow label="Your deposit" value={connected ? withUsd(view.deposited, OURO_DECIMALS, dep, prices.ouroUsd) : "—"} />
+      {/* What the wallet has earned here. The compounding vault pays by lifting the share price, so
+          its figure is the gain on the cost basis and ouro-monitor is the only thing that knows it
+          (hooks/useVaultEarnings); a payout vault holds the wallet's own balance of what it owes,
+          which the chain answers exactly. */}
       {compounding ? (
-        <KVRow label="Arriving over the next day" value={view.lockedProfit === undefined ? "—" : view.lockedProfit === 0n ? "Nothing yet" : withUsd(view.lockedProfit, OURO_DECIMALS, dep, prices.ouroUsd)} />
+        <KVRow
+          label="You have earned"
+          value={!connected ? "—" : gainBehind ? "Updating" : gainValue(gain, dep)}
+          border="none"
+          valueStyle={gain.kind === "known" && gain.tokens > 0 && connected && !gainBehind ? { fontWeight: 600, color: "var(--bronze-700)" } : undefined}
+        />
       ) : (
-        <KVRow label="Streaming" value={perDay === undefined ? "—" : perDay === 0n ? "No stream running" : `${withUsd(perDay, vault.payoutDecimals, vault.payoutSymbol, payoutUsd)} a day`} />
+        <KVRow
+          label="Yours to collect"
+          value={connected ? withUsd(view.earned, vault.payoutDecimals, vault.payoutSymbol, payoutUsd) : "—"}
+          border="none"
+          valueStyle={connected && view.earned !== undefined && view.earned > 0n ? { fontWeight: 600, color: "var(--bronze-700)" } : undefined}
+        />
       )}
-      <KVRow label="Your deposit" value={connected ? withUsd(view.deposited, OURO_DECIMALS, dep, prices.ouroUsd) : "—"} border="none" />
     </>
   );
+}
+
+/** "0.471 OURO (< $0.01)", "Nothing yet" for a wallet that has deposited nothing, or a dash. */
+function gainValue(gain: Gain, symbol: string): string {
+  if (gain.kind === "unknown") return "—";
+  if (gain.kind === "none" || gain.tokens <= 0) return "Nothing yet";
+  const amount = `${fmtTokens(gain.tokens)} ${symbol}`;
+  return gain.usd === null ? amount : `${amount} (${fmtUsd(gain.usd)})`;
 }
 
 /* ── deposit and withdraw ──────────────────────────────────────────────────── */

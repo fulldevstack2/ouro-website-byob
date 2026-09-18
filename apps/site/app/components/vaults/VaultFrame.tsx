@@ -16,8 +16,8 @@ import { LIVE_VAULTS, type LiveVault } from "~/content/vaults";
    file keeps them out of the server bundle, which is what lets the prerender stay fast.
 
    SHAPE. One card per vault, three across: the pair it turns (OURO into OURO, ETH or dollars), what
-   is pooled and the rate with its basis, three rows of the vault's own figures, and the two or three
-   buttons. Deposit and Withdraw open the panel inside the card, under the buttons, on that tab;
+   is pooled and the rate with its basis, three rows (the vault's own figure, then the wallet's deposit
+   and what it has earned), and the two or three buttons. Deposit and Withdraw open the panel inside the card, under the buttons, on that tab;
    Collect (payout vaults) claims straight away. The panel opens by animated height (useCollapse) and
    is visibility:hidden once closed, which takes it out of the tab order.
    ──────────────────────────────────────────────────────────────────────────── */
@@ -40,13 +40,17 @@ export function VaultList({ children }: { children: ReactNode }) {
  *
  * Every digit of the total, because the page header states the same figure as a share and rounds the
  * token count to make the point. One of the two has to be exact and this is the one with room for it.
+ *
+ * `earned` is the connected wallet's own figure across all three vaults, and is left out entirely
+ * when there is no wallet: the section's totals belong to everyone, that one does not.
  */
-export function VaultBar({ pooled, right }: { pooled: ReactNode; right: ReactNode }) {
+export function VaultBar({ pooled, earned, right }: { pooled: ReactNode; earned?: ReactNode; right: ReactNode }) {
   return (
     <div className="vbar">
       <div className="vbar__title">
         <span className="vbar__name">Ouro Vaults</span>
         <span className="vbar__pooled">{pooled} OURO pooled</span>
+        {earned !== undefined && <span className="vbar__earned">{earned}</span>}
       </div>
       <div className="vbar__wallet">{right}</div>
     </div>
@@ -56,7 +60,7 @@ export function VaultBar({ pooled, right }: { pooled: ReactNode; right: ReactNod
 export interface VaultCardProps {
   n: string;
   vault: LiveVault;
-  /** What is pooled, as a token amount, and the line under it (its dollar value, or why there is none). */
+  /** What is pooled, in dollars, and the token amount under it (or why there is no figure yet). */
   pooled: ReactNode;
   pooledNote: ReactNode;
   /** The rate, "APY" on the compounding vault and "APR" on the payout ones, with where it comes from. */
@@ -115,7 +119,7 @@ export function VaultCard({ n, vault, pooled, pooledNote, yieldLabel, yieldValue
           <div className="vcard__top">
             <TokenPair vault={vault} />
             <div className="vcard__figures">
-              <Stat label="Pooled" value={pooled} unit={vault.token.symbol} footnote={pooledNote} />
+              <Stat label="Pooled" value={pooled} footnote={pooledNote} />
               <Stat className="cell-rule" label={yieldLabel} value={yieldValue} footnote={yieldNote} />
             </div>
             <div className="vcard__rows">{rows}</div>
@@ -140,10 +144,10 @@ export function StaticRows({ vault }: { vault: LiveVault }) {
       {compounding ? (
         <KVRow label={`1 ${vault.token.symbol} deposited is now worth`} value={`— ${vault.token.symbol}`} />
       ) : (
-        <KVRow label={`${vault.payoutSymbol} earned so far`} value={`— ${vault.payoutSymbol}`} />
+        <KVRow label={`${vault.payoutSymbol} earned`} value={`— ${vault.payoutSymbol}`} />
       )}
-      <KVRow label={compounding ? "Arriving over the next day" : "Streaming"} value="—" />
-      <KVRow label="Your deposit" value="—" border="none" />
+      <KVRow label="Your deposit" value="—" />
+      <KVRow label={compounding ? "You have earned" : "Yours to collect"} value={`— ${vault.payoutSymbol}`} border="none" />
     </>
   );
 }

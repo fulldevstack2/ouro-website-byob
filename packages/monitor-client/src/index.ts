@@ -520,8 +520,21 @@ export interface PortfolioVaultPosition {
   assetsF: number;
   assetsUsd: number | null;
   payoutSymbol: string;
-  /** Payout vaults: what it can claim now. Null on the compounding vault, which has nothing to claim by design. */
+  /**
+   * Payout vaults: what it can claim now, in raw payout-token units. Null on the compounding vault,
+   * which has nothing to claim: its yield arrives as a higher share price.
+   */
   earned: string | null;
+  /**
+   * What the vault has returned this wallet, in whole payout tokens. On a payout vault it is the
+   * claimable amount above. On the compounding vault it is the lifetime gain: the balance today,
+   * less everything deposited, plus everything withdrawn, from the monitor's own index of those
+   * events. So it holds after a withdrawal, and it counts only vested gains, because that vault's
+   * totalAssets subtracts what is still unlocking.
+   *
+   * Null is not zero but 'not known': the live read failed, or the position has no indexed cost
+   * basis (shares transferred in rather than deposited).
+   */
   earnedF: number | null;
   earnedUsd: number | null;
 }

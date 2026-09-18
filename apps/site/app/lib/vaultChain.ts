@@ -47,19 +47,6 @@ export function sharesToAssets(shares: bigint, t: Totals): bigint {
   return (shares * (t.totalAssets + 1n)) / (t.totalSupply + OFFSET);
 }
 
-/**
- * Payout streamed to all depositors together per day, in payout token units. The contract's
- * `rewardRate` is the vault-wide rate per second scaled by 1e36 (`_notify`: `(amount + remaining) *
- * 1e36 / duration`); the per-share accrual divides it by the supply, so it must not be multiplied
- * back here. The day is multiplied in before the scale is divided out, as the contract's own
- * `_streamRemaining` does: a 6-decimal payout streams under one unit a second (USDG on any small
- * harvest), and dividing first truncated that to nothing and showed "No stream running" mid-stream.
- * Zero once the stream has finished.
- */
-export function streamPerDay(rewardRate: bigint, periodFinish: bigint, nowSec: number): bigint {
-  if (periodFinish <= BigInt(Math.floor(nowSec))) return 0n;
-  return (rewardRate * 86_400n) / 10n ** 36n;
-}
 
 /** A typed amount, or null when the text is not a positive number the token can represent. */
 export function parseAmount(input: string, decimals: number): bigint | null {
