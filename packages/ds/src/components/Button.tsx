@@ -33,17 +33,30 @@ const SIZES: Record<ButtonSize, CSSProperties> = {
 function variantStyle(variant: ButtonVariant, hover: boolean): CSSProperties {
   switch (variant) {
     case "primary":
-      return { background: hover ? "var(--neutral-700)" : "var(--neutral-900)", color: "#fff", border: "1px solid transparent" };
+      /* Ink on paper in light; light slab on the dark page — both read from semantic text/surface. */
+      return {
+        background: hover ? "var(--text-secondary)" : "var(--text-primary)",
+        color: "var(--surface-page)",
+        border: "1px solid transparent",
+      };
     case "secondary":
       return {
-        background: hover ? "var(--neutral-025)" : "transparent",
-        color: "var(--neutral-900)",
-        border: hover ? "1px solid var(--neutral-900)" : "1px solid var(--border-soft)",
+        background: hover ? "var(--surface-hover)" : "transparent",
+        color: "var(--text-primary)",
+        border: hover ? "1px solid var(--border-strong)" : "1px solid var(--border-soft)",
       };
     case "ghost":
-      return { background: hover ? "var(--neutral-050)" : "transparent", color: "var(--neutral-900)", border: "1px solid transparent" };
+      return {
+        background: hover ? "var(--surface-hover)" : "transparent",
+        color: "var(--text-primary)",
+        border: "1px solid transparent",
+      };
     case "inverse":
-      return { background: hover ? "var(--bronze-100)" : "#fff", color: "var(--neutral-900)", border: "1px solid transparent" };
+      return {
+        background: hover ? "var(--accent-soft)" : "var(--surface-card)",
+        color: "var(--text-primary)",
+        border: "1px solid transparent",
+      };
   }
 }
 

@@ -15,8 +15,8 @@ export function TokenIcon({ symbol, src, size = 22, style }: { symbol: string; s
       style={{
         ...base,
         borderRadius: 4,
-        background: "var(--neutral-900)",
-        color: "#fff",
+        background: "var(--surface-inverse)",
+        color: "var(--text-inverse)",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",

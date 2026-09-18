@@ -5,7 +5,7 @@ export type MicroLabelTone = "muted" | "accent" | "secondary" | "faint";
 
 const COLORS: Record<MicroLabelTone, string> = {
   muted: "var(--text-muted)",
-  accent: "var(--bronze-700)",
+  accent: "var(--text-accent)",
   secondary: "var(--text-secondary)",
   faint: "var(--text-faint)",
 };

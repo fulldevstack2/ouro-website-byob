@@ -54,7 +54,7 @@ export function SplitRows({ rows, style }: { rows: SplitRow[]; style?: CSSProper
           border={i === rows.length - 1 ? "none" : "bottom"}
           label={r.label}
           value={r.value}
-          valueStyle={{ fontWeight: 600, color: r.accent ? "var(--bronze-700)" : undefined }}
+          valueStyle={{ fontWeight: 600, color: r.accent ? "var(--text-accent)" : undefined }}
         />
       ))}
     </div>

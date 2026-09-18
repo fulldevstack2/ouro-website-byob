@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { isRouteErrorResponse, Links, Meta, NavLink, Outlet, Scripts, ScrollRestoration } from "react-router";
 
+import { THEME_BOOT_SCRIPT, ThemeToggle } from "@ouro/ds";
 import type { Route } from "./+types/root";
 import "./app.css";
 
@@ -48,11 +49,13 @@ function Disclosure() {
 
 export function Layout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#EEEBE5" />
+        <meta name="theme-color" content="#FFFFFF" data-light="#FFFFFF" />
+        {/* Boot + suppressHydrationWarning: React must not strip data-theme on hydrate. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         <Meta />
         <Links />
       </head>
@@ -71,7 +74,10 @@ export function Layout({ children }: { children: ReactNode }) {
                 </NavLink>
               ))}
             </nav>
-            <Disclosure />
+            <span className="nav-tools">
+              <Disclosure />
+              <ThemeToggle />
+            </span>
           </div>
         </header>
         <main>{children}</main>

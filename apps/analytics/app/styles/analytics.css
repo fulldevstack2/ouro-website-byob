@@ -73,12 +73,40 @@ body {
 .tab-link:hover { color: var(--text-primary); text-decoration: none; }
 .tab-link.active { color: var(--text-primary); border-bottom-color: var(--accent); }
 
+.nav-tools {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.theme-toggle {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border-hairline);
+  border-radius: 999px;
+  padding: 6px 12px 6px 10px;
+  cursor: pointer;
+  line-height: 1.2;
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.theme-toggle svg { flex: none; display: block; }
+.theme-toggle:hover { color: var(--text-primary); border-color: var(--border-strong); }
+
 /* On a phone the bar becomes three rows: the wordmark, the tabs, then the disclosure. The tabs take
    the full width so they scroll in their own lane rather than squeezing the wordmark. */
 @media (max-width: 720px) {
   .nav-inner { gap: 10px 16px; }
   .tabs { order: 3; width: 100%; margin-inline: -4px; }
-  .disclosure { order: 2; }
+  .nav-tools { order: 2; margin-left: 0; width: 100%; justify-content: space-between; }
 }
 
 /* The operator disclosure. It is in the chrome on every page, not in an about page, because this
@@ -263,7 +291,7 @@ h2 {
 .tab[aria-pressed="true"] {
   background: var(--surface-card);
   color: var(--text-primary);
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--neutral-900) 9%, transparent);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--text-primary) 9%, transparent);
 }
 .tab.solo {
   background: var(--surface-tint);
@@ -420,7 +448,7 @@ h2 {
   text-transform: uppercase;
   color: var(--text-accent);
   background: var(--accent-faint);
-  border: 1px solid var(--bronze-200);
+  border: 1px solid var(--tint-accent-border);
   border-radius: var(--radius-xs);
   padding: 1px 5px;
   flex: none;
@@ -843,8 +871,8 @@ table.matrix {
    overhang the text without the cell changing size and nudging the column. */
 @keyframes tick {
   0% {
-    background-color: color-mix(in srgb, var(--bronze-300) 52%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--bronze-300) 52%, transparent);
+    background-color: color-mix(in srgb, var(--accent) 52%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 52%, transparent);
   }
   100% {
     background-color: transparent;

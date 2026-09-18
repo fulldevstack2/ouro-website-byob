@@ -1,8 +1,10 @@
-/* The design tokens, copied verbatim from the Claude Design export. Colours first: every other
-   file references them. Import this alone if you want the token set without the @font-face rules
-   (e.g. a page that loads the faces some other way); `styles.css` is tokens + faces together. */
+/* The design tokens. Colours first; Palette A (Graphite & gold) loads last so both light and dark
+   match ouro-dark-mode/palettes/gold.css. Import this alone if you want the token set without the
+   @font-face rules; `styles.css` is tokens + faces together. */
 @import "./tokens/colors.css";
 @import "./tokens/typography.css";
 @import "./tokens/spacing.css";
 @import "./tokens/effects.css";
 @import "./tokens/base.css";
+@import "./tokens/dark.css";
+@import "./tokens/gold.css";

@@ -12,12 +12,12 @@ export interface BadgeProps {
 }
 
 const TONES: Record<BadgeTone, CSSProperties> = {
-  neutral: { background: "var(--neutral-050)", color: "var(--neutral-700)", border: "1px solid var(--border-hairline)" },
-  accent: { background: "var(--bronze-050)", color: "var(--bronze-700)", border: "1px solid var(--bronze-200)" },
-  positive: { background: "var(--green-050)", color: "var(--green-700)", border: "1px solid var(--green-100)" },
-  negative: { background: "var(--red-050)", color: "var(--red-700)", border: "1px solid var(--red-100)" },
-  caution: { background: "var(--amber-050)", color: "var(--amber-700)", border: "1px solid var(--amber-100)" },
-  inverse: { background: "var(--neutral-900)", color: "#fff", border: "1px solid var(--neutral-900)" },
+  neutral: { background: "var(--tint-neutral-bg)", color: "var(--tint-neutral-fg)", border: "1px solid var(--tint-neutral-border)" },
+  accent: { background: "var(--tint-accent-bg)", color: "var(--tint-accent-fg)", border: "1px solid var(--tint-accent-border)" },
+  positive: { background: "var(--tint-positive-bg)", color: "var(--tint-positive-fg)", border: "1px solid var(--tint-positive-border)" },
+  negative: { background: "var(--tint-negative-bg)", color: "var(--tint-negative-fg)", border: "1px solid var(--tint-negative-border)" },
+  caution: { background: "var(--tint-caution-bg)", color: "var(--tint-caution-fg)", border: "1px solid var(--tint-caution-border)" },
+  inverse: { background: "var(--surface-inverse)", color: "var(--text-inverse)", border: "1px solid var(--surface-inverse)" },
 };
 
 export function Badge({ tone = "neutral", dot = false, children, style, className }: BadgeProps) {

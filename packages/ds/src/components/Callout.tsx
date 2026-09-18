@@ -12,15 +12,15 @@ export interface CalloutProps {
 
 const TONES: Record<CalloutTone, CSSProperties> = {
   note: { background: "var(--surface-tint)", border: "1px solid var(--border-hairline)" },
-  caution: { background: "var(--amber-050)", border: "1px solid var(--amber-100)" },
+  caution: { background: "var(--tint-caution-bg)", border: "1px solid var(--tint-caution-border)" },
   /** Reserved for a risk a reader can act on and lose money by ignoring, not for general caution. */
-  warning: { background: "var(--red-050)", border: "1px solid var(--red-100)" },
+  warning: { background: "var(--tint-negative-bg)", border: "1px solid var(--tint-negative-border)" },
 };
 
 const TITLE_COLOR: Record<CalloutTone, string> = {
   note: "var(--text-primary)",
-  caution: "var(--amber-700)",
-  warning: "var(--red-700)",
+  caution: "var(--tint-caution-fg)",
+  warning: "var(--tint-negative-fg)",
 };
 
 /** Honesty/risk notes are first-class in this brand: readable type, never fine print. */

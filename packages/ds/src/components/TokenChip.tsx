@@ -22,8 +22,8 @@ export function TokenChip({ symbol, amount, tone = "neutral", style, className }
         gap: 8,
         padding: "4px 10px 4px 4px",
         borderRadius: "var(--radius-sm)",
-        border: "1px solid " + (inv ? "var(--neutral-700)" : "var(--border-hairline)"),
-        background: inv ? "var(--neutral-800)" : "var(--surface-tint)",
+        border: "1px solid " + (inv ? "var(--border-inverse)" : "var(--border-hairline)"),
+        background: inv ? "var(--surface-inverse-hover)" : "var(--surface-tint)",
         whiteSpace: "nowrap",
         ...style,
       }}
@@ -33,8 +33,8 @@ export function TokenChip({ symbol, amount, tone = "neutral", style, className }
           width: 22,
           height: 22,
           borderRadius: 4,
-          background: inv ? "#fff" : "var(--neutral-900)",
-          color: inv ? "var(--neutral-900)" : "#fff",
+          background: inv ? "var(--surface-card)" : "var(--surface-inverse)",
+          color: inv ? "var(--text-primary)" : "var(--text-inverse)",
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
@@ -46,7 +46,7 @@ export function TokenChip({ symbol, amount, tone = "neutral", style, className }
       >
         {symbol.slice(0, 1)}
       </span>
-      <span style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", color: inv ? "#fff" : "var(--text-primary)" }}>
+      <span style={{ fontFamily: "var(--font-body)", fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", color: inv ? "var(--text-inverse)" : "var(--text-primary)" }}>
         {symbol}
       </span>
       {amount != null && (

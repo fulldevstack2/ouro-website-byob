@@ -326,14 +326,14 @@ function LiveRows({
           label="You have earned"
           value={!connected ? "—" : gainBehind ? "Updating" : gainValue(gain, dep)}
           border="none"
-          valueStyle={gain.kind === "known" && gain.tokens > 0 && connected && !gainBehind ? { fontWeight: 600, color: "var(--bronze-700)" } : undefined}
+          valueStyle={gain.kind === "known" && gain.tokens > 0 && connected && !gainBehind ? { fontWeight: 600, color: "var(--text-accent)" } : undefined}
         />
       ) : (
         <KVRow
           label="Yours to collect"
           value={connected ? withUsd(view.earned, vault.payoutDecimals, vault.payoutSymbol, payoutUsd) : "—"}
           border="none"
-          valueStyle={connected && view.earned !== undefined && view.earned > 0n ? { fontWeight: 600, color: "var(--bronze-700)" } : undefined}
+          valueStyle={connected && view.earned !== undefined && view.earned > 0n ? { fontWeight: 600, color: "var(--text-accent)" } : undefined}
         />
       )}
     </>
@@ -516,7 +516,7 @@ function Actions({
                   cursor: ready ? "pointer" : "default",
                   fontSize: 12,
                   fontWeight: 600,
-                  color: "var(--bronze-700)",
+                  color: "var(--text-accent)",
                   WebkitTapHighlightColor: "transparent",
                 }}
               >

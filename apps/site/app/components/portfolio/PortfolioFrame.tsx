@@ -326,7 +326,7 @@ export function VaultsCard({ v }: { v: PortfolioView["vaults"] }) {
             value={
               <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "flex-end", gap: 2, textAlign: "right" }}>
                 <span>{r.deposit}</span>
-                {r.collect && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--bronze-700)" }}>{r.collect}</span>}
+                {r.collect && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-accent)" }}>{r.collect}</span>}
               </span>
             }
           />

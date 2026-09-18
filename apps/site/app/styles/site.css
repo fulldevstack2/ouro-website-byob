@@ -13,26 +13,24 @@
    ------------------------------------------------------------------ */
 
 /* 1. The ground ------------------------------------------------------ */
-/* The shared design-system package (packages/ds) keeps the warm grey ground the analytics dashboard
-   was designed on. This site is the brief's flat white paper, so the surface tokens are set back here,
-   for this app only. Hairlines return to the brief's #E7E1D6, which reads on white. */
+/* Graphite & gold (packages/ds gold.css) owns the palette. The site only pins the nav to the page
+   so the sticky bar stays opaque; do not restate warm cream tints here or they fight the palette. */
 :root {
-  --page: #FFFFFF;
-  --surface-page: #FFFFFF;
-  --surface-tint: #FAF8F3;
-  --surface-sunken: #F4F1EA;
   --surface-nav: #FFFFFF;
-  --border-hairline: #E7E1D6;
+}
+
+[data-theme="dark"] {
+  --surface-nav: #0A0A0A;
 }
 
 h1, h2, h3, p { text-wrap: pretty; }
-input[type="range"] { accent-color: var(--bronze-600); }
+input[type="range"] { accent-color: var(--accent); }
 
 /* 2. Links and interactive text ------------------------------------- */
 a { color: var(--text-accent); text-decoration: none; }
-a:hover { color: var(--neutral-900); text-decoration: underline; text-underline-offset: 3px; }
+a:hover { color: var(--text-primary); text-decoration: underline; text-underline-offset: 3px; }
 /* Links inside running text are marked by more than colour (WCAG 1.4.1): a light bronze underline. */
-main a:not([class]) { text-decoration: underline; text-decoration-color: var(--bronze-300); text-underline-offset: 3px; }
+main a:not([class]) { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
 main a:not([class]):hover { text-decoration-color: currentColor; }
 
 .wordmark,
@@ -58,13 +56,34 @@ main a:not([class]):hover { text-decoration-color: currentColor; }
 .text-button {
   appearance: none; background: none; border: 0; padding: 0; margin: 0;
   font: inherit; color: var(--text-accent); cursor: pointer; text-decoration: underline;
-  text-decoration-color: var(--bronze-300); text-underline-offset: 3px;
+  text-decoration-color: var(--accent); text-underline-offset: 3px;
 }
 .text-button:hover { color: var(--text-primary); text-decoration-color: currentColor; }
 
 a:focus-visible,
 button:focus-visible,
 [tabindex]:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-xs); }
+
+/* Theme toggle in the nav — same pill as the design prototype. */
+.theme-toggle {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border-hairline);
+  border-radius: 999px;
+  padding: 6px 12px 6px 10px;
+  cursor: pointer;
+  line-height: 1.2;
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.theme-toggle svg { flex: none; display: block; }
+.theme-toggle:hover { color: var(--text-primary); border-color: var(--border-strong); }
 
 /* 3. Layout and display type ---------------------------------------- */
 .container {
@@ -147,15 +166,17 @@ button:focus-visible,
    → `fitTable`). The wrapper stays, as the last resort on a very narrow phone. */
 
 /* Rows with a bronze index: the loop's steps, the roadmap, the vault steps. */
-.row-index { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--bronze-600); width: 26px; flex: none; }
+.row-index { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--accent); width: 26px; flex: none; }
 
 /* 4. The chrome ------------------------------------------------------ */
 .site-nav { position: sticky; top: 0; z-index: 10; background: var(--surface-page); border-bottom: 1px solid var(--border-hairline); }
 .site-nav__inner { display: flex; align-items: center; gap: 24px; min-height: 64px; }
 .site-nav__links { display: flex; gap: 22px; align-items: center; }
 .site-nav__right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
-/* Above the breakpoint the menu is not a box: its two blocks are flex items of the bar itself. */
+/* Above the breakpoint the menu is not a box: its two blocks are flex items of the bar itself.
+   The chrome (theme + hamburger) is also unpacked so the theme pill sits with the right-hand controls. */
 .site-nav__menu { display: contents; }
+.site-nav__chrome { display: contents; }
 
 /* The price in the bar: mono, and the day's change signed and coloured. Empty until the first read
    lands, so the prerendered bar and the first client frame agree. */
@@ -188,14 +209,18 @@ button:focus-visible,
 .nav-toggle[aria-expanded="true"] .nav-toggle__icon > span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
 /* Seven items, the wordmark, the price and the Buy button need about 900px of bar, so from 960px
-   down everything but the wordmark moves behind a hamburger. The menu hangs off the bar rather
-   than being a second row of it, so the sticky header is 64px whether it is open or shut. Opened
-   by animated height (hooks/useCollapse.ts), visibility:hidden once closed so its links leave the
-   tab order. */
+   down everything but the wordmark (and the theme toggle) moves behind a hamburger. The menu hangs
+   off the bar rather than being a second row of it, so the sticky header is 64px whether it is open
+   or shut. Opened by animated height (hooks/useCollapse.ts), visibility:hidden once closed so its
+   links leave the tab order. */
 @media (max-width: 960px) {
+  .site-nav__chrome {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-left: auto; margin-right: -13px;
+  }
   .nav-toggle {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 44px; height: 44px; margin-left: auto; margin-right: -13px;
+    width: 44px; height: 44px; margin: 0;
     appearance: none; padding: 0; background: none; border: 0; border-radius: var(--radius-sm);
     color: var(--text-primary); cursor: pointer;
   }
@@ -301,7 +326,7 @@ button:focus-visible,
   letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-faint);
   transition: color var(--dur-base) var(--ease-out);
 }
-.plate-step__n { color: var(--bronze-600); transition: color var(--dur-base) var(--ease-out); }
+.plate-step__n { color: var(--accent); transition: color var(--dur-base) var(--ease-out); }
 .plate-step--0 { top: 0; left: 0; }
 .plate-step--1 { top: 0; right: 0; }
 .plate-step--2 { bottom: 0; right: 0; }
@@ -313,7 +338,7 @@ button:focus-visible,
 .plate[data-lit="0"] .plate-step--0 .plate-step__n,
 .plate[data-lit="1"] .plate-step--1 .plate-step__n,
 .plate[data-lit="2"] .plate-step--2 .plate-step__n,
-.plate[data-lit="3"] .plate-step--3 .plate-step__n { color: var(--bronze-800); }
+.plate[data-lit="3"] .plate-step--3 .plate-step__n { color: var(--accent-strong); }
 
 /* The plate's inscription: the brief's line, and the affordance under it. */
 .plate-foot { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
@@ -352,10 +377,10 @@ button:focus-visible,
   font-size: 11px; font-weight: 600; letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-muted);
 }
 .cmp-head--blank { padding: 12px 0; }
-.cmp-head--ouro { color: var(--text-primary); background: var(--bronze-050); border-radius: 10px 10px 0 0; }
+.cmp-head--ouro { color: var(--text-primary); background: var(--tint-accent-bg); border-radius: 10px 10px 0 0; }
 .cmp-cell { padding: 14px; border-bottom: 1px solid var(--border-hairline); font-size: 14px; line-height: 1.5; color: var(--text-muted); }
 .cmp-cell--label { padding-left: 0; color: var(--text-primary); font-weight: 600; }
-.cmp-cell--ouro { color: var(--text-primary); font-weight: 600; background: var(--bronze-050); }
+.cmp-cell--ouro { color: var(--text-primary); font-weight: 600; background: var(--tint-accent-bg); }
 .cmp-cell::before { display: none; content: attr(data-col); }
 
 /* The calculator. */
@@ -374,8 +399,8 @@ button:focus-visible,
   font-size: 11px; font-weight: 600; letter-spacing: var(--tracking-caps); text-transform: uppercase;
   transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
 }
-.chip:hover { border-color: var(--neutral-900); }
-.chip[aria-pressed="true"] { border-color: var(--bronze-600); background: var(--surface-tint); }
+.chip:hover { border-color: var(--border-strong); }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--surface-tint); }
 .calc__rows { margin-top: 20px; border-top: 1px solid var(--border-hairline); }
 .calc__collect-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
 .calc__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -402,7 +427,7 @@ button:focus-visible,
 .vbar__name { font-size: 16px; font-weight: 600; }
 .vbar__pooled { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 /* The connected wallet’s own figure, beside the pooled total: bronze, because it is theirs. */
-.vbar__earned { font-family: var(--font-mono); font-size: 12px; color: var(--bronze-700); font-variant-numeric: tabular-nums; }
+.vbar__earned { font-family: var(--font-mono); font-size: 12px; color: var(--text-accent); font-variant-numeric: tabular-nums; }
 .vbar__wallet { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 
 /* A connected wallet, as a pill: the dot and the short address. Pressing it opens the account. */
@@ -412,8 +437,8 @@ button:focus-visible,
   border: 1px solid var(--border-hairline); border-radius: var(--radius-full); padding: 6px 12px; background: var(--surface-card);
   transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
-.wallet-chip:hover { border-color: var(--neutral-900); color: var(--text-primary); }
-.wallet-chip__dot { width: 7px; height: 7px; border-radius: 99px; background: var(--green-600); flex: none; }
+.wallet-chip:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.wallet-chip__dot { width: 7px; height: 7px; border-radius: 99px; background: var(--positive); flex: none; }
 
 /* As many vaults across as fit at a card's width, the brief's own rule, so the third card sits alone
    on a second row from about 730 to 1085px. That orphan is the right trade: it keeps every card the
@@ -480,7 +505,7 @@ button:focus-visible,
   border: 1px solid var(--border-soft); border-radius: var(--radius-full);
   transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
 }
-.vault-pct:hover:not(:disabled) { color: var(--bronze-700); border-color: var(--bronze-600); }
+.vault-pct:hover:not(:disabled) { color: var(--text-accent); border-color: var(--accent); }
 .vault-pct:disabled { opacity: 0.5; cursor: default; }
 .vault-cta .btn { width: 100%; }
 
@@ -568,7 +593,7 @@ button:focus-visible,
   cursor: pointer; transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
 }
 @media (hover: hover) {
-  .pf-share__close:hover { color: var(--text-primary); border-color: var(--neutral-900); }
+  .pf-share__close:hover { color: var(--text-primary); border-color: var(--border-strong); }
 }
 .pf-share__canvas {
   display: block; width: auto; height: auto; max-width: 100%;
@@ -577,7 +602,7 @@ button:focus-visible,
 }
 .pf-share__toggles { display: grid; gap: 10px; }
 .pf-share__toggle { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
-.pf-share__toggle input { width: 16px; height: 16px; flex: none; accent-color: var(--bronze-600); cursor: pointer; }
+.pf-share__toggle input { width: 16px; height: 16px; flex: none; accent-color: var(--accent); cursor: pointer; }
 .pf-share__actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .pf-share__note { margin: 0; font-size: 13px; line-height: 1.5; }
 @media (max-width: 720px) {
@@ -621,7 +646,7 @@ button:focus-visible,
 
 /* A proportional split as a thin bar: one wedge per share. */
 .split { display: flex; height: 10px; border-radius: 99px; overflow: hidden; gap: 2px; margin-top: 16px; }
-.split__wedge--accent { background: var(--bronze-500); }
+.split__wedge--accent { background: var(--accent); }
 .split__wedge--ink { background: var(--neutral-300); }
 .split__wedge--soft { background: var(--neutral-200); }
 .split__wedge--faint { background: var(--neutral-100); }
@@ -657,7 +682,7 @@ button:focus-visible,
   .cmp-cell::before { display: block; flex: none; width: 84px; font-size: 11px; font-weight: 600; letter-spacing: var(--tracking-caps); text-transform: uppercase; color: var(--text-faint); }
   .cmp-cell--label::before { display: none; }
   .cmp-cell--ouro { margin-top: 6px; padding: 10px 12px; border-radius: var(--radius-sm); }
-  .cmp-cell--ouro::before { color: var(--bronze-700); }
+  .cmp-cell--ouro::before { color: var(--text-accent); }
   .vault-cta .btn { width: 100%; }
 }
 

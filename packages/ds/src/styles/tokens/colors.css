@@ -15,12 +15,20 @@
 --amber-050:#FBF5E4;--amber-100:#F4E8CC;--amber-600:#8F6200;--amber-700:#7A5200;
 /* surfaces */
 --surface-page:var(--page);--surface-card:var(--paper);--surface-tint:#F6F3ED;/* bands and row tints: lighter than the page, darker than a card */--surface-sunken:#E5E0D5;/* a step below the page */--surface-inverse:var(--neutral-900);
+--surface-field:var(--paper);--surface-hover:var(--neutral-025);
+--surface-inverse-hover:var(--neutral-700);--surface-on-inverse:var(--neutral-050);--surface-on-inverse-hover:var(--bronze-200);
 --surface-nav:color-mix(in srgb,var(--page) 86%,transparent);
 /* text */
 --text-primary:var(--neutral-900);--text-secondary:var(--neutral-600);--text-muted:var(--neutral-500);--text-faint:#7A7163;/* was var(--neutral-400) #948B7C (3.4:1); this passes AA (4.8:1 on white, 4.5:1 on --surface-tint) */--text-inverse:#FFFFFF;--text-inverse-muted:#B8B0A2;
 --text-accent:var(--bronze-700);--text-positive:var(--green-600);--text-negative:var(--red-600);--text-caution:var(--amber-700);
 /* borders */
---border-hairline:#E2DBCF;/* was #E7E1D6 on white; a touch darker so it still shows on the grey ground */--border-soft:#D8D2C6;--border-strong:var(--neutral-900);--border-accent:var(--bronze-600);
+--border-hairline:#E2DBCF;/* was #E7E1D6 on white; a touch darker so it still shows on the grey ground */--border-soft:#D8D2C6;--border-strong:var(--neutral-900);--border-accent:var(--bronze-600);--border-inverse:var(--neutral-700);
+/* tinted status surfaces — Badge / Callout / comparison cells; remapped in dark.css */
+--tint-neutral-bg:var(--neutral-050);--tint-neutral-fg:var(--neutral-700);--tint-neutral-border:var(--border-hairline);
+--tint-accent-bg:var(--bronze-050);--tint-accent-fg:var(--bronze-700);--tint-accent-border:var(--bronze-200);
+--tint-positive-bg:var(--green-050);--tint-positive-fg:var(--green-700);--tint-positive-border:var(--green-100);
+--tint-negative-bg:var(--red-050);--tint-negative-fg:var(--red-700);--tint-negative-border:var(--red-100);
+--tint-caution-bg:var(--amber-050);--tint-caution-fg:var(--amber-700);--tint-caution-border:var(--amber-100);
 /* accents */
 --accent:var(--bronze-600);--accent-strong:var(--bronze-700);--accent-soft:var(--bronze-100);--accent-faint:var(--bronze-050);
 --positive:var(--green-600);--negative:var(--red-600);--caution:var(--amber-600);

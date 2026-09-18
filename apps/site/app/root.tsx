@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from "react-router";
 
 import type { Route } from "./+types/root";
-import { Button } from "@ouro/ds";
+import { Button, THEME_BOOT_SCRIPT } from "@ouro/ds";
 import { Container, MicroLabel, SiteFooter, SiteNav, mono } from "~/components/site";
 import "./app.css";
 
@@ -43,11 +43,14 @@ gtag('config', '${id}');`,
 /** Document shell + site chrome. Wraps the routed page and the error boundary alike. */
 export function Layout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#FFFFFF" />
+        <meta name="theme-color" content="#FFFFFF" data-light="#FFFFFF" />
+        {/* Apply saved theme before paint so a dark preference does not flash white.
+            suppressHydrationWarning on <html> keeps React from stripping data-theme. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         <Meta />
         <Links />
         <GoogleAnalytics id={GA_MEASUREMENT_ID} />
