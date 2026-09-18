@@ -621,6 +621,11 @@ table.matrix {
   white-space: nowrap;
   vertical-align: 1px;
 }
+/* Only where a badge sits BESIDE a figure. Against the figure's last character the chip reads as
+   part of it ("3%ESTIMATED"), and the badge is a qualification of the number, not a suffix on it.
+   Not on `.mark` itself: in a column head the badge starts its own line, where a margin would
+   indent it out of line with the project name above it. */
+.cell + .mark { margin-left: 8px; }
 .mark.estimated {
   border: 1px solid var(--border-accent);
   background: var(--accent-faint);
@@ -731,22 +736,6 @@ table.matrix {
   text-align: center;
   border-radius: 2px;
 }
-
-/* The table view every chart owes a reader who cannot use it. */
-.chart-table { margin-top: 6px; }
-.chart-table summary {
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: 10px 0;
-}
-.chart-table summary:hover { color: var(--text-accent); }
-.chart-table table { min-width: 0; font-size: var(--text-2xs); }
-.chart-table td, .chart-table th { padding: 5px 10px; }
-.legend { font-size: var(--text-2xs); color: var(--text-faint); margin: 8px 0 0; }
 
 /* ── method + footer ────────────────────────────────────────────────────────
    The editorial position still ships in full. It sits behind one disclosure rather than in two

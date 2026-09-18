@@ -720,13 +720,37 @@ export function fmtPct(x: number | null | undefined, digits = 1): string {
   if (x === null || x === undefined || !Number.isFinite(x)) return "—";
   return `${(x * 100).toFixed(digits)}%`;
 }
-export function ago(sec: number | null | undefined): string {
+/**
+ * A duration, written in two units: "48s", "49m", "1h 49m", "2d 12h".
+ *
+ * One unit with one decimal is how every duration on both sites used to read, and "1.7 h ago" is a
+ * figure the reader has to finish: 0.7 of an hour is 42 minutes, and nobody does that arithmetic
+ * while scanning a card. Two units carry the same precision already finished, and they carry it in a
+ * form that survives being stacked — a chart axis of "2d 12h" over "1d 6h" compares at a glance,
+ * where "2.5 d" over "29.7 h" did not.
+ *
+ * The smaller unit is dropped when it is zero, so a round figure stays round ("2h", never "2h 0m"),
+ * and it stops at two units, which keeps the longest thing this prints to seven characters.
+ */
+export function fmtDuration(sec: number | null | undefined): string {
   if (sec === null || sec === undefined || !Number.isFinite(sec)) return "—";
-  const s = Math.max(0, sec);
-  if (s < 60) return `${Math.round(s)} s`;
-  if (s < 5400) return `${Math.round(s / 60)} min`;
-  if (s < 172_800) return `${(s / 3600).toFixed(1)} h`;
-  return `${(s / 86_400).toFixed(1)} d`;
+  const s = Math.max(0, Math.round(sec));
+  if (s < 60) return `${s}s`;
+  const mins = Math.round(s / 60);
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 48) {
+    const m = mins % 60;
+    return m === 0 ? `${hours}h` : `${hours}h ${m}m`;
+  }
+  const days = Math.floor(hours / 24);
+  const h = hours % 24;
+  return h === 0 ? `${days}d` : `${days}d ${h}h`;
+}
+
+/** How long ago, from an elapsed count of seconds. The caller supplies the word "ago". */
+export function ago(sec: number | null | undefined): string {
+  return fmtDuration(sec);
 }
 export function fmtWhen(ts: number | null | undefined): string {
   if (!ts) return "—";
@@ -780,10 +804,8 @@ export function fmtPctSigned(x: number | null | undefined, digits = 2): string {
   return `${x > 0 ? "+" : x < 0 ? "−" : ""}${(Math.abs(x) * 100).toFixed(digits)}%`;
 }
 
-/** "1.2 days" / "18 h", for the basis of any rate-of-return reading. */
+/** "1d 5h" / "18h", for the basis of any rate-of-return reading. */
 export function fmtAge(days: number | null | undefined): string {
   if (days === null || days === undefined || !Number.isFinite(days)) return "—";
-  if (days < 1) return `${Math.round(days * 24)} h`;
-  if (days < 10) return `${days.toFixed(1)} days`;
-  return `${Math.round(days)} days`;
+  return fmtDuration(days * 86_400);
 }

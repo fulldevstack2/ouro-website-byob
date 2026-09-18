@@ -186,10 +186,10 @@ export default function Home() {
               have not read it, and a total leaves out what it could not count rather than counting it as nothing.
             </p>
             <p className="note">
-              <strong>The panels do not share an axis unless you ask them to.</strong> These tokens differ by an
-              order of magnitude, so one shared scale flattens the smaller ones into the baseline and hides the
-              shape that is worth plotting. Every panel names its own peak, and "Shared scale" puts them on one
-              axis when the question is size rather than shape.
+              <strong>The panels do not share an axis.</strong> These tokens differ by an order of magnitude, so
+              one shared scale flattens the smaller ones into the baseline and hides the shape that is worth
+              plotting. Every panel is drawn on the scale that shows it and names its own peak, so the panels are
+              read for shape and the table below them for size.
             </p>
           </div>
         </details>

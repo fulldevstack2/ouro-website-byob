@@ -4,16 +4,13 @@
  * ── Why one measure at a time ──
  * This was three stacked sections, nine panels and three paragraphs of lede, about 1,400 pixels of
  * page for a reader who wanted one of them. They are the same three panels with the same data; the
- * measure is now a control instead of a scroll. Nothing was dropped, and the table view under the
- * panels still carries whichever measure is showing, in full.
+ * measure is now a control instead of a scroll.
  *
- * ── Why the panels still do not share an axis by default ──
+ * ── Why each panel keeps its own axis ──
  * The projects do not share a scale. Wallets paid per cycle runs at a median of 3,251 for INDEX
  * against 341 for $OURO; on one axis $OURO is a flat line along the bottom and its shape, which is
- * the entire reason for plotting it, is gone. So each panel is drawn on the scale that shows it and
- * says so in its own caption. "Shared scale" is offered because the opposite question — how big is
- * this one against that one — is a fair question too, and a shared axis answers it without the thing
- * that would really rank them, which is colour. See LineChart for why there is no colour key here.
+ * the entire reason for plotting it, is gone. So every panel is drawn on the scale that shows it and
+ * says so in its own caption. See LineChart for why there is no colour key here.
  */
 import { useState } from "react";
 
@@ -33,26 +30,31 @@ const fmtCount = (v: number) => Math.round(v).toLocaleString("en-US");
 const sinceNow = (t: number) => Math.max(0, Date.now() / 1000 - t) / 3600;
 
 /**
- * One unit for a whole duration axis, picked from the top of it.
+ * One pair of units for a whole duration axis, picked from the top of it.
  *
- * `fmtHours` changes unit at 48 hours, which is right for a figure standing on its own and wrong for
- * an axis: a panel topping out at 59 h drew "2.5 d" above "29.7 h", two ticks of one axis in two
- * units, and the reader has to do arithmetic to see that the first is twice the second. The hover
+ * `fmtHours` changes units with the size of the figure, which is right for a value standing on its
+ * own and wrong for an axis: a panel topping out at 58.5 h set "2d 11h" over "29h 29m", two ticks of
+ * one scale written two ways, and the reader has to do arithmetic to see that the first is twice the
+ * second. So the top tick chooses, and every tick below it is written the same way. The hover
  * readout still uses `fmtHours`, where a value has no neighbour it has to agree with.
  */
-const axisHours = (top: number) => {
-  const [by, unit] = top >= 48 ? [24, "d"] : top >= 1 ? [1, "h"] : [1 / 60, "min"];
-  return (v: number) => {
-    const n = v / by;
-    return `${n < 10 ? n.toFixed(1) : Math.round(n)} ${unit}`;
-  };
+const axisHours = (top: number) => (h: number) => {
+  if (!Number.isFinite(h)) return "—";
+  if (top >= 48) {
+    const hours = Math.round(h);
+    const rest = hours % 24;
+    return rest === 0 ? `${Math.floor(hours / 24)}d` : `${Math.floor(hours / 24)}d ${rest}h`;
+  }
+  const mins = Math.round(h * 60);
+  const rest = mins % 60;
+  if (mins < 60) return `${mins}m`;
+  return rest === 0 ? `${Math.floor(mins / 60)}h` : `${Math.floor(mins / 60)}h ${rest}m`;
 };
 
 interface Measure {
   key: MeasureKey;
   label: string;
   lede: string;
-  unit: string;
   format: (v: number) => string;
 }
 
@@ -61,22 +63,22 @@ export const MEASURES: Measure[] = [
     key: "gaps",
     label: "Airdrop frequency",
     lede:
-      "How long each token went between one airdrop and the next, so a rising line is a token paying less often. The gap it is in now is still open, so the panel says when it last paid instead.",
-    unit: "time between one payout and the next",
+      "How long each token went between one airdrop and the next, so a rising line is a token paying less often.",
+    /* Two units, "1h 49m" and "2d 12h": a gap is a thing the reader is measuring against their own
+       sense of "often", and "1.7 h" made them finish the figure first. See `axisHours` for the one
+       place that has to be stricter than this. */
     format: fmtHours,
   },
   {
     key: "tax",
     label: "Tax collected",
     lede: "What each trade tax brought in, by UTC day. This is the money the airdrops are paid out of.",
-    unit: "US dollars collected per day",
     format: fmtUsdAxis,
   },
   {
     key: "recipients",
     label: "Wallets paid",
     lede: "How many wallets each payout cycle reached. Per cycle rather than per day, because a day holds a different number of cycles for each token.",
-    unit: "wallets per payout cycle",
     format: fmtCount,
   },
 ];
@@ -104,7 +106,6 @@ export function Charts({
   loading: boolean;
 }) {
   const [measure, setMeasure] = useState<MeasureKey>("gaps");
-  const [shared, setShared] = useState(false);
   // The panels re-rank with the cards, so they slide rather than jump.
   const panels = useFlip<HTMLDivElement>();
 
@@ -116,16 +117,13 @@ export function Charts({
   const windowed = (series[measure] ?? [])
     .map((s) => ({ ...s, points: withinDays(s.points, windowDays) }))
     .sort((a, b) => rank(a.key) - rank(b.key));
-  const peak = Math.max(0, ...windowed.flatMap((s) => s.points.map((p) => p.v)));
 
   return (
     <section className="container section" id="history" data-reveal="">
       <div className="section-head">
         <div>
           <h2>History</h2>
-          <p className="sub">
-            {active.lede} The window sets these panels and every bar above them.
-          </p>
+          <p className="sub">{active.lede}</p>
         </div>
         <div className="controls">
           <div className="seg" role="group" aria-label="Measure">
@@ -155,15 +153,6 @@ export function Charts({
               </button>
             ))}
           </div>
-          <button
-            type="button"
-            className="tab solo"
-            aria-pressed={shared}
-            onClick={() => setShared((s) => !s)}
-            title="Draw all three panels on one axis, so their sizes can be compared directly"
-          >
-            Shared scale
-          </button>
         </div>
       </div>
 
@@ -183,19 +172,19 @@ export function Charts({
             /**
              * Each panel says the thing its measure needs saying.
              *
-             * For a quantity that is its peak, because the panels do NOT share a y-axis unless asked
-             * to, and saying which is the difference between small multiples and a misread
-             * comparison. For the gaps it is when the token last paid and what is typical for it:
-             * the whole point of the series is rhythm, and a lone median would hide a tail that runs
-             * to two and a half days. Both come from the plotted points, so the note can never
-             * disagree with the line above it.
+             * For a quantity that is its peak, because the panels do NOT share a y-axis, and saying
+             * which is the difference between small multiples and a misread comparison. For the gaps
+             * it is when the token last paid and what is typical for it: the whole point of the
+             * series is rhythm, and a lone median would hide a tail that runs to two and a half
+             * days. Both come from the plotted points, so the note can never disagree with the line
+             * above it.
              */
             const note =
               measure === "gaps"
                 ? last
-                  ? `last airdrop ${fmtHours(sinceNow(last.t))} ago · typically ${fmtHours(typical)} apart${shared ? " · shared scale" : ""}`
+                  ? `last airdrop ${fmtHours(sinceNow(last.t))} ago · typically ${fmtHours(typical)} apart`
                   : "no payouts in this window"
-                : `${shared ? "shared scale · peaks at " : "own scale · peak "}${own === null ? "—" : active.format(own)}`;
+                : `own scale · peak ${own === null ? "—" : active.format(own)}`;
             return (
               <div className="chart-panel" key={s.key} data-flip={s.key} data-on={focus === s.key}>
                 <h3>{s.symbol}</h3>
@@ -204,61 +193,20 @@ export function Charts({
                   /* Remounting on a control change is what replays the draw-on. It is keyed on the
                      controls and the point count only, so a poll that changes nothing does not
                      redraw a chart the reader is looking at. */
-                  key={`${measure}:${windowDays}:${shared}:${s.points.length}`}
+                  key={`${measure}:${windowDays}:${s.points.length}`}
                   points={s.points}
                   format={active.format}
-                  formatAxis={measure === "gaps" ? axisHours(shared ? peak : (own ?? 0)) : undefined}
+                  formatAxis={measure === "gaps" ? axisHours(own ?? 0) : undefined}
                   formatTime={fmtDay}
                   label={`${s.symbol} ${active.label}`}
                   emptyNote="nothing in this window"
                   height={168}
-                  yMax={shared ? peak : null}
                 />
               </div>
             );
           })
         )}
       </div>
-
-      <details className="chart-table">
-        <summary>Show as a table</summary>
-        <div className="table-scroll">
-          <table className="matrix">
-            <thead>
-              <tr>
-                <th scope="col">Token</th>
-                <th scope="col">{measure === "gaps" ? "Gaps" : "Points"}</th>
-                <th scope="col">First</th>
-                <th scope="col">Latest</th>
-                <th scope="col">{measure === "gaps" ? "Longest" : "Peak"}</th>
-                <th scope="col">{measure === "gaps" ? "Typical" : "Median"}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {windowed.map((s) => {
-                const v = s.points.map((p) => p.v).sort((a, b) => a - b);
-                const med = v.length ? (v[Math.floor(v.length / 2)] as number) : null;
-                const last = s.points[s.points.length - 1];
-                const first = s.points[0];
-                return (
-                  <tr key={s.key}>
-                    <td className="metric-name">{s.symbol}</td>
-                    <td className="cell">{s.points.length}</td>
-                    <td className="cell">{first ? fmtDay(first.t) : "—"}</td>
-                    <td className="cell">{last ? active.format(last.v) : "—"}</td>
-                    <td className="cell">{v.length ? active.format(v[v.length - 1] as number) : "—"}</td>
-                    <td className="cell">{med === null ? "—" : active.format(med)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <p className="legend">
-          All figures in {active.unit}
-          {windowDays === null ? ", over everything indexed." : `, over the last ${windowDays} days.`}
-        </p>
-      </details>
     </section>
   );
 }

@@ -16,6 +16,8 @@
  *     colour-vision separation against one another (deutan ΔE 3.0 for red↔amber), so a traffic
  *     light here would be unreadable for some readers and meaningless in greyscale or print.
  */
+import { fmtAge } from "@ouro/monitor-client";
+
 import { useChanged } from "~/lib/motion";
 import type { CoverageRecord } from "~/registry";
 
@@ -37,6 +39,12 @@ export function CoverageMark({
     // once there is a figure: beside a dash that is merely still loading, a provenance note reads
     // as an explanation for absence, which is not what it says.
     return coverage.note && hasValue && !hideNote ? <span className="mark-note">{coverage.note}</span> : null;
+  }
+
+  if (coverage.state === "none") {
+    // The reason, and no badge. What is absent here is the project's design rather than our
+    // coverage, and a "Not indexed" chip would take the blame for something that was never missing.
+    return coverage.note && !hideNote ? <span className="mark-note">{coverage.note}</span> : null;
   }
 
   const label = coverage.state === "estimated" ? "Estimated" : "Not indexed";
@@ -67,7 +75,7 @@ export function Basis({ basisDays, historyDays }: { basisDays: number | null; hi
   if (basisDays === null && historyDays === null) return null;
   const parts: string[] = [];
   if (basisDays !== null) parts.push(`${basisDays}-day basis`);
-  if (historyDays !== null) parts.push(`${historyDays.toFixed(1)} days of history`);
+  if (historyDays !== null) parts.push(`${fmtAge(historyDays)} of history`);
   return <span className="basis">{parts.join(" · ")}</span>;
 }
 

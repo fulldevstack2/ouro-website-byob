@@ -19,9 +19,10 @@
  * appearing one cycle in seven is a claim about someone else's product that the data does not
  * support.
  *
- * So: quantify, do not classify. "Last paid 9.9h ago · typically 1.0h, 90% within 5.8h" says
+ * So: quantify, do not classify. "Last paid 9h 54m ago · typically 1h, 90% within 5h 49m" says
  * everything the badge would have, carries its own context, and cannot cry wolf.
  */
+import { fmtDuration } from "@ouro/monitor-client";
 
 export interface CadenceStats {
   /** Gaps measured, i.e. cycles minus one. Zero means there is nothing to report. */
@@ -102,10 +103,15 @@ export function cadenceStats(timestamps: (number | null | undefined)[], nowSec: 
   };
 }
 
-/** "1.0 h" / "45 min" / "2.1 d" — a duration in hours, rendered at a sensible unit. */
+/**
+ * "1h 49m" / "45m" / "2d 12h" — a gap in hours, in the two-unit form both sites use.
+ *
+ * Everything here is a duration a reader is meant to act on: how long since it last paid, how long
+ * it typically waits, how long its worst wait was. A decimal of one unit made each of those a small
+ * conversion ("1.7 h" is an hour and 42 minutes), so the whole site writes the minutes out. See
+ * `fmtDuration`, which owns the rule.
+ */
 export function fmtHours(h: number | null | undefined): string {
   if (h === null || h === undefined || !Number.isFinite(h)) return "—";
-  if (h < 1) return `${Math.round(h * 60)} min`;
-  if (h < 48) return `${h.toFixed(1)} h`;
-  return `${(h / 24).toFixed(1)} d`;
+  return fmtDuration(h * 3600);
 }
