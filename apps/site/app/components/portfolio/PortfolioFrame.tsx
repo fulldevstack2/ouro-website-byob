@@ -66,7 +66,7 @@ export interface VaultRowView {
   key: string;
   title: string;
   deposit: ReactNode;
-  /** Payout vaults: what is waiting to be claimed, in bronze under the deposit. */
+  /** What the vault has returned: waiting to be claimed, or earned outright on the compounding one. */
   collect?: ReactNode;
 }
 

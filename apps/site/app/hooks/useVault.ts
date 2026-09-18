@@ -119,8 +119,20 @@ export interface TxState {
   phase: TxPhase;
   /** The transaction in flight or just confirmed. */
   hash?: Hash;
+  /**
+   * The block it was mined in, once confirmed. The page waits for ouro-monitor's index to reach it
+   * before printing what the wallet has earned: read any earlier and a deposit the index has not
+   * seen yet counts as gain (see hooks/useVaultEarnings).
+   */
+  block?: bigint;
   /** What happened, for the status line. */
   message?: string;
+}
+
+/** A transaction that has been mined successfully. */
+interface Confirmed {
+  hash: Hash;
+  block: bigint;
 }
 
 export const BUSY_PHASES: TxPhase[] = ["approving", "depositing", "withdrawing", "claiming"];
@@ -158,14 +170,14 @@ export function useVaultActions(vault: LiveVault) {
   );
 
   const run = useCallback(
-    async (phase: TxPhase, send: () => Promise<Hash>): Promise<Hash> => {
+    async (phase: TxPhase, send: () => Promise<Hash>): Promise<Confirmed> => {
       setTx({ phase });
       const hash = await send();
       setTx({ phase, hash });
       if (!publicClient) throw new Error("No RPC client for Robinhood Chain.");
       const receipt = await publicClient.waitForTransactionReceipt({ hash });
       if (receipt.status !== "success") throw new Error("The transaction reverted.");
-      return hash;
+      return { hash, block: receipt.blockNumber };
     },
     [publicClient],
   );
@@ -180,10 +192,10 @@ export function useVaultActions(vault: LiveVault) {
             writeContractAsync({ address: vault.token.address, abi: erc20Abi, functionName: "approve", args: [vault.entry.address, amount], chainId: robinhoodChain.id }),
           );
         }
-        const hash = await run("depositing", () =>
+        const done = await run("depositing", () =>
           writeContractAsync({ address: vault.entry.address, abi: vaultAbi, functionName: "deposit", args: [amount, address], chainId: robinhoodChain.id }),
         );
-        setTx({ phase: "done", hash, message: "Deposited." });
+        setTx({ phase: "done", ...done, message: "Deposited." });
         reread();
       } catch (e) {
         setTx({ phase: "error", message: describe(e) });
@@ -200,12 +212,12 @@ export function useVaultActions(vault: LiveVault) {
     async (req: { assets: bigint } | { allShares: bigint }) => {
       if (!address) return;
       try {
-        const hash = await run("withdrawing", () =>
+        const done = await run("withdrawing", () =>
           "allShares" in req
             ? writeContractAsync({ address: vault.entry.address, abi: vaultAbi, functionName: "redeem", args: [req.allShares, address, address], chainId: robinhoodChain.id })
             : writeContractAsync({ address: vault.entry.address, abi: vaultAbi, functionName: "withdraw", args: [req.assets, address, address], chainId: robinhoodChain.id }),
         );
-        setTx({ phase: "done", hash, message: "Withdrawn." });
+        setTx({ phase: "done", ...done, message: "Withdrawn." });
         reread();
       } catch (e) {
         setTx({ phase: "error", message: describe(e) });
@@ -217,10 +229,10 @@ export function useVaultActions(vault: LiveVault) {
   const claim = useCallback(async () => {
     if (!address) return;
     try {
-      const hash = await run("claiming", () =>
+      const done = await run("claiming", () =>
         writeContractAsync({ address: vault.entry.address, abi: vaultAbi, functionName: "claim", args: [address], chainId: robinhoodChain.id }),
       );
-      setTx({ phase: "done", hash, message: "Claimed." });
+      setTx({ phase: "done", ...done, message: "Claimed." });
       reread();
     } catch (e) {
       setTx({ phase: "error", message: describe(e) });

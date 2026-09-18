@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Give every card sharing a row the same body height, so their buttons sit on one line and their
- * bottoms agree.
+ * Give every card sharing a row the same body height, and the same height for the blocks inside it,
+ * so their figures, their rows and their buttons all sit on one line across the row.
  *
  * WHY NOT `align-items: stretch`. A grid row stretches its items to the tallest item in it, and one
  * of these cards can open a deposit panel a few hundred pixels tall. Stretching then dragged the two
@@ -25,6 +25,14 @@ import { useEffect, useRef } from "react";
  * the same reason the body carries no margins between its children: `offsetHeight` excludes margins,
  * so the spacing is padding, and every child is inside a flex column, where margins cannot collapse
  * out of the box being measured.
+ *
+ * THE BLOCKS INSIDE (added 2026-09-18, the owner: "can we align this", over the hairline above the
+ * rows). Matching bodies only promises the same bottom. Inside, a card whose rate footnote runs to
+ * three lines where its neighbour's runs to two started its rows twenty pixels lower, and every row
+ * under it was out of line with the same row in the next card. So the figures block and each row are
+ * matched across the cards of a row as well, which is what makes the three read as one table.
+ * `.vcard__pair` has carried a `min-height` for this same reason since the cards were built; this is
+ * the rest of that idea, done by measurement because a footnote's length is not known in CSS.
  */
 export function useEqualCardBodies<T extends HTMLElement = HTMLDivElement>() {
   const ref = useRef<T>(null);
@@ -36,15 +44,30 @@ export function useEqualCardBodies<T extends HTMLElement = HTMLDivElement>() {
 
     const measure = () => {
       frame = 0;
-      const bodies = Array.from(grid.querySelectorAll<HTMLElement>(".vcard__body"));
-      if (bodies.length === 0) return;
-
-      const natural = bodies.map((body) =>
-        Array.from(body.children).reduce((sum, child) => sum + (child as HTMLElement).offsetHeight, 0),
-      );
+      const cards = Array.from(grid.querySelectorAll<HTMLElement>(".vcard-wrap"));
+      if (cards.length === 0) return;
 
       // Cards that start at the same y are one row. Grouped before anything is written, since setting
       // a height in the first row moves the second row down.
+      const byRow = new Map<number, HTMLElement[]>();
+      for (const card of cards) {
+        const top = Math.round(card.getBoundingClientRect().top + window.scrollY);
+        byRow.set(top, [...(byRow.get(top) ?? []), card]);
+      }
+
+      // The blocks inside first: the body's height is summed from children that contain them, so it
+      // has to be measured after they have taken their final height.
+      for (const row of byRow.values()) {
+        match(row.map((card) => card.querySelector<HTMLElement>(".vcard__figures")));
+        const rows = row.map((card) => Array.from(card.querySelectorAll<HTMLElement>(".vcard__rows > *")));
+        const deepest = Math.max(...rows.map((r) => r.length));
+        for (let i = 0; i < deepest; i++) match(rows.map((r) => r[i] ?? null));
+      }
+
+      const bodies = Array.from(grid.querySelectorAll<HTMLElement>(".vcard__body"));
+      const natural = bodies.map((body) =>
+        Array.from(body.children).reduce((sum, child) => sum + (child as HTMLElement).offsetHeight, 0),
+      );
       const rowTop = bodies.map((body) => Math.round(body.getBoundingClientRect().top + window.scrollY));
       const tallest = new Map<number, number>();
       rowTop.forEach((top, i) => tallest.set(top, Math.max(tallest.get(top) ?? 0, natural[i]!)));
@@ -74,4 +97,40 @@ export function useEqualCardBodies<T extends HTMLElement = HTMLDivElement>() {
   }, []);
 
   return ref;
+}
+
+/**
+ * Give one block the same height in every card of a row: the tallest of them, as a `min-height`.
+ *
+ * Measured with whatever was written LAST TIME cleared first, unlike the body above, which sums its
+ * children. Neither of the two things matched here can be measured through its children: the figures
+ * block is a grid whose two cells stretch to exactly the height written on it, so reading them back
+ * would make every pass taller than the last, and a row's own children are inline spans whose
+ * heights say nothing about the padding around them. Clearing and reading in the same frame costs one
+ * forced layout and cannot ratchet, because what is read is always the natural height.
+ *
+ * A row of one (the single column on a phone) has nothing to match and is left at its own height.
+ */
+function match(boxes: (HTMLElement | null)[]): void {
+  const found = boxes.filter((b): b is HTMLElement => b !== null);
+  if (found.length === 0) return;
+  for (const box of found) box.style.minHeight = "";
+  if (found.length === 1) return;
+  const tallest = found.reduce((max, box) => Math.max(max, box.offsetHeight), 0);
+  for (const box of found) box.style.minHeight = `${Math.max(0, Math.ceil(tallest - inset(box)))}px`;
+}
+
+/**
+ * The vertical padding and borders a `min-height` does NOT cover, per box.
+ *
+ * This site has no `border-box` reset, so `min-height` sizes the CONTENT box while `offsetHeight`
+ * measures the border box. Writing one straight into the other made every row 23 pixels taller than
+ * the tallest of them (a KVRow carries 11px of padding above and below and a hairline under it), and
+ * the cards stayed aligned with each other while all three grew. Zero for a box that is already
+ * border-box, and the last row of a card, which has no hairline, gets its own smaller figure.
+ */
+function inset(box: HTMLElement): number {
+  const cs = getComputedStyle(box);
+  if (cs.boxSizing === "border-box") return 0;
+  return [cs.paddingTop, cs.paddingBottom, cs.borderTopWidth, cs.borderBottomWidth].reduce((sum, v) => sum + (Number.parseFloat(v) || 0), 0);
 }
