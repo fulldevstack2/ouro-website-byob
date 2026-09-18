@@ -75,8 +75,8 @@ export function Layout({ children }: { children: ReactNode }) {
               ))}
             </nav>
             <span className="nav-tools">
-              <ThemeToggle />
               <Disclosure />
+              <ThemeToggle />
             </span>
           </div>
         </header>

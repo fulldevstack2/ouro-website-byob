@@ -84,20 +84,6 @@ export function SiteNav() {
             Live
           </Badge>
         </span>
-        <button
-          type="button"
-          className="nav-toggle"
-          aria-expanded={open}
-          aria-controls="site-menu"
-          aria-label={open ? "Close menu" : "Open menu"}
-          onClick={() => setOpen((v) => !v)}
-        >
-          <span className="nav-toggle__icon" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </span>
-        </button>
         <div id="site-menu" className="site-nav__menu" data-open={open ? "true" : "false"} ref={menu.ref} onTransitionEnd={menu.onTransitionEnd}>
           {/* A press anywhere in the panel closes it, links and dead space alike: on a phone the menu
               is what is covering the page, so a tap that leaves it up would have to be undone. */}
@@ -119,13 +105,30 @@ export function SiteNav() {
           </nav>
           <span className="site-nav__right">
             <PriceTicker />
-            <ThemeToggle />
             <Button size="sm" href={site.links.buy} onClick={close} {...externalLinkProps(site.links.buy)}>
               Buy {site.ticker} ↗
             </Button>
             <SocialLinks className="nav-social" />
           </span>
         </div>
+        {/* Theme stays on the bar (outside the hamburger panel) so a phone can flip skins without opening the menu. */}
+        <span className="site-nav__chrome">
+          <ThemeToggle />
+          <button
+            type="button"
+            className="nav-toggle"
+            aria-expanded={open}
+            aria-controls="site-menu"
+            aria-label={open ? "Close menu" : "Open menu"}
+            onClick={() => setOpen((v) => !v)}
+          >
+            <span className="nav-toggle__icon" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+          </button>
+        </span>
       </Container>
     </header>
   );
