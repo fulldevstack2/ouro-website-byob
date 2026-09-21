@@ -1,5 +1,5 @@
 /**
- * Market data — price, value, volume and how much of that volume pays the tax — from DexScreener.
+ * Market data — price, value, the volume that pays the tax, and the volume that escapes it.
  *
  * ── Why not the indexer ──
  * ouro-monitor derives the taxed share by counting swaps on the hook pool and comparing them to
@@ -12,21 +12,40 @@
  *   · Adding a project to the registry would mean adding a source adapter before its volume
  *     appears, which breaks the promise that a project is a config entry.
  *   · Volume is a market fact, not a chain-replay fact. Nothing here needs to be reconciled against
- *     the treasury; it needs to be current and to cover every venue the token trades on.
+ *     the treasury, and the venues outside the taxed pool have no events this indexer watches.
  *
  * ── The measurement ──
- * DexScreener returns every pair a token trades in. The taxed share is the canonical pool's 24h
- * volume over the sum across all of them, and the remainder is the leak: trading that funds no
- * airdrop. The canonical pool is matched by `pairAddress`, which for these Uniswap v4 pools is
- * exactly the pool id the registry carries.
+ * The headline is the CANONICAL POOL's 24h volume — the pool the tax is charged on, matched by
+ * `pairAddress`, which for these Uniswap v4 pools is exactly the pool id the registry carries. It
+ * used to be the sum across every pair DexScreener returned, and that was the wrong number to put in
+ * the biggest type on the card, for three reasons:
+ *
+ *   · `/token-pairs/v1` is hard-capped at 30 pairs. USDC on ethereum, base and solana — tokens that
+ *     trade in thousands of pools — each return exactly 30, and so does INDEX. `latest/dex/tokens`
+ *     and `latest/dex/search` return the identical 30, so nothing in this provider can distinguish
+ *     "this token has 30 pools" from "it has more and you were handed the first 30". A cross-venue
+ *     sum is therefore a floor that cannot announce itself as one.
+ *   · Untaxed volume funds no airdrop. Tax, airdropped, rate per line and APR all descend from the
+ *     taxed pool, so a headline measured across venues the project does not tax was the one figure
+ *     in the column that did not belong to the same story as the rest of it.
+ *   · The taxed pool is a single pair, so it is immune to the cap — and unlike the sum, it is
+ *     checkable. Against the indexer's own swap replay on 2026-09-21: HOOD10 113 swaps / $16,740.62
+ *     here against 113 swaps / $17,090.66 there; INDEX 164 txns / $41,863.97 against 162 swaps /
+ *     $42,588.13. Under 2%, which is ETH-price timing.
+ *
+ * The cross-venue sum stays, as `untaxedUsd` printed under the headline. The leak is the most
+ * interesting thing on INDEX's card — it taxes a few percent of its own trading — and it is worth
+ * stating. But it is stated as "≥ $1.09M traded elsewhere", never as a ratio: `poolsTruncated` puts
+ * the uncertainty in the numerator's own units instead of hiding it in a denominator.
+ *
+ * An earlier note here claimed this agreed with the indexer "to a fraction of a percent". It did,
+ * and the agreement meant nothing: ouro-monitor's `market.ts` reaches its figure through
+ * `prices.ts` `tokenPools()`, which requests the same capped `/token-pairs/v1` URL. Same call, same
+ * cap, same answer. The swap-replay comparison above is the only real check of the two.
  *
  * Price and market cap come from that same canonical pool when Dex returns it; otherwise from the deepest
  * pool where the project token is the *base* (never the quote). Taking deepest liquidity alone
  * misprices HOOD10 by ~800× when LIME/HOOD10 (HOOD10 as quote) out-liquids HOOD10/ETH.
- *
- * Checked against the indexer's own numbers the day this was written: INDEX $1,568,859 / 4.8% here
- * against $1,574,144 / 4.8% there, HOOD10 $168,110 / 50.2% against $167,444 / 50.4%. Agreement to a
- * fraction of a percent, and it covers $OURO, which the indexer does not.
  */
 import { useEffect, useState } from "react";
 
@@ -39,20 +58,39 @@ export const DEXSCREENER_CHAIN = "robinhood";
 /** Long enough that a page full of projects costs one request each; short enough to feel live. */
 export const CACHE_MS = 30_000;
 
+/**
+ * Pairs `/token-pairs/v1` will return, at most. Not documented by the provider — measured.
+ *
+ * A response of exactly this length is indistinguishable from a truncated one, so it is treated as
+ * truncated: see `poolsTruncated`. Raising this because a token "surely has fewer pools than that"
+ * is the mistake it exists to prevent.
+ */
+export const DEX_PAIR_CAP = 30;
+
 export interface TokenMarket {
   /** Spot price from the canonical pool, else the deepest base-token pool. */
   priceUsd: number | null;
-  /** Summed 24h volume across every pool the token trades in. */
-  totalUsd: number | null;
-  /** 24h volume on the taxed pool alone. */
-  canonicalUsd: number | null;
   /**
-   * Canonical over total, 0–1. Null when the canonical pool is not among the pairs returned —
-   * an unknown share, which must not be rendered as zero.
+   * 24h volume on the taxed pool alone — the headline, and the only figure here the 30-pair cap
+   * cannot reach. Null when that pool is missing from the response or reports no volume: an unknown,
+   * which must not be rendered as zero.
    */
-  taxedShare: number | null;
-  /** How many pools the token trades in. Context for the share. */
+  canonicalUsd: number | null;
+  /** Summed 24h volume across every pair returned. A floor when `poolsTruncated`. */
+  totalUsd: number | null;
+  /**
+   * Volume on every pool EXCEPT the taxed one — trading that funds no airdrop. A floor when
+   * `poolsTruncated`, and null when either half of the subtraction is unknown.
+   */
+  untaxedUsd: number | null;
+  /** How many pairs came back. A floor when `poolsTruncated`. */
   pools: number | null;
+  /**
+   * True when the response came back FULL, so pools may exist beyond it and `totalUsd`, `untaxedUsd`
+   * and `pools` are floors rather than totals. The page must say so when it is set — the same
+   * contract `ProjectRow.paidAllTimeTruncated` carries for a full page of cycles.
+   */
+  poolsTruncated: boolean;
   /**
    * Market cap, from the same pool as `priceUsd`.
    *
@@ -71,10 +109,11 @@ export interface TokenMarket {
 
 export const EMPTY_MARKET: TokenMarket = {
   priceUsd: null,
-  totalUsd: null,
   canonicalUsd: null,
-  taxedShare: null,
+  totalUsd: null,
+  untaxedUsd: null,
   pools: null,
+  poolsTruncated: false,
   marketCapUsd: null,
   liquidityUsd: null,
 };
@@ -153,32 +192,33 @@ export function summarise(pairs: DexPair[], token: string, canonicalPoolId: stri
   if (pairs.length === 0) return EMPTY_MARKET;
   const canon = canonicalPoolId.toLowerCase();
 
-  let totalUsd = 0;
-  let canonicalUsd = 0;
+  // Null rather than 0 until a pair actually reports a number. A response whose pairs carry no
+  // `volume` at all is an unknown, and the old `let totalUsd = 0` published it as "$0 traded" — the
+  // one zero on this page that was a claim about the project rather than a statement about us.
+  let totalUsd: number | null = null;
+  let canonicalUsd: number | null = null;
   let liquidityUsd = 0;
-  let sawCanonical = false;
 
   for (const p of pairs) {
-    const v = Number(p.volume?.h24 ?? 0);
+    const v = numOrNull(p.volume?.h24);
     const liq = Number(p.liquidity?.usd ?? 0);
-    if (Number.isFinite(v)) totalUsd += v;
     if (Number.isFinite(liq)) liquidityUsd += liq;
-    if ((p.pairAddress ?? "").toLowerCase() === canon) {
-      sawCanonical = true;
-      if (Number.isFinite(v)) canonicalUsd += v;
-    }
+    if (v !== null) totalUsd = (totalUsd ?? 0) + v;
+    if ((p.pairAddress ?? "").toLowerCase() === canon && v !== null) canonicalUsd = (canonicalUsd ?? 0) + v;
   }
 
   const priced = pickPricePair(pairs, token, canonicalPoolId);
+  // Clamped at zero: the two halves are summed from the same response, so a negative can only be
+  // float drift, and "−$0.004 traded elsewhere" is a worse thing to print than a rounded zero.
+  const untaxedUsd = totalUsd === null || canonicalUsd === null ? null : Math.max(0, totalUsd - canonicalUsd);
 
   return {
     priceUsd: priced ? numOrNull(priced.priceUsd) : null,
+    canonicalUsd,
     totalUsd,
-    canonicalUsd: sawCanonical ? canonicalUsd : null,
-    // A share needs both halves. No canonical pool in the response means we cannot say what fraction
-    // was taxed — which is different from saying none of it was.
-    taxedShare: sawCanonical && totalUsd > 0 ? canonicalUsd / totalUsd : null,
+    untaxedUsd,
     pools: pairs.length,
+    poolsTruncated: pairs.length >= DEX_PAIR_CAP,
     marketCapUsd: priced ? (numOrNull(priced.marketCap) ?? numOrNull(priced.fdv)) : null,
     liquidityUsd: liquidityUsd > 0 ? liquidityUsd : null,
   };

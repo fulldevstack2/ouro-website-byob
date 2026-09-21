@@ -135,7 +135,7 @@ export const METRICS: MetricDef[] = [
    */
   { key: "price", label: "Price", group: "market" },
   { key: "marketCap", label: "Market cap", group: "market", sort: { order: "largest first" }, caption: "market cap", rank: "market cap" },
-  { key: "volume24h", label: "24 h volume", hint: "and the taxed share of it", group: "market", sort: { order: "largest first" }, caption: "traded in 24 h", rank: "24 h volume" },
+  { key: "volume24h", label: "Taxed volume, 24 h", hint: "on the pool that charges the tax", group: "market", sort: { order: "largest first" }, caption: "traded where it's taxed", rank: "taxed 24 h volume" },
   { key: "tax", label: "Tax funding it", group: "market", sort: { order: "highest first" }, caption: "trade tax", rank: "the tax funding it" },
   /**
    * Not sortable, and that is deliberate.
@@ -205,11 +205,14 @@ const MARKET_MEASURED: CoverageRecord = { state: "measured" };
 /**
  * Volume is measured for every project, from DexScreener, independently of the indexer.
  *
- * It is summed across every pool the token trades in and split against the canonical taxed pool, so
- * the same figure covers a project the indexer has never seen. $OURO's volume used to read "not
- * indexed" here purely because `/v1/summary` does not carry it.
+ * The figure is the canonical taxed pool's own 24h volume: one pair, matched by pool id, which keeps
+ * it clear of the provider's 30-pair cap and makes it the volume that actually funds the airdrops
+ * the rest of this row describes. What trades outside that pool is printed under it as a floor,
+ * never as a share — see lib/dexscreener.ts for why the cross-venue sum lost the headline.
+ *
+ * $OURO's volume used to read "not indexed" here purely because `/v1/summary` does not carry it.
  */
-const VOLUME_MEASURED: CoverageRecord = { state: "measured", note: "summed across every pool it trades in" };
+const VOLUME_MEASURED: CoverageRecord = { state: "measured", note: "the taxed pool alone, matched by pool id" };
 
 /**
  * Every metric at once — for a project the indexer has never synced.

@@ -53,11 +53,12 @@ export interface ProjectRow {
   priceUsd: number | null;
   marketCapUsd: number | null;
   /**
-   * 24h volume across every pool the token trades in, and how much of it paid the tax.
+   * 24h volume on the pool the tax is charged on, and — as a floor — what traded outside it.
    *
-   * From DexScreener rather than the indexer — see lib/dexscreener.ts. It covers all three projects
-   * uniformly (the indexer does not carry $OURO's), needs no source adapter for a new project, and
-   * agreed with the indexer to a fraction of a percent when checked.
+   * From DexScreener rather than the indexer: see lib/dexscreener.ts, which also records why the
+   * headline is one pool rather than the sum across venues, and why the old claim that this agreed
+   * with the indexer "to a fraction of a percent" was circular. It covers all three projects
+   * uniformly (the indexer does not carry $OURO's) and needs no source adapter for a new one.
    */
   volume: TokenMarket;
 
@@ -442,7 +443,9 @@ export function metricValue(r: ProjectRow, key: SortKey): number | string | null
     case "marketCap":
       return r.marketCapUsd;
     case "volume24h":
-      return r.volume.totalUsd;
+      // Ranked on the taxed pool, which is the figure the card prints. Ranking on the cross-venue
+      // sum put a project first on a number that is a floor for some projects and exact for others.
+      return r.volume.canonicalUsd;
     case "paidAllTime":
       return r.paidAllTimeUsd;
     case "paid24h":

@@ -11,6 +11,7 @@ import { fmtAge, fmtNum, fmtUsd } from "@ouro/monitor-client";
 
 import { Basis } from "~/components/Coverage";
 import { fmtHours } from "~/lib/cadence";
+import type { TokenMarket } from "~/lib/dexscreener";
 import type { ProjectRow } from "~/lib/projects";
 import type { Metric } from "~/registry";
 
@@ -19,6 +20,23 @@ export interface Cell {
   value: string | null;
   /** What the figure rests on, when that differs from project to project. */
   extra?: ReactNode;
+}
+
+/**
+ * What traded where no tax was charged — the line printed under the volume headline.
+ *
+ * A sentence in dollars rather than a percentage, and that is the point. The ratio's denominator is
+ * the cross-venue sum, which `DEX_PAIR_CAP` makes a floor: "3.7% taxed" claims a precision the
+ * provider cannot supply, while "≥ $1.09M traded elsewhere" states the same fact and carries its own
+ * uncertainty in the open. The `≥` is the glyph `paidAllTime` already uses for a full page of
+ * cycles — same meaning, so the same shape.
+ */
+function untaxedNote(v: TokenMarket): string {
+  if (v.untaxedUsd === null) return "volume outside the taxed pool is unpriced";
+  if (v.untaxedUsd === 0) {
+    return v.poolsTruncated ? "nothing traded on the other pools returned" : "nothing traded outside the taxed pool";
+  }
+  return `${v.poolsTruncated ? "≥ " : ""}${fmtUsd(v.untaxedUsd, { compact: true })} traded elsewhere, untaxed`;
 }
 
 /**
@@ -40,20 +58,13 @@ export function cell(metric: Metric, row: ProjectRow): Cell {
 
     case "volume24h": {
       const v = row.volume;
-      if (v.totalUsd === null) return { value: null };
+      // The taxed pool alone. A dash here means that one pool was absent from the response or
+      // reported nothing — never that the token did not trade, which the old cross-venue sum could
+      // not distinguish either way.
+      if (v.canonicalUsd === null) return { value: null };
       return {
-        value: fmtUsd(v.totalUsd, { compact: true }),
-        extra: (
-          <span className="basis">
-            {v.taxedShare === null
-              ? // No canonical pool in the response: the share is unknown, not zero.
-                `across ${v.pools ?? "?"} pools · taxed share unavailable`
-              : `${(v.taxedShare * 100).toFixed(1)}% taxed across ${v.pools} pools · ${fmtUsd(
-                  v.totalUsd - (v.canonicalUsd ?? 0),
-                  { compact: true },
-                )} untaxed`}
-          </span>
-        ),
+        value: fmtUsd(v.canonicalUsd, { compact: true }),
+        extra: <span className="basis">{untaxedNote(v)}</span>,
       };
     }
 
@@ -234,7 +245,7 @@ export function compactBasis(metric: Metric, row: ProjectRow): string | null {
     case "payoutRhythm":
       return row.cadence.p90H === null ? null : `90% within ${fmtHours(row.cadence.p90H)}`;
     case "volume24h":
-      return row.volume.taxedShare === null ? null : `${(row.volume.taxedShare * 100).toFixed(1)}% of it taxed`;
+      return row.volume.canonicalUsd === null ? null : untaxedNote(row.volume);
     default:
       return null;
   }
