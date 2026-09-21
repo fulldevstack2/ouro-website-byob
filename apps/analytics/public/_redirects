@@ -1,0 +1,10 @@
+# One address for this site: the throwaway Netlify subdomain this site was reached at until
+# 2026-09-21 is sent to analytics.ourolayer.com, path and query preserved (":splat", "!" = force,
+# so it wins over the pre-rendered page that would otherwise be served). Old /ledger/ and
+# /airdrops/ links posted against it still land on the right page.
+#
+# Deliberately a copy of the same rule in netlify.toml: this file is part of the build output, so it
+# applies whether or not Netlify is reading this app's netlify.toml (which it only does when the
+# site's Base directory is set to apps/analytics). Identical rules, so either or both is the same
+# result — change them together. Deploy previews (deploy-preview-N--*.netlify.app) are unaffected.
+https://resilient-souffle-95850c.netlify.app/*  https://analytics.ourolayer.com/:splat  301!

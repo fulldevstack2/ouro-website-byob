@@ -24,35 +24,35 @@
   MONITOR_API_URL = "https://ouro-monitor.onrender.com"
 
 # /ledger and /airdrops moved to the analytics site on 2026-09-15 (apps/analytics), keeping their
-# paths. Both URLs have been posted and linked for weeks, so they are sent on rather than 404'd, and
-# 302 rather than 301 ONLY while the destination is the temporary Netlify subdomain below: a 301 is
-# cached by browsers more or less forever, so it would keep sending readers to a throwaway host long
-# after the real one is live. Put these back to 301 with the real domain. The trailing-slash form is
-# the canonical one on both sites; the bare path is matched too, since that is what a hand-typed URL
-# looks like. Keep these in step with site.links.analytics in app/content/site.ts — the app cannot
-# read this file and this file cannot read the app.
+# paths. Both URLs have been posted and linked for weeks, so they are sent on rather than 404'd. 301
+# now that the destination is analytics.ourolayer.com rather than the throwaway Netlify subdomain
+# these pointed at until 2026-09-21 — a 301 is cached by browsers more or less forever, which is what
+# we want for a permanent address and was exactly why these were 302 before. The trailing-slash form
+# is the canonical one on both sites; the bare path is matched too, since that is what a hand-typed
+# URL looks like. Keep these in step with site.links.analytics in app/content/site.ts — the app
+# cannot read this file and this file cannot read the app.
 [[redirects]]
   from = "/ledger"
-  to = "https://resilient-souffle-95850c.netlify.app/ledger/"
-  status = 302
+  to = "https://analytics.ourolayer.com/ledger/"
+  status = 301
   force = true
 
 [[redirects]]
   from = "/ledger/*"
-  to = "https://resilient-souffle-95850c.netlify.app/ledger/"
-  status = 302
+  to = "https://analytics.ourolayer.com/ledger/"
+  status = 301
   force = true
 
 [[redirects]]
   from = "/airdrops"
-  to = "https://resilient-souffle-95850c.netlify.app/airdrops/"
-  status = 302
+  to = "https://analytics.ourolayer.com/airdrops/"
+  status = 301
   force = true
 
 [[redirects]]
   from = "/airdrops/*"
-  to = "https://resilient-souffle-95850c.netlify.app/airdrops/"
-  status = 302
+  to = "https://analytics.ourolayer.com/airdrops/"
+  status = 301
   force = true
 
 # One address for the site. The *.netlify.app subdomain stays reachable by default, which would give
