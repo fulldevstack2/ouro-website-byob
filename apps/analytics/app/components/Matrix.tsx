@@ -22,8 +22,9 @@ import { useState } from "react";
 
 import { Figure } from "~/components/Coverage";
 import { cell, sharedNote } from "~/lib/cells";
+import { useColumnFlip } from "~/lib/motion";
 import type { ProjectRow } from "~/lib/projects";
-import { GROUPS, isSortable, METRICS, SORT_ORDER, type SortKey } from "~/registry";
+import { GROUPS, isSortable, METRICS, SORT_ORDER, SORT_RANK, type SortKey } from "~/registry";
 
 export function Matrix({
   rows,
@@ -40,6 +41,8 @@ export function Matrix({
   onFocus: (key: string | null) => void;
 }) {
   const [hot, setHot] = useState<string | null>(null);
+  // Re-ranking moves the columns. Sliding them says so; see `useColumnFlip`.
+  const sheet = useColumnFlip<HTMLDivElement>();
 
   const colClass = (key: string) => {
     const classes = [];
@@ -49,7 +52,7 @@ export function Matrix({
   };
 
   return (
-    <div className="table-scroll sheet" onPointerLeave={() => setHot(null)}>
+    <div className="table-scroll sheet" ref={sheet} onPointerLeave={() => setHot(null)}>
       <table className="matrix">
         <thead>
           <tr>
@@ -60,7 +63,13 @@ export function Matrix({
               const p = row.project;
               const on = focus === p.key;
               return (
-                <th scope="col" key={p.key} className={colClass(p.key)} onPointerEnter={() => setHot(p.key)}>
+                <th
+                  scope="col"
+                  key={p.key}
+                  className={colClass(p.key)}
+                  data-col={p.key}
+                  onPointerEnter={() => setHot(p.key)}
+                >
                   <button
                     type="button"
                     className="phead"
@@ -68,10 +77,10 @@ export function Matrix({
                     onClick={() => onFocus(on ? null : p.key)}
                     title={on ? `Stop tracing ${p.symbol}` : `Trace ${p.symbol} down the table`}
                   >
-                    <span className="sym">
-                      {p.symbol}
-                      {p.operator === "ouro" ? <span className="chip">ours</span> : null}
-                    </span>
+                    {/* Ours is said in gold on the name itself rather than by a badge beside it.
+                        The badge was a second object in a head that already has two lines, and the
+                        disclosure is the same either way: the operator is named in the footer. */}
+                    <span className={p.operator === "ouro" ? "sym ours" : "sym"}>{p.symbol}</span>
                     <span className="who">{p.name}</span>
                   </button>
                   {/* Said once here rather than in each of this column's empty cells. */}
@@ -95,9 +104,37 @@ export function Matrix({
               </tr>
               {metrics.map(({ key, label, hint }) => {
                 const shared = sharedNote(key, rows);
+                // The ranked row is said by the ▾ on its own label, and by nothing else. It used to
+                // carry a band across the whole table, which was on from the first paint and so read
+                // as a selection the reader had not made.
                 const active = sort === key;
+                /**
+                 * The whole cell, not just the label.
+                 *
+                 * The hint under a row's name and the note it shares across the row used to sit
+                 * outside the button, as siblings of it. So the cell lit up on hover from edge to
+                 * edge and then a press on "in the most recent cycle", or on the empty band beside a
+                 * tall row, did nothing. Everything in the cell goes inside the control, and the
+                 * control fills the cell, so the thing that answers the pointer is the thing that
+                 * looked like it would.
+                 */
+                const body = (
+                  <>
+                    <span className="row-name">
+                      {label}
+                      {isSortable(key) ? (
+                        <span className="sort-mark" aria-hidden="true">
+                          {active ? "▾" : "↕"}
+                        </span>
+                      ) : null}
+                    </span>
+                    {hint ? <span className="hint">{hint}</span> : null}
+                    {/* Identical across every cell in this row, so it is said once. */}
+                    {shared ? <span className="hint shared">{shared}</span> : null}
+                  </>
+                );
                 return (
-                  <tr key={key} className={active ? "sorted" : undefined}>
+                  <tr key={key}>
                     <td className="metric-name">
                       {isSortable(key) ? (
                         <button
@@ -105,19 +142,13 @@ export function Matrix({
                           className="row-sort"
                           aria-pressed={active}
                           onClick={() => onSort(key)}
-                          title={`Rank the projects by ${label.toLowerCase()}, ${SORT_ORDER[key]}`}
+                          title={`Rank the table by ${SORT_RANK[key]}, ${SORT_ORDER[key]}`}
                         >
-                          {label}
-                          <span className="sort-mark" aria-hidden="true">
-                            {active ? "▾" : "↕"}
-                          </span>
+                          {body}
                         </button>
                       ) : (
-                        <span className="row-static">{label}</span>
+                        <span className="row-static">{body}</span>
                       )}
-                      {hint ? <span className="hint">{hint}</span> : null}
-                      {/* Identical across every cell in this row, so it is said once. */}
-                      {shared ? <span className="hint shared">{shared}</span> : null}
                     </td>
                     {rows.map((row) => {
                       const { value, extra } = cell(key, row);
@@ -126,6 +157,7 @@ export function Matrix({
                         <td
                           key={row.project.key}
                           className={colClass(row.project.key)}
+                          data-col={row.project.key}
                           onPointerEnter={() => setHot(row.project.key)}
                         >
                           <Figure value={value} coverage={coverage} hideNote={shared !== null} />

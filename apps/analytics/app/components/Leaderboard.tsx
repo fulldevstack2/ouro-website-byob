@@ -111,8 +111,8 @@ export function Leaderboard({
           >
             <span className="card-top">
               <span className="card-rank">{i + 1}</span>
-              <span className="card-sym">{p.symbol}</span>
-              {p.operator === "ouro" ? <span className="chip">ours</span> : null}
+              {/* Ours is gold, here and everywhere the symbol is printed. See `.ours`. */}
+              <span className={p.operator === "ouro" ? "card-sym ours" : "card-sym"}>{p.symbol}</span>
               <span className="card-name">{p.name}</span>
             </span>
 

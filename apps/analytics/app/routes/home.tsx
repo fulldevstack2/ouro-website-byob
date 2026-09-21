@@ -28,9 +28,11 @@ export function meta(_: Route.MetaArgs) {
  * The lede, at one line.
  *
  * It was four: a sentence naming what is here, a sentence listing the columns, and two sentences of
- * method. The columns name themselves twenty pixels lower, and the method is now one disclosure at
- * the foot of the page for the reader who wants it. What is left is the claim that makes the page
- * worth opening, which is that none of this is self-reported.
+ * method. The columns name themselves twenty pixels lower, and the method is gone from the page
+ * entirely: each of its three points was already said where it applies — the basis sits under every
+ * rate, a blank cell says underneath why it is blank, and each panel names its own peak — so the
+ * disclosure at the foot was the page explaining itself twice. What is left is the claim that makes
+ * the page worth opening, which is that none of this is self-reported.
  */
 const LEDE = "Every tax-index token on Robinhood Chain that pays its holders, side by side, read from the chain.";
 
@@ -159,40 +161,18 @@ export default function Home() {
         <div className="section-head">
           <div>
             <h2>Every figure, side by side</h2>
+            {/* "Press any row to rank by it" overclaimed twice: two of the fourteen rows do not
+                rank, and the mark that says which do was invisible until the pointer was already on
+                one. The copy now names the mark, and the mark is now drawn. */}
             <p className="sub">
-              Press any row to rank by it. Where a figure is estimated or not yet indexed the cell says so, and a
-              blank is about our coverage, never a zero for the project.
+              Press a row name marked <span className="sub-mark">↕</span> to rank the table by it. Where a figure is
+              estimated or not yet indexed the cell says so, and a blank is about our coverage, never a zero for the
+              project.
             </p>
           </div>
         </div>
 
         <Matrix rows={ordered} sort={sort} onSort={setSort} focus={focus} onFocus={setFocus} />
-      </section>
-
-      <section className="container section" data-reveal="">
-        <details className="method">
-          <summary>How to read this page</summary>
-          <div className="method-body">
-            <p className="note">
-              <strong>The rates are not comparing like with like, and the row says so.</strong> Every APR here is
-              real and measured, but they rest on very different things. A rate from a fortnight of payouts over a
-              million dollars of eligible supply is not the same kind of number as one from thousands of epochs
-              over twenty-eight times the base. That is why the window sits under the figure rather than behind a
-              tooltip: the basis is not a footnote, it is half the rate.
-            </p>
-            <p className="note">
-              <strong>A blank is about our coverage, not about the project.</strong> Where a cell is empty it says
-              why underneath, either estimated or not yet indexed. Nothing here is rendered as a zero because we
-              have not read it, and a total leaves out what it could not count rather than counting it as nothing.
-            </p>
-            <p className="note">
-              <strong>The panels do not share an axis.</strong> These tokens differ by an order of magnitude, so
-              one shared scale flattens the smaller ones into the baseline and hides the shape that is worth
-              plotting. Every panel is drawn on the scale that shows it and names its own peak, so the panels are
-              read for shape and the table below them for size.
-            </p>
-          </div>
-        </details>
       </section>
 
       <footer className="container foot">

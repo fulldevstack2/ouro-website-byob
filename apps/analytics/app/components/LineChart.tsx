@@ -196,7 +196,10 @@ export function LineChart({ points, format, formatAxis, formatTime, label, empty
           </>
         ) : (
           <>
-            latest <b>{format(last.v)}</b> · {formatTime(last.t)} · {points.length} points
+            {/* The sample count used to sit here. It is a fact about our indexing, not about the
+                token, and next to two figures a reader can act on it read as a third. It stays in
+                the aria-label, where describing the plot to someone who cannot see it is the job. */}
+            latest <b>{format(last.v)}</b> · {formatTime(last.t)}
           </>
         )}
       </p>

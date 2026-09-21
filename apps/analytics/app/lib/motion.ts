@@ -203,6 +203,110 @@ export function useFlip<T extends HTMLElement>(duration = 420) {
 }
 
 /**
+ * Slide a table's columns to their new places when the order changes.
+ *
+ * Same argument as `useFlip`, for the one place on the page that could not use it. Re-ranking is
+ * driven from the table's own row labels, and the table is where the reader is standing when they
+ * press one — but the cards and the panels that slide are a screen and a half above them by then,
+ * and `useFlip` deliberately does not animate off screen. So the only thing the reader could see was
+ * three columns of figures snapping into different places, which reads as a redraw: they cannot tell
+ * whether the columns moved or the numbers in them changed. It is worth saying a third time here.
+ *
+ * ── Why this is not `useFlip` ──
+ * A column is not an element. There is no node to translate, only fifteen cells that share an x, so
+ * the measurement and the animation come apart: the head cell is measured once per column, and the
+ * offset it yields is applied to every cell carrying that column's key. `<col>` exists but is not
+ * transformable, and `useFlip` measures the direct children of one host, which here are rows.
+ *
+ * ── Why the offset is measured inside the host ──
+ * The table scrolls horizontally inside its own container on a narrow screen. A viewport-relative
+ * left would make a sideways scroll between two commits look like every column had moved, which is
+ * the bug `spotOf` fixes for the page's vertical scroll. Measuring against the host's own box makes
+ * the stored position a fact about the table.
+ */
+export function useColumnFlip<T extends HTMLElement>(duration = 460) {
+  const host = useRef<T | null>(null);
+  const lefts = useRef(new Map<string, number>());
+  const running = useRef(new Map<string, Animation[]>());
+
+  // As in `useFlip`: a resize re-lays the table out, which is not a reorder.
+  useEffect(() => {
+    const onResize = () => lefts.current.clear();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useLayoutEffect(() => {
+    const el = host.current;
+    if (!el) return;
+    const reduced = prefersReducedMotion();
+    const origin = el.getBoundingClientRect().left;
+    const next = new Map<string, number>();
+    const moves: { key: string; dx: number }[] = [];
+
+    for (const head of Array.from(el.querySelectorAll<HTMLElement>("thead [data-col]"))) {
+      const key = head.dataset.col;
+      if (!key) continue;
+
+      /**
+       * Two measurements, for the reason written out at length in `useFlip`: a cell measured while
+       * it is still sliding reports where it has got to, not where it belongs, and storing that
+       * compounds the next offset on top of a journey already half made.
+       */
+      const visual = head.getBoundingClientRect().left - origin;
+      const live = running.current.get(key);
+      if (live) {
+        for (const anim of live) anim.cancel();
+        running.current.delete(key);
+      }
+      const layout = live ? head.getBoundingClientRect().left - origin : visual;
+      next.set(key, layout);
+
+      const was = lefts.current.get(key);
+      if (was === undefined || reduced) continue;
+      const dx = (live ? visual : was) - layout;
+      if (Math.abs(dx) >= 1) moves.push({ key, dx });
+    }
+    lefts.current = next;
+    if (!moves.length) return;
+
+    // Nothing animates off screen. The table is tall, so any part of it showing is enough.
+    const box = el.getBoundingClientRect();
+    if (box.bottom < 0 || box.top > window.innerHeight) return;
+
+    /**
+     * The furthest traveller goes on top.
+     *
+     * Table cells are transparent, so two columns crossing would show each other's figures through
+     * one another. Each cell in flight takes the sheet's own colour and is raised out of the flow
+     * (see `[data-sliding]`), and the column that crosses the others is raised highest, so it passes
+     * in front of them rather than through them.
+     */
+    const ranked = [...moves].sort((a, b) => Math.abs(a.dx) - Math.abs(b.dx));
+    ranked.forEach(({ key, dx }, tier) => {
+      const cells = Array.from(el.querySelectorAll<HTMLElement>(`[data-col="${key}"]`));
+      const anims = cells.map((cellEl) => {
+        cellEl.dataset.sliding = String(tier + 2);
+        const anim = cellEl.animate(
+          [{ transform: `translateX(${dx}px)` }, { transform: "translateX(0px)" }],
+          { duration, easing: "cubic-bezier(0.2, 0.6, 0.2, 1)" },
+        );
+        const clear = () => delete cellEl.dataset.sliding;
+        anim.addEventListener("finish", clear);
+        anim.addEventListener("cancel", clear);
+        return anim;
+      });
+      running.current.set(key, anims);
+      anims[0]?.addEventListener("finish", () => {
+        if (running.current.get(key) === anims) running.current.delete(key);
+      });
+    });
+  });
+
+  return host;
+}
+
+/**
  * Fade and lift each section as it first comes into view.
  *
  * Only sections that START below the fold are ever hidden, and only after the first paint, so

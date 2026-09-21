@@ -18,6 +18,7 @@ import { LineChart } from "~/components/LineChart";
 import { fmtHours } from "~/lib/cadence";
 import { useFlip } from "~/lib/motion";
 import { withinDays, type Series } from "~/lib/series";
+import { byKey } from "~/registry";
 
 export type MeasureKey = "gaps" | "tax" | "recipients";
 
@@ -187,7 +188,9 @@ export function Charts({
                 : `own scale · peak ${own === null ? "—" : active.format(own)}`;
             return (
               <div className="chart-panel" key={s.key} data-flip={s.key} data-on={focus === s.key}>
-                <h3>{s.symbol}</h3>
+                {/* Ours in gold, as on the cards and in the table. A series carries no operator, so
+                    it is read back off the registry by key. */}
+                <h3 className={byKey(s.key)?.operator === "ouro" ? "ours" : undefined}>{s.symbol}</h3>
                 <p className="panel-note">{note}</p>
                 <LineChart
                   /* Remounting on a control change is what replays the draw-on. It is keyed on the
