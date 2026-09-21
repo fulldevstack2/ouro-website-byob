@@ -86,8 +86,8 @@ export interface TokenSummary {
   indexedTo: number | null;
   epochsIndexed: number;
   market: MarketRow | null;
-  tax: { h24: TaxSum; d7: TaxSum; all: TaxSum; exact: boolean; ethPriceUsd: number | null };
-  paid: { h24: PaidSum; d7: PaidSum; all: PaidSum };
+  tax: { h24: TaxSum; d3: TaxSum; all: TaxSum; exact: boolean; ethPriceUsd: number | null };
+  paid: { h24: PaidSum; d3: PaidSum; all: PaidSum };
   lastEpoch: EpochOut | null;
   liveness: { status: Liveness; dueTs: number | null; overdueSec: number | null; lastTs: number | null; cadenceSec: number; source: string };
   holders: { aboveLine: number | null; total: number | null; recipientsLast: number | null };

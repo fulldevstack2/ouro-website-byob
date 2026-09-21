@@ -250,7 +250,7 @@ export default function Airdrops() {
   const pending = useMonitor<OuroPending>(MONITOR_API ? "/v1/ouro/pending" : null, 60_000);
   const holders = useMonitor<OuroHolders>(MONITOR_API ? "/v1/ouro/holders?min=100000" : null, 120_000);
   const queue = useMonitor<{ days: OuroQueueDay[] }>(MONITOR_API ? "/v1/ouro/queue?days=30" : null, 300_000);
-  const yieldPoll = useMonitor<OuroYield>(MONITOR_API ? "/v1/ouro/yield?days=7" : null, 300_000);
+  const yieldPoll = useMonitor<OuroYield>(MONITOR_API ? "/v1/ouro/yield?days=3" : null, 300_000);
   const reserve = useMonitor<Reserve>(MONITOR_API ? "/v1/reserve?hours=1" : null, 120_000);
 
   const nowSec = cycles.data ? Math.floor(Date.now() / 1000) : 0;
@@ -432,7 +432,7 @@ export default function Airdrops() {
             }
           />
           <Callout tone="caution" title="A rate is only as good as its window" style={{ marginTop: 16 }}>
-            {y?.caveat ?? `This one rests on ${y?.basisDays ? fmtNum(y.basisDays, 0) : "seven"} days.`} It moves with trading volume and is not a forecast.{" "}
+            {y?.caveat ?? `This one rests on ${y?.basisDays ? fmtNum(y.basisDays, 0) : "three"} days.`} It moves with trading volume and is not a forecast.{" "}
             <a href={ouroUrl("/#calc")} {...externalLinkProps(ouroUrl("/#calc"))}>
               Try your size in the calculator on ourolayer.com ↗
             </a>

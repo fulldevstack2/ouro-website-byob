@@ -356,7 +356,7 @@ export default function Monitor() {
               The taxed pool's 24 h volume divided by 24 h volume across every pool GeckoTerminal lists for the token. This is the leak: volume the tax never touches, paying nothing to holders.
             </Method>
             <Method n="05" title="Yield">
-              Payouts over the last seven days, per day, divided by the eligible supply, scaled to one dividend line. The APR uses the spot price. It is what holders actually received, not a projection.
+              Payouts over the last three days, per day, divided by the eligible supply, scaled to one dividend line. The APR uses the spot price. It is what holders actually received, not a projection.
             </Method>
             <Method n="06" title="Liveness">
               INDEX publishes <code style={mono}>nextDistribution()</code>. HOOD10 does not, so the typical gap between recent periods is used. Late means more than half a cycle overdue. Stalled means more than two cycles.

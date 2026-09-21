@@ -36,7 +36,7 @@ function compactTokens(n: number): string {
  * /portfolio for a live balance.
  */
 export function AirdropCalc() {
-  const y = useMonitor<OuroYield>(MONITOR_API ? "/v1/ouro/yield?days=7" : null, 300_000);
+  const y = useMonitor<OuroYield>(MONITOR_API ? "/v1/ouro/yield?days=3" : null, 300_000);
   const epochs = useMonitor<{ token: string; epochs: OuroCycle[] }>(MONITOR_API ? "/v1/ouro/epochs?limit=5" : null, 120_000);
 
   const [holdings, setHoldings] = useState<number>(LINE);

@@ -31,7 +31,7 @@ export interface Prices {
  * figure here.
  */
 export function usePrices(): Prices {
-  const y = useMonitor<OuroYield>(MONITOR_API ? "/v1/ouro/yield?days=7" : null, 300_000);
+  const y = useMonitor<OuroYield>(MONITOR_API ? "/v1/ouro/yield?days=3" : null, 300_000);
   const s = useMonitor<Summary>(MONITOR_API ? "/v1/summary" : null, 300_000);
   const monitorOuro = y.data?.priceUsd ?? null;
   const monitorEth = s.data ? (s.data.tokens.hood10?.tax.ethPriceUsd ?? s.data.tokens.index?.tax.ethPriceUsd ?? null) : null;

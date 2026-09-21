@@ -18,7 +18,7 @@ export interface Ticker {
  * until the first read lands, so the prerendered bar and the first client frame agree.
  */
 export function useOuroTicker(): Ticker {
-  const y = useMonitor<OuroYield>(MONITOR_API ? "/v1/ouro/yield?days=7" : null, 300_000);
+  const y = useMonitor<OuroYield>(MONITOR_API ? "/v1/ouro/yield?days=3" : null, 300_000);
   const [dex, setDex] = useState<{ priceUsd: number | null; changeH24: number | null } | null>(null);
 
   useEffect(() => {

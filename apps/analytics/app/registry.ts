@@ -240,7 +240,7 @@ export const PROJECTS: Project[] = [
       holders: { state: "measured", note: "on-chain holderCount() for wallets at or above the line" },
       recipients: { state: "measured" },
       ratePerLine: { state: "measured", note: "cycles are allocated pro-rata by balance" },
-      apr: { state: "measured", basisDays: 7, note: "paid USD / payable supply at the Dex price shown" },
+      apr: { state: "measured", basisDays: 3, note: "paid USD / payable supply at the Dex price shown" },
       payoutRhythm: { state: "measured", note: "measured from up to its last 200 closed cycles" },
       lastPaid: { state: "measured", note: "closed cycles only" },
       tax: {
@@ -283,7 +283,7 @@ export const PROJECTS: Project[] = [
         note: "a floor for most wallets: the keeper's taper pays the three largest less than pro-rata",
       },
       // History length comes from `/v1/ouro/yield`; do not hard-code a launch-era figure here.
-      apr: { state: "measured", basisDays: 7, note: "paid USD / payable supply at the Dex price shown" },
+      apr: { state: "measured", basisDays: 3, note: "paid USD / payable supply at the Dex price shown" },
       payoutRhythm: { state: "measured", note: "measured from up to its last 200 closed cycles" },
       lastPaid: { state: "measured", note: "closed cycles only" },
       tax: { state: "measured", note: "exact: the hook emits FeeAccrued per swap" },
@@ -321,7 +321,7 @@ export const PROJECTS: Project[] = [
       holders: { state: "measured", note: "replayed from the token's transfers" },
       recipients: { state: "measured" },
       ratePerLine: { state: "measured" },
-      apr: { state: "measured", basisDays: 7, note: "paid USD / payable supply at the Dex price shown" },
+      apr: { state: "measured", basisDays: 3, note: "paid USD / payable supply at the Dex price shown" },
       payoutRhythm: { state: "measured", note: "measured from up to its last 200 closed cycles" },
       lastPaid: { state: "measured", note: "closed cycles only" },
       // The one place HOOD10 is better instrumented than INDEX: its hook emits FeeAccrued per swap.

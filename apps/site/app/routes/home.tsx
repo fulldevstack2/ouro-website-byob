@@ -125,7 +125,7 @@ function HeroCard() {
   const daily = useMonitor<{ token: string; days: DailyRow[] }>(MONITOR_API ? "/v1/ouro/daily?days=366" : null, 300_000);
   // Same request and window the vaults page's rate comes from (hooks/usePrices.ts), so the two pages
   // cannot disagree about what a wallet above the line earns.
-  const yields = useMonitor<OuroYield>(MONITOR_API ? "/v1/ouro/yield?days=7" : null, 300_000);
+  const yields = useMonitor<OuroYield>(MONITOR_API ? "/v1/ouro/yield?days=3" : null, 300_000);
 
   const d = reserve.data;
   const t = d?.totals;
@@ -155,7 +155,7 @@ function HeroCard() {
    */
   const rate = yields.data;
   const rateNote = !rate
-    ? "From payouts actually made, at the rate of the last seven days."
+    ? "From payouts actually made, at the rate of the last three days."
     : rate.aprPct === null
       ? (rate.withheld ?? "Needs a payout and a price to measure")
       : (rate.caveat ??

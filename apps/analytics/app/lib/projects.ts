@@ -146,7 +146,7 @@ function unvaluedZero(indexedTo: number | null, sum: { epochs?: number; paid_usd
 function pricingCoverage(cycles: OuroCycle[] | null, now: number, basisDays: number | null) {
   const closed = (cycles ?? []).filter((c) => c.status === "closed");
   if (closed.length === 0) return { pricedPeriods: null, closedPeriods: null, aprWindowPriced: null, aprWindowTotal: null };
-  const cut = now - (basisDays ?? 7) * 86_400;
+  const cut = now - (basisDays ?? 3) * 86_400;
   const inWindow = closed.filter((c) => (c.endTs ?? 0) >= cut);
   return {
     pricedPeriods: closed.filter((c) => c.paidUsd !== null).length,
@@ -365,7 +365,7 @@ export interface ProjectsState {
  */
 export function useProjects(intervalMs = 30_000): ProjectsState {
   const summary = useMonitor<Summary>("/v1/summary", intervalMs);
-  const ouroYield = useMonitor<OuroYield>("/v1/ouro/yield?days=7", intervalMs);
+  const ouroYield = useMonitor<OuroYield>("/v1/ouro/yield?days=3", intervalMs);
   const ouroCycles = useMonitor<{ epochs: OuroCycle[] }>("/v1/ouro/epochs?limit=200", intervalMs);
   /**
    * INDEX's own cycles, for its measured cadence. A fifth request purely to avoid describing a
