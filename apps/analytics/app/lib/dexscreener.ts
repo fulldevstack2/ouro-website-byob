@@ -20,7 +20,7 @@
  * airdrop. The canonical pool is matched by `pairAddress`, which for these Uniswap v4 pools is
  * exactly the pool id the registry carries.
  *
- * Price and FDV come from that same canonical pool when Dex returns it; otherwise from the deepest
+ * Price and market cap come from that same canonical pool when Dex returns it; otherwise from the deepest
  * pool where the project token is the *base* (never the quote). Taking deepest liquidity alone
  * misprices HOOD10 by ~800× when LIME/HOOD10 (HOOD10 as quote) out-liquids HOOD10/ETH.
  *
@@ -54,14 +54,17 @@ export interface TokenMarket {
   /** How many pools the token trades in. Context for the share. */
   pools: number | null;
   /**
-   * Fully diluted value, from the same pool as `priceUsd`.
+   * Market cap, from the same pool as `priceUsd`.
    *
-   * Taken from the same payload as `priceUsd` deliberately. FDV is price x supply, so sourcing the
-   * two from different providers lets a reader divide one by the other and derive a supply neither
-   * provider believes. The indexer does not serve $OURO's FDV at all, which is why that cell used to
-   * show the eligible supply at spot — a smaller number under a heading that names a larger one.
+   * DexScreener's own `marketCap`, falling back to its `fdv`: it reports the two as the same number
+   * for all three of these tokens, because it treats none of their supply as locked, and a token
+   * whose supply it cannot read carries neither. Read from the same payload as `priceUsd`
+   * deliberately — either figure is a price times a supply, so taking the two from different
+   * providers lets a reader divide one by the other and derive a supply neither of them believes.
+   * The indexer does not serve $OURO's at all, which is why that cell used to show the eligible
+   * supply at spot: a smaller number under a heading that names a larger one.
    */
-  fdvUsd: number | null;
+  marketCapUsd: number | null;
   /** Summed USD liquidity across all pools. */
   liquidityUsd: number | null;
 }
@@ -72,7 +75,7 @@ export const EMPTY_MARKET: TokenMarket = {
   canonicalUsd: null,
   taxedShare: null,
   pools: null,
-  fdvUsd: null,
+  marketCapUsd: null,
   liquidityUsd: null,
 };
 
@@ -83,6 +86,7 @@ export interface DexPair {
   volume?: { h24?: number };
   liquidity?: { usd?: number };
   fdv?: number;
+  marketCap?: number;
   baseToken?: { address?: string };
   quoteToken?: { address?: string };
 }
@@ -175,7 +179,7 @@ export function summarise(pairs: DexPair[], token: string, canonicalPoolId: stri
     // was taxed — which is different from saying none of it was.
     taxedShare: sawCanonical && totalUsd > 0 ? canonicalUsd / totalUsd : null,
     pools: pairs.length,
-    fdvUsd: priced && Number.isFinite(Number(priced.fdv)) ? Number(priced.fdv) : null,
+    marketCapUsd: priced ? (numOrNull(priced.marketCap) ?? numOrNull(priced.fdv)) : null,
     liquidityUsd: liquidityUsd > 0 ? liquidityUsd : null,
   };
 }

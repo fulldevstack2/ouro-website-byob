@@ -3,6 +3,7 @@ import { isRouteErrorResponse, Links, Meta, NavLink, Outlet, Scripts, ScrollRest
 
 import { THEME_BOOT_SCRIPT, ThemeToggle } from "@ouro/ds";
 import type { Route } from "./+types/root";
+import { useNavHeight } from "~/lib/chrome";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
@@ -48,6 +49,9 @@ function Disclosure() {
 }
 
 export function Layout({ children }: { children: ReactNode }) {
+  // The bar is sticky and is not one height; anything that sticks underneath it needs the number.
+  useNavHeight();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>

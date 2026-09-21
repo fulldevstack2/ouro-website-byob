@@ -7,6 +7,9 @@
  * The page's copy already claimed "every column sorts", and the only way to do it was a dropdown of
  * five keys. Now every rankable row is a button, which is both the honest version of that claim and
  * the cheapest interaction on the page: the reader re-ranks by pressing the thing they are reading.
+ * It ranks THIS table and nothing else. It used to write the order the whole page was in, which put
+ * the visible half of a press somewhere the reader was not: the cards it also re-ranked are a screen
+ * and a half above them. The cards carry their own control, in their own section head.
  *
  * ── The rows are banded ──
  * Fourteen undifferentiated rows opened on Price, which is the one figure here anybody can get
@@ -133,8 +136,10 @@ export function Matrix({
                     {shared ? <span className="hint shared">{shared}</span> : null}
                   </>
                 );
+                // `data-metric` names the row's metric so a stylesheet can single one out: the assets
+                // row is the one figure that is a list of words and may wrap where a number may not.
                 return (
-                  <tr key={key}>
+                  <tr key={key} data-metric={key}>
                     <td className="metric-name">
                       {isSortable(key) ? (
                         <button

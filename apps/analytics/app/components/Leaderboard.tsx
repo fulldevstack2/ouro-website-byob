@@ -16,20 +16,21 @@
  * No colour per project, no medal, no "winner" treatment. Same ink for all three, the rank is a
  * numeral, and the order is stated. This page reports on two projects it does not operate, from a
  * domain the third one owns.
+ *
+ * The share-of-the-three bar and the "2% of the three" beside the caption went the same way. Nobody
+ * asked the page how one token's market size compares with the other two's, so a reader met a bar
+ * they had not asked for, drawn against a total the page does not otherwise print, and read a short
+ * one as a verdict: being the smallest of three is not being bad at something, and on the rows the
+ * bar could legitimately be drawn for it was mostly measuring supply. A card now claims a figure,
+ * what that figure rests on, and a rank.
  */
 import { DASH } from "~/components/Coverage";
 import { Spark } from "~/components/Spark";
 import { cell, compactBasis } from "~/lib/cells";
 import { useChanged, useEnter, useFlip } from "~/lib/motion";
-import { metricValue, type ProjectRow } from "~/lib/projects";
+import type { ProjectRow } from "~/lib/projects";
 import type { Point } from "~/lib/series";
 import { METRICS, SORT_CAPTION, type Metric, type SortKey } from "~/registry";
-
-/**
- * Metrics where one project's figure is a share of a page total, so a share bar means something.
- * A price or a rate is not a share of anything, and drawing one would invent a total.
- */
-const ADDITIVE = new Set<Metric>(["paidAllTime", "paid24h", "recipients", "holders", "volume24h", "marketCap"]);
 
 /** The supporting rows, in the order they are preferred. The one being ranked by is skipped. */
 const SUPPORT: Metric[] = ["paidAllTime", "apr", "paid24h", "lastPaid", "recipients", "payoutRhythm"];
@@ -73,15 +74,6 @@ export function Leaderboard({
   const grid = useFlip<HTMLDivElement>();
   const entering = useEnter();
 
-  // Only over the projects that actually reported, so a withheld figure never inflates the others'
-  // share of the total.
-  const shareTotal = ADDITIVE.has(ranked)
-    ? rows.reduce((sum, r) => {
-        const v = metricValue(r, ranked);
-        return typeof v === "number" && Number.isFinite(v) ? sum + v : sum;
-      }, 0)
-    : 0;
-
   return (
     <div className="cards" ref={grid}>
       {rows.map((row, i) => {
@@ -89,9 +81,6 @@ export function Leaderboard({
         const head = cell(ranked, row);
         // A rate never appears without what it was measured over, on a card any more than in a cell.
         const headBasis = compactBasis(ranked, row);
-        const raw = metricValue(row, ranked);
-        const share =
-          shareTotal > 0 && typeof raw === "number" && Number.isFinite(raw) ? Math.max(0, raw) / shareTotal : null;
         const on = focus === p.key;
         const series = paid[p.key] ?? [];
 
@@ -125,17 +114,8 @@ export function Leaderboard({
             )}
             <span className="card-caption">
               {SORT_CAPTION[sort]}
-              {share !== null ? ` · ${(share * 100).toFixed(0)}% of the three` : ""}
               {headBasis ? <span className="card-basis">{headBasis}</span> : null}
             </span>
-
-            {share !== null ? (
-              <span className="card-share" aria-hidden="true">
-                <span className="card-share-fill" style={{ width: `${Math.min(100, share * 100).toFixed(1)}%` }} />
-              </span>
-            ) : (
-              <span className="card-share-gap" aria-hidden="true" />
-            )}
 
             <span className="card-kv">
               {support.map((m) => {

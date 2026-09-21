@@ -235,10 +235,10 @@ function fromSummary(
   if (!t) return row;
   return {
     ...row,
-    // Price and FDV come from `volume`'s payload, set on the row above — not from the indexer's
-    // market row, so all three projects report the same quantity from the same source.
+    // Price and market cap come from `volume`'s payload, set on the row above — not from the
+    // indexer's market row, so all three projects report the same quantity from the same source.
     priceUsd: volume.priceUsd,
-    marketCapUsd: volume.fdvUsd,
+    marketCapUsd: volume.marketCapUsd,
     /**
      * Zero is a claim about the project; withhold it unless we can stand behind it.
      *
@@ -326,8 +326,8 @@ function fromOuro(
       unreadVenuePositions: reserve ? unreadVenuePositions : null,
     },
     priceUsd: volume.priceUsd,
-    // A real fully diluted value now, rather than the eligible supply at spot standing in for one.
-    marketCapUsd: volume.fdvUsd,
+    // A real market cap now, rather than the eligible supply at spot standing in for one.
+    marketCapUsd: volume.marketCapUsd,
     paidAllTimeUsd: allTime,
     // A full page means there may be more behind it; 86 cycles today, but the guard is the point.
     paidAllTimeTruncated: (cycles?.length ?? 0) >= OURO_CYCLE_PAGE,

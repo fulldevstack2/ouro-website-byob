@@ -141,11 +141,12 @@ export function useFlip<T extends HTMLElement>(duration = 420) {
     /**
      * Nothing animates off screen.
      *
-     * Re-ranking from a row of the table moves the cards, which by then are a screen and a half
-     * above the reader. Sliding them there costs a frame budget to show nobody anything, and on a
-     * narrow layout, where the list is stacked and a card travels most of a screen, whatever clips
-     * the edge of the viewport on its way past reads as something having gone wrong. When they
-     * scroll back up the cards are simply in their new order.
+     * The cards re-rank from their own control now, but a poll landing can still move them while
+     * the reader is a screen and a half below, and the chart panels move the same way. Sliding
+     * them there costs a frame budget to show nobody anything, and on a narrow layout, where the
+     * list is stacked and a card travels most of a screen, whatever clips the edge of the viewport
+     * on its way past reads as something having gone wrong. When they scroll back up the cards are
+     * simply in their new order.
      */
     const viewTop = window.scrollY;
     const viewBottom = viewTop + window.innerHeight;
@@ -205,12 +206,11 @@ export function useFlip<T extends HTMLElement>(duration = 420) {
 /**
  * Slide a table's columns to their new places when the order changes.
  *
- * Same argument as `useFlip`, for the one place on the page that could not use it. Re-ranking is
- * driven from the table's own row labels, and the table is where the reader is standing when they
- * press one — but the cards and the panels that slide are a screen and a half above them by then,
- * and `useFlip` deliberately does not animate off screen. So the only thing the reader could see was
- * three columns of figures snapping into different places, which reads as a redraw: they cannot tell
- * whether the columns moved or the numbers in them changed. It is worth saying a third time here.
+ * Same argument as `useFlip`, for the one place on the page that could not use it. The table ranks
+ * from its own row labels and moves nothing else, so the table is where the reader is standing when
+ * they press one, and three columns of figures are the whole of what changes. Snapping them into
+ * different places reads as a redraw: the reader cannot tell whether the columns moved or the
+ * numbers in them changed. It is worth saying a third time here.
  *
  * ── Why this is not `useFlip` ──
  * A column is not an element. There is no node to translate, only fifteen cells that share an x, so

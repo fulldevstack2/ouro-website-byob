@@ -86,7 +86,9 @@ export function cell(metric: Metric, row: ProjectRow): Cell {
       const SHOWN = 4;
       const rest = syms.length - SHOWN;
       return {
-        value: syms.slice(0, SHOWN).join(" · "),
+        // A no-break space before each dot: this is the one figure allowed to wrap (see the
+        // `[data-metric="assets"]` rule), and a line that opens with a separator reads as a bullet.
+        value: syms.slice(0, SHOWN).join("\u00a0· "),
         extra: rest > 0 ? <span className="basis">+{rest} more</span> : undefined,
       };
     }

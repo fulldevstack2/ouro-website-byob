@@ -99,7 +99,7 @@ export function Charts({
   loading,
 }: {
   series: Record<MeasureKey, Series[]>;
-  /** Project keys in the order the rest of the page is ranked, so the panels match the cards. */
+  /** Project keys in the order the panels are drawn. Set by the route; no control in here moves it. */
   order: string[];
   windowDays: number | null;
   onWindow: (days: number | null) => void;
@@ -107,7 +107,7 @@ export function Charts({
   loading: boolean;
 }) {
   const [measure, setMeasure] = useState<MeasureKey>("gaps");
-  // The panels re-rank with the cards, so they slide rather than jump.
+  // The panels hold one order, so when the figures behind it do move them, they slide rather than jump.
   const panels = useFlip<HTMLDivElement>();
 
   const active = MEASURES.find((m) => m.key === measure) as Measure;

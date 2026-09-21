@@ -366,7 +366,8 @@ function buildView(i: Inputs): PortfolioView {
     rows: rows.map((r) => ({
       key: r.tx,
       when: fmtWhen(r.ts),
-      cycle: `#${r.cycle}`,
+      // The indexer returns null when it has no cycle for the transaction; that is a dash, not "#null".
+      cycle: r.cycle === null ? DASH : `#${r.cycle}`,
       tokens: r.assets.map((a) => `${fmtTokens(a.amountF)} ${a.symbol ?? shortAddress(a.address)}`).join(" · ") || DASH,
       value: fmtUsd(r.paidUsd),
       tx: hex(r.tx),

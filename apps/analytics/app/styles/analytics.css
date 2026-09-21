@@ -13,6 +13,14 @@ body {
 
 * { box-sizing: border-box; }
 
+:root {
+  /* The site bar's height. Republished by `useNavHeight` whenever the bar resizes, because it wraps
+     to two rows around a thousand pixels and to three on a phone; the value here is only what the
+     first paint has to go on. Read by anything that sticks underneath the bar — see the comparison
+     table's head. */
+  --nav-h: 60px;
+}
+
 .container {
   max-width: 1160px;
   margin: 0 auto;
@@ -397,23 +405,10 @@ h2 {
 /* A rate on a card carries its window, exactly as it does in a cell. It is not a tooltip here
    either: a figure that will not fit beside what it was measured over does not go on the card. */
 .card-basis { display: block; color: var(--text-faint); margin-top: 2px; }
-.card-share {
-  display: block;
-  height: 3px;
-  margin-top: 12px;
-  background: var(--surface-sunken);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-.card-share-fill {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-  border-radius: inherit;
-  transition: width var(--dur-base) var(--ease-out);
-}
-.card-share-gap { display: block; height: 3px; margin-top: 12px; }
-.card-kv { display: block; margin-top: 13px; border-top: 1px solid var(--border-hairline); }
+/* 19px, tighter than the 28px the share bar, its margin and the rule's own margin used to add up to.
+   The headline block still needs air before the rule under it; what it does not need is a bar nobody
+   asked for standing in for it. */
+.card-kv { display: block; margin-top: 19px; border-top: 1px solid var(--border-hairline); }
 .kv {
   display: flex;
   align-items: baseline;
@@ -490,7 +485,11 @@ h2 {
 }
 
 table.matrix {
-  border-collapse: collapse;
+  /* Separate, with no spacing: it draws this table to the same pixel the collapsed model did, and
+     every border is then owned by the cell that declared it rather than by the table. Both matter to
+     the sticky head below, and the second is why the row rules sit on the cells. */
+  border-collapse: separate;
+  border-spacing: 0;
   width: 100%;
   min-width: 720px;
   font-size: var(--text-sm);
@@ -506,8 +505,58 @@ table.matrix {
   padding-bottom: 12px;
   vertical-align: bottom;
 }
-.matrix tbody tr { border-bottom: 1px solid var(--border-hairline); }
-.matrix tbody tr:last-child { border-bottom: 0; }
+
+/* The head follows the reader down a fourteen-row table.
+ *
+ * Both of the conditions for that are about this sheet rather than about the head itself.
+ *
+ * A box that scrolls in ANY axis becomes the scrollport its own sticky children stick to, so the
+ * `overflow-x: auto` above would pin the head to a sheet that never scrolls vertically, which is to
+ * say pin it nowhere. Past this width the table fits the container and needs no sideways scroll, so
+ * the sheet stops being a scroll container and the head can stick to the page. Under it the sideways
+ * scroll is worth more than a sticky head on a screen that short, and the head simply stays put.
+ *
+ * And the borders have to travel: in the collapsed model a table's borders are painted by the table,
+ * so a head cell that moves leaves its own underline behind at the row it started from. Hence the
+ * separate model on `table.matrix`, which also lets the two outer head cells carry the sheet's
+ * corner radius — without it a square white corner paints over the curve it sits in. */
+@media (min-width: 860px) {
+  .table-scroll.sheet { overflow-x: visible; }
+  /* Fixed, so the content can never make the table wider than the sheet. With the sheet no longer
+     a scroll container, a table that outgrew it would spill past the border and hand the whole page
+     a sideways scrollbar, which is what happened at 860px: the auto layout wanted 845px of a sheet
+     818px wide. Under fixed layout the columns take the head row's widths and the notes wrap a line
+     earlier instead. */
+  table.matrix { table-layout: fixed; }
+  .matrix thead th {
+    position: sticky;
+    /* Clear of the site bar, which is sticky too and is not one height. See `--nav-h`. */
+    top: var(--nav-h);
+    /* Over the rows passing underneath, and above every body tier of a column in mid-slide (see
+       `[data-sliding]`, whose tiers stop at 4). */
+    z-index: 6;
+    background: var(--surface-card);
+  }
+  /* A cell in flight is `position: relative`, which on a head cell would drop it out of its sticky
+     place for the length of the slide — the one moment the reader is certainly watching it. The tier
+     rules below outrank `.matrix thead th` on specificity, so left alone they would also hand a stuck
+     head cell a body tier's z-index and let the rows sliding under it paint over it. The head keeps
+     the body's tier order, lifted above all of it. */
+  .matrix thead th[data-sliding] { position: sticky; }
+  .matrix thead th[data-sliding="2"] { z-index: 7; }
+  .matrix thead th[data-sliding="3"] { z-index: 8; }
+  .matrix thead th[data-sliding="4"] { z-index: 9; }
+  .matrix thead th:first-child { border-top-left-radius: var(--radius-lg); }
+  .matrix thead th:last-child { border-top-right-radius: var(--radius-lg); }
+}
+
+/* The row rules live on the cells: a `tr` border is not painted at all in the separate model. The
+   last row of each band is still the exception it was — the next band's head carries its own rule,
+   and the sheet's own edge closes the last one. */
+.matrix tbody > tr > td,
+.matrix tbody > tr > th { border-bottom: 1px solid var(--border-hairline); }
+.matrix tbody > tr:last-child > td,
+.matrix tbody > tr:last-child > th { border-bottom: 0; }
 .matrix tbody tr:hover { background: var(--matrix-hover, var(--surface-tint)); }
 /* The ranked row gets no band. It was on from the first paint, before the reader had pressed
    anything, so a default read as a selection nobody made and as the page pointing at one metric out
@@ -515,7 +564,7 @@ table.matrix {
 
 /* Band heads. Fourteen undifferentiated rows is a wall; three named runs of rows is a table. */
 .matrix tr.group-row,
-.matrix tr.group-row:hover { border-bottom: 0; background: transparent; }
+.matrix tr.group-row:hover { background: transparent; }
 .matrix tr.group-row th {
   font-family: var(--font-mono);
   font-weight: var(--weight-medium);
@@ -660,6 +709,11 @@ table.matrix {
   white-space: nowrap;
 }
 .cell.dash { color: var(--text-faint); }
+/* The one figure that is a list of words rather than a number. Under the fixed layout past 860px a
+   column is its share of the sheet and no wider, so four tickers at 195px overran a 172px column and
+   poked past the sheet's edge; below it the same nowrap was what forced the table to 845px and the
+   sheet to scroll. A list may wrap at its separators. */
+.matrix tr[data-metric="assets"] .cell { white-space: normal; }
 
 /* ── project column heads ───────────────────────────────────────────────── */
 .phead {

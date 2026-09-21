@@ -124,8 +124,17 @@ export const METRICS: MetricDef[] = [
   { key: "apr", label: "APR", hint: "annualised from the basis shown", group: "airdrops", sort: { order: "highest first" }, caption: "APR", rank: "APR" },
   { key: "payoutRhythm", label: "How often it pays", hint: "measured, not the configured interval", group: "rhythm", sort: { order: "most often first" }, caption: "between payouts, typically", rank: "how often it pays" },
   { key: "lastPaid", label: "Last paid", group: "rhythm", sort: { order: "most recent first" }, caption: "since the last payout", rank: "how recently it paid" },
-  { key: "price", label: "Price", group: "market", sort: { order: "highest first" }, caption: "per token", rank: "price" },
-  { key: "marketCap", label: "Fully diluted value", group: "market", sort: { order: "largest first" }, caption: "fully diluted value", rank: "fully diluted value" },
+  /**
+   * Shown, and not rankable.
+   *
+   * A unit price is the one figure here that is not comparable between these tokens: it is a market
+   * size divided by whatever supply each of them chose to issue, so "ranked by price" ordered the
+   * three by their decimals as much as by anything a reader could act on, and put a token first for
+   * being scarce rather than for being worth more. Market cap is the same comparison made properly
+   * and is the row directly underneath, which is what that control offers now.
+   */
+  { key: "price", label: "Price", group: "market" },
+  { key: "marketCap", label: "Market cap", group: "market", sort: { order: "largest first" }, caption: "market cap", rank: "market cap" },
   { key: "volume24h", label: "24 h volume", hint: "and the taxed share of it", group: "market", sort: { order: "largest first" }, caption: "traded in 24 h", rank: "24 h volume" },
   { key: "tax", label: "Tax funding it", group: "market", sort: { order: "highest first" }, caption: "trade tax", rank: "the tax funding it" },
   /**
@@ -356,17 +365,19 @@ export const LAUNCHPAD_FIXTURE: Project = {
 };
 
 /**
- * How the comparison table is sorted by default.
+ * How the cards and the comparison table are ranked when the page opens, and the one order the
+ * chart panels ever hold (see `chartOrder` in the home route).
  *
  * Rate per line, per day: what a holder above the line is actually paid, which is the figure a
  * reader comparing these tokens is here for. All-time paid held this slot until 2026-09-17 and
  * ranks by accumulated size instead, so the oldest token leads it whatever it pays today.
  *
- * Note what the change costs. The new default currently puts Ouro, whose domain this sits on, at
- * the top, where the old one put a project this site does not operate. The order is still a stated,
- * factual one, the heading names it, every row of the table re-ranks it in one press, and the
- * operator disclosure is in the chrome of every page. Keep all four, or this becomes a ranking that
- * ranks its own author first and says nothing about it.
+ * Note what the change costs. The figures decide who leads, and they can put Ouro, whose domain this
+ * sits on, at the top, where the old default put a project this site does not operate. The order is
+ * still a stated, factual one, the cards' heading names it, the cards' select and every rankable row
+ * of the table re-rank their own section in one press, and the operator disclosure is in the chrome
+ * of every page. Keep all four, or this becomes a ranking that ranks its own author first and says
+ * nothing about it.
  */
 export type SortKey = Metric | "symbol";
 

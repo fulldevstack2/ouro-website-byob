@@ -620,7 +620,8 @@ export interface PortfolioPayment {
   tx: string;
   block: number;
   ts: number;
-  cycle: number;
+  /** Null when the indexer has no cycle for this transaction (`epochForPayoutTx` found nothing). */
+  cycle: number | null;
   /** All-or-nothing: null when any leg was unpriced. */
   paidUsd: number | null;
   assets: PortfolioPaymentAsset[];
