@@ -5,4 +5,8 @@
 --ease-out:cubic-bezier(0.2,0.6,0.2,1); /* @kind other */
 --dur-fast:120ms; /* @kind other */
 --dur-base:180ms; /* @kind other */
+/* The light/dark swap, which is longer than any other motion here on purpose: every colour on the
+   page moves at once, and at --dur-base that reads as a flicker rather than a change of light.
+   theme.ts holds the same number; see theme-swap.css. */
+--dur-theme:280ms; /* @kind other */
 }

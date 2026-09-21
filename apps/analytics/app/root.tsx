@@ -53,7 +53,10 @@ export function Layout({ children }: { children: ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#FFFFFF" data-light="#FFFFFF" />
+        {/* The page ground, so a phone paints its chrome the same warm grey the page is on. `data-light`
+            is not decoration: THEME_BOOT_SCRIPT and writeTheme read it to restore this value when the
+            reader leaves dark mode, and fall back to white without it. */}
+        <meta name="theme-color" content="#EEEBE5" data-light="#EEEBE5" />
         {/* Boot + suppressHydrationWarning: React must not strip data-theme on hydrate. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         <Meta />

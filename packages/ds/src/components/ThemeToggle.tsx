@@ -1,6 +1,14 @@
 import { useLayoutEffect, useState, type CSSProperties, type ReactNode } from "react";
 
-import { applyStoredTheme, readPreferredTheme, toggleTheme, type Theme } from "../theme";
+import {
+  applyStoredTheme,
+  isTheme,
+  readPreferredTheme,
+  THEME_STORAGE_KEY,
+  toggleTheme,
+  writeTheme,
+  type Theme,
+} from "../theme";
 
 export interface ThemeToggleProps {
   className?: string;
@@ -34,9 +42,14 @@ export function ThemeToggle({ className, style }: ThemeToggleProps) {
 
   useLayoutEffect(() => {
     setTheme(applyStoredTheme());
+    /**
+     * The reader switched in another tab. That is still a person changing their mind, so it fades
+     * here too, and it goes through `writeTheme` rather than setting the attribute by hand — which
+     * is what used to leave this tab's theme-color meta on the old theme's value.
+     */
     const onStorage = (e: StorageEvent) => {
-      if (e.key === "ouro-theme" && (e.newValue === "dark" || e.newValue === "light")) {
-        document.documentElement.setAttribute("data-theme", e.newValue);
+      if (e.key === THEME_STORAGE_KEY && isTheme(e.newValue)) {
+        writeTheme(e.newValue, { animate: true });
         setTheme(e.newValue);
       }
     };

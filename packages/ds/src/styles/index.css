@@ -7,3 +7,5 @@
    ever change, change them in each app's public/fonts. */
 @import "./fonts.css";
 @import "./tokens.css";
+/* After the tokens, because it transitions the properties they set. */
+@import "./theme-swap.css";

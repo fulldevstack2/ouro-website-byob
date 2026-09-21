@@ -1,0 +1,54 @@
+/* The light/dark swap, as a change of light rather than a cut.
+   ────────────────────────────────────────────────────────────────────────────
+   Flipping `data-theme` remaps every colour token at once, so the whole page used to change between
+   two frames. That is the one moment on either site where a hard cut is actively unhelpful: nothing
+   about the page has changed except how it is lit, and a cut reads as a reload.
+
+   ── Why the transition is not simply left on ──
+   A permanent `transition: background-color` on every element would also slow every hover, every
+   pinned column and every state change that is supposed to be immediate, and it would fire on the
+   first paint as tokens resolve. So the rule exists only while `data-theme-swap` is on <html>, which
+   theme.ts sets for --dur-theme around the flip and then removes. Outside that window there is no
+   transition here at all.
+
+   ── Why !important ──
+   Components declare their own transitions (`transition: color var(--dur-fast)` and so on) and many
+   of those selectors are more specific than `*`. Without the flag a button would cross-fade its
+   background over 280ms while snapping its text colour in 120ms, which looks like a glitch rather
+   than a dimmer. For the length of the swap this one rule owns colour transitions, and it is the
+   only !important in the design system.
+
+   ── Why linear ──
+   An ease is for something arriving or leaving. This is a level being moved between two settings,
+   and eased colour interpolation reads as a flicker at the ends.
+
+   ── What is deliberately not in the list ──
+   Anything that moves or resizes. Only colour-bearing properties are here, so the swap can never
+   shift the layout under a reader's cursor mid-click. Canvases (the Loop plate, the share card) read
+   their colours at paint time and repaint on their own; they are outside this and should be. */
+
+html[data-theme-swap],
+html[data-theme-swap] *,
+html[data-theme-swap] *::before,
+html[data-theme-swap] *::after {
+  transition:
+    background-color var(--dur-theme) linear,
+    border-color var(--dur-theme) linear,
+    outline-color var(--dur-theme) linear,
+    text-decoration-color var(--dur-theme) linear,
+    color var(--dur-theme) linear,
+    fill var(--dur-theme) linear,
+    stroke var(--dur-theme) linear,
+    box-shadow var(--dur-theme) linear !important;
+}
+
+/* A reader who asked for less motion gets the cut, which is what they asked for. theme.ts also
+   checks this and skips the attribute entirely; the rule is here so the two cannot disagree. */
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme-swap],
+  html[data-theme-swap] *,
+  html[data-theme-swap] *::before,
+  html[data-theme-swap] *::after {
+    transition: none !important;
+  }
+}

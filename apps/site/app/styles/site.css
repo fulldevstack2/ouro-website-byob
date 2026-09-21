@@ -1,6 +1,7 @@
 /* ------------------------------------------------------------------
-   Site styles for the 2026-09 redesign ("OURO REDESIGN BRIEF"): white
-   paper, warm ink, hairline rules, one bronze accent. Everything visual
+   Site styles for the 2026-09 redesign ("OURO REDESIGN BRIEF"): warm ink,
+   hairline rules, one bronze accent, on the shared ds ground (the brief
+   asked for flat white; see section 1). Everything visual
    that is not a design-system token or a component's own inline style
    lives here:
    1. the ground and the rules from the brief's <helmet> block,
@@ -13,25 +14,17 @@
    ------------------------------------------------------------------ */
 
 /* 1. The ground ------------------------------------------------------ */
-/* The shared design-system package (packages/ds) keeps the warm grey ground the analytics dashboard
-   was designed on. This site is the brief's flat white paper, so the surface tokens are set back here,
-   for this app only. Hairlines return to the brief's #E7E1D6, which reads on white. The nav is pinned
-   opaque so the sticky bar does not let the page through as it scrolls under.
+/* No ground of its own. Both properties run on the one palette in packages/ds: the warm grey page
+   (#EEEBE5) with white sheets laid on it, which is what analytics.ourolayer.com has always used and
+   what the portfolio share card was drawn against (see lib/shareCard.ts, where GROUND and PAPER are
+   written out because a canvas cannot resolve a var()).
 
-   Light-only, not a bare :root: site.css loads after the tokens, so :root would tie gold.css's
-   [data-theme="dark"] on specificity, win on source order, and paint the dark ground white too. */
-:root:not([data-theme="dark"]) {
-  --page: #FFFFFF;
-  --surface-page: #FFFFFF;
-  --surface-tint: #FAF8F3;
-  --surface-sunken: #F4F1EA;
-  --surface-nav: #FFFFFF;
-  --border-hairline: #E7E1D6;
-}
-
-[data-theme="dark"] {
-  --surface-nav: #0A0A0A;
-}
+   This app used to set the surface tokens back to flat white for itself, per the 2026-09 redesign
+   brief, along with the brief's lighter #E7E1D6 hairline that only reads on white. That made the two
+   halves of one product look like two products, and it cost the site the thing the ladder is for: a
+   white card on a white page is a hairline rectangle, where the same card on the grey ground is a
+   sheet. The override is gone, so every surface here resolves through the ds ladder — paper for
+   cards, tint for a raised band, page for the ground, sunken for a well. */
 
 h1, h2, h3, p { text-wrap: pretty; }
 input[type="range"] { accent-color: var(--accent); }
