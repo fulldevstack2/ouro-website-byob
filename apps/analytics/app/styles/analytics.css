@@ -871,8 +871,8 @@ table.matrix {
    overhang the text without the cell changing size and nudging the column. */
 @keyframes tick {
   0% {
-    background-color: color-mix(in srgb, var(--accent) 52%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 52%, transparent);
+    background-color: color-mix(in srgb, var(--bronze-300) 52%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--bronze-300) 52%, transparent);
   }
   100% {
     background-color: transparent;

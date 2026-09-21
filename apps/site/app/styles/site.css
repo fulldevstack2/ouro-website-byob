@@ -13,10 +13,20 @@
    ------------------------------------------------------------------ */
 
 /* 1. The ground ------------------------------------------------------ */
-/* Graphite & gold (packages/ds gold.css) owns the palette. The site only pins the nav to the page
-   so the sticky bar stays opaque; do not restate warm cream tints here or they fight the palette. */
-:root {
+/* The shared design-system package (packages/ds) keeps the warm grey ground the analytics dashboard
+   was designed on. This site is the brief's flat white paper, so the surface tokens are set back here,
+   for this app only. Hairlines return to the brief's #E7E1D6, which reads on white. The nav is pinned
+   opaque so the sticky bar does not let the page through as it scrolls under.
+
+   Light-only, not a bare :root: site.css loads after the tokens, so :root would tie gold.css's
+   [data-theme="dark"] on specificity, win on source order, and paint the dark ground white too. */
+:root:not([data-theme="dark"]) {
+  --page: #FFFFFF;
+  --surface-page: #FFFFFF;
+  --surface-tint: #FAF8F3;
+  --surface-sunken: #F4F1EA;
   --surface-nav: #FFFFFF;
+  --border-hairline: #E7E1D6;
 }
 
 [data-theme="dark"] {
@@ -30,7 +40,7 @@ input[type="range"] { accent-color: var(--accent); }
 a { color: var(--text-accent); text-decoration: none; }
 a:hover { color: var(--text-primary); text-decoration: underline; text-underline-offset: 3px; }
 /* Links inside running text are marked by more than colour (WCAG 1.4.1): a light bronze underline. */
-main a:not([class]) { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+main a:not([class]) { text-decoration: underline; text-decoration-color: var(--bronze-300); text-underline-offset: 3px; }
 main a:not([class]):hover { text-decoration-color: currentColor; }
 
 .wordmark,
@@ -56,7 +66,7 @@ main a:not([class]):hover { text-decoration-color: currentColor; }
 .text-button {
   appearance: none; background: none; border: 0; padding: 0; margin: 0;
   font: inherit; color: var(--text-accent); cursor: pointer; text-decoration: underline;
-  text-decoration-color: var(--accent); text-underline-offset: 3px;
+  text-decoration-color: var(--bronze-300); text-underline-offset: 3px;
 }
 .text-button:hover { color: var(--text-primary); text-decoration-color: currentColor; }
 
