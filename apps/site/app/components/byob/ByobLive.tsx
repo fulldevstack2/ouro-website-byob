@@ -4,6 +4,7 @@ import { useAccount, useSignMessage } from "wagmi";
 
 import { Button } from "@ouro/ds";
 import {
+  byobCancelPending,
   byobChallenge,
   byobRevertClassic,
   byobSaveWeights,
@@ -40,7 +41,7 @@ import {
 
 const CYCLE_HOURS = 2;
 
-type ConfirmKind = "enter" | "save" | "discard" | "revert" | null;
+type ConfirmKind = "enter" | "save" | "discard" | "revert" | "cancelRevert" | null;
 
 /**
  * Live BYOB page - classic home vs BYOB editor, SIWE only when saving/reverting.
@@ -62,7 +63,7 @@ function LivePanel() {
   const [baseline, setBaseline] = useState<PctMap>(DEFAULT_PCT);
   const [status, setStatus] = useState<ByobStatus | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"sign" | "save" | "revert" | null>(null);
+  const [busy, setBusy] = useState<"sign" | "save" | "revert" | "cancel" | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [jwt, setJwt] = useState<string | null>(() => (typeof window !== "undefined" ? readByobJwt() : null));
@@ -257,6 +258,30 @@ function LivePanel() {
     }
   };
 
+  const doCancelRevert = async () => {
+    if (!address) return;
+    setErr(null);
+    setMsg(null);
+    try {
+      const token = await ensureJwt();
+      setBusy("cancel");
+      await byobCancelPending(token);
+      setWantsEditor(true);
+      setMsg("Revert cancelled. Your BYOB mix stays active.");
+      await refresh(address);
+    } catch (e) {
+      const text = e instanceof Error ? e.message : "Could not cancel revert";
+      if (/unauthorized|jwt|expired|401/i.test(text)) {
+        clearByobJwt();
+        setJwt(null);
+      }
+      setErr(text);
+    } finally {
+      setBusy(null);
+      setConfirm(null);
+    }
+  };
+
   const leaveEditorToClassic = () => {
     // Never saved: leaving editor is just UI, already classic on server.
     setWantsEditor(false);
@@ -322,6 +347,18 @@ function LivePanel() {
         danger: true,
       };
     }
+    if (confirm === "cancelRevert") {
+      return {
+        title: "Keep your BYOB mix?",
+        body: (
+          <p>
+            This cancels the scheduled return to classic. Your saved mix stays active and payouts keep using
+            it.
+          </p>
+        ),
+        label: "Keep BYOB mix",
+      };
+    }
     return null;
   };
 
@@ -332,7 +369,7 @@ function LivePanel() {
     else if (confirm === "revert") {
       if (!hasCustomServerMix) leaveEditorToClassic();
       else void doRevertClassic();
-    }
+    } else if (confirm === "cancelRevert") void doCancelRevert();
   };
 
   const copy = confirmCopy();
@@ -385,30 +422,49 @@ function LivePanel() {
   // ── waiting for classic revert ──
   if (showClassicPending) {
     return (
-      <ByobChrome
-        locked={false}
-        showTotal={false}
-        modeLabel="Reverting to classic"
-        footer={
-          <div className="byob-actions">
-            <div className="byob-status">
-              {loadErr && <span className="byob-status--err">{loadErr}</span>}
-              {msg && <span className="byob-status__ok">{msg}</span>}
-              <span className="byob-status__line">
-                Classic again at cycle <strong>{status?.pending?.effectiveFromCycle}</strong>
-                {status?.cycle != null ? <> (now on {status.cycle})</> : null}. Until then your previous mix
-                still pays.
-              </span>
+      <>
+        <ByobChrome
+          locked={false}
+          showTotal={false}
+          modeLabel="Reverting to classic"
+          footer={
+            <div className="byob-actions">
+              <div className="byob-status">
+                {loadErr && <span className="byob-status--err">{loadErr}</span>}
+                {msg && <span className="byob-status__ok">{msg}</span>}
+                {err && <span className="byob-status--err">{err}</span>}
+                <span className="byob-status__line">
+                  Classic again at cycle <strong>{status?.pending?.effectiveFromCycle}</strong>
+                  {status?.cycle != null ? <> (now on {status.cycle})</> : null}. Until then your previous mix
+                  still pays.
+                </span>
+              </div>
+              <div className="byob-actions__btns">
+                <WalletButton disconnectVariant="secondary" />
+                <Button size="sm" disabled={busy !== null} onClick={() => setConfirm("cancelRevert")}>
+                  {busy === "cancel" || busy === "sign" ? "Working..." : "Keep BYOB mix"}
+                </Button>
+              </div>
             </div>
-            <div className="byob-actions__btns">
-              <WalletButton disconnectVariant="secondary" />
-            </div>
-          </div>
-        }
-      >
-        {balanceBlock}
-        <ClassicExplainer delayHours={delayHours} delayCycles={delayCycles} lineTokens={lineTokens} pending />
-      </ByobChrome>
+          }
+        >
+          {balanceBlock}
+          <ClassicExplainer delayHours={delayHours} delayCycles={delayCycles} lineTokens={lineTokens} pending />
+        </ByobChrome>
+        {copy && confirm === "cancelRevert" && (
+          <ByobConfirm
+            open
+            title={copy.title}
+            body={copy.body}
+            confirmLabel={copy.label}
+            busy={busy !== null}
+            onCancel={() => {
+              if (!busy) setConfirm(null);
+            }}
+            onConfirm={onConfirmAction}
+          />
+        )}
+      </>
     );
   }
 
