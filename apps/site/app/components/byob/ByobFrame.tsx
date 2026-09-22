@@ -19,6 +19,7 @@ export function ByobChrome({
   gate,
   totalOk = true,
   onReset,
+  resetDisabled = false,
   locked = false,
   hint,
 }: {
@@ -27,6 +28,7 @@ export function ByobChrome({
   gate?: ReactNode;
   totalOk?: boolean;
   onReset?: () => void;
+  resetDisabled?: boolean;
   locked?: boolean;
   hint?: string;
 }) {
@@ -41,7 +43,12 @@ export function ByobChrome({
         <div className="byob-card" data-locked={locked ? "true" : "false"}>
           <div className="byob-card__top">
             {onReset && !locked ? (
-              <button type="button" className="byob-card__reset" onClick={onReset}>
+              <button
+                type="button"
+                className="byob-card__reset"
+                onClick={onReset}
+                disabled={resetDisabled}
+              >
                 Reset
               </button>
             ) : (

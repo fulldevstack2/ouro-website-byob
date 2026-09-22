@@ -95,6 +95,13 @@ function LivePanel() {
     () => addresses.some((a) => (wholePct[a] ?? 0) !== Math.round(baseline[a] ?? 0)),
     [wholePct, baseline, addresses],
   );
+  const equal = useMemo(() => equalPct(addresses), [addresses]);
+  const atEqual = useMemo(
+    () => addresses.every((a) => (wholePct[a] ?? 0) === (equal[a] ?? 0)),
+    [wholePct, equal, addresses],
+  );
+  /** Reset only when the bar is not already equal (local drag or a saved non-equal mix). */
+  const canReset = isConnected && busy === null && !atEqual;
 
   const lineTokens = status?.lineTokens ?? LINE_TOKENS;
   const delayCycles = status?.delayCycles ?? 2;
@@ -204,9 +211,8 @@ function LivePanel() {
   };
 
   const onResetEqual = () => {
-    const equal = equalPct(addresses);
-    // No server mix yet: Reset is local undo only (no SIWE). Joseph's case - dragged the bar
-    // but never saved; do not invent a pending equal row or force a wallet sign.
+    if (!canReset) return;
+    // No server mix yet: Reset is local undo only (no SIWE).
     const hasServerMix = Boolean(status?.active || status?.pending);
     if (!hasServerMix) {
       setPct(equal);
@@ -225,7 +231,8 @@ function LivePanel() {
   return (
     <ByobChrome
       totalOk={total === 100}
-      onReset={isConnected && busy === null ? onResetEqual : undefined}
+      onReset={isConnected ? onResetEqual : undefined}
+      resetDisabled={!canReset}
       locked={!isConnected}
       hint="Drag the dividers. Only the two sides of a handle move. Whole percents only."
       gate={!isConnected ? <WalletButton size="md" disconnectVariant="secondary" /> : undefined}
@@ -245,7 +252,7 @@ function LivePanel() {
           {isConnected && (
             <div className="byob-actions__btns">
               <WalletButton disconnectVariant="secondary" />
-              <Button size="sm" variant="secondary" disabled={busy !== null} onClick={onResetEqual}>
+              <Button size="sm" variant="secondary" disabled={!canReset} onClick={onResetEqual}>
                 {busy === "reset" ? "Resetting..." : "Reset"}
               </Button>
               <Button size="sm" disabled={!dirty || total !== 100 || busy !== null} onClick={onSave}>
