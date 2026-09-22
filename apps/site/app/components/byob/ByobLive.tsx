@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Address } from "viem";
 import { useAccount, useSignMessage } from "wagmi";
 
@@ -122,6 +122,8 @@ function LivePanel() {
     setLoadErr(null);
     try {
       const s = await fetchByobStatus(addr);
+      // Ignore stale responses if the user switched wallets mid-flight.
+      if (addr.toLowerCase() !== (address ?? "").toLowerCase()) return;
       setStatus(s);
       const source = s.pending?.classic
         ? s.defaultWeights
@@ -129,12 +131,14 @@ function LivePanel() {
       const next = pctFromBps(source ?? s.defaultWeights, s.basket.map((t) => t.address));
       setPct(next);
       setBaseline(next);
-      if (s.active || (s.pending && !s.pending.classic)) setWantsEditor(true);
-      if (s.pending?.classic) setWantsEditor(false);
+      // Editor intent follows this wallet's server prefs only — never the previous account.
+      const optedIn = Boolean(s.active || (s.pending && !s.pending.classic));
+      setWantsEditor(optedIn);
     } catch (e) {
+      if (addr.toLowerCase() !== (address ?? "").toLowerCase()) return;
       setLoadErr(e instanceof Error ? e.message : "Could not load BYOB status");
     }
-  }, []);
+  }, [address]);
 
   useEffect(() => {
     if (!address) {
@@ -147,16 +151,33 @@ function LivePanel() {
       setConfirm(null);
       return;
     }
+    // Drop previous wallet's UI immediately so a never-opted-in account does not flash BYOB.
+    setStatus(null);
+    setWantsEditor(false);
+    setPct(DEFAULT_PCT);
+    setBaseline(DEFAULT_PCT);
+    setMsg(null);
+    setErr(null);
+    setConfirm(null);
     void refresh(address);
   }, [address, refresh]);
 
+  const prevAddressRef = useRef<string | undefined>(undefined);
   useEffect(() => {
+    const prev = prevAddressRef.current;
+    prevAddressRef.current = address;
     if (!address) {
       clearByobJwt();
       setJwt(null);
       return;
     }
-    setJwt(readByobJwt());
+    // Keep JWT across refresh for the same wallet; clear only on account switch.
+    if (prev && prev.toLowerCase() !== address.toLowerCase()) {
+      clearByobJwt();
+      setJwt(null);
+      return;
+    }
+    if (!prev) setJwt(readByobJwt());
   }, [address]);
 
   const ensureJwt = async (): Promise<string> => {
