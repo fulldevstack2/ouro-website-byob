@@ -270,7 +270,7 @@ export function ByobStatic() {
       footer={
         <div className="byob-actions">
           <div className="byob-status">
-            <span className="byob-status__line">Connect your wallet to set your airdrop mix.</span>
+            <span className="byob-status__line">Connect a wallet to set your mix.</span>
           </div>
         </div>
       }
