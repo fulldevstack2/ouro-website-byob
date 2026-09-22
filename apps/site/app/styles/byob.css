@@ -178,6 +178,14 @@
   color: var(--byob-muted) !important;
 }
 
+.byob-card__mode {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--byob-ink);
+}
+
 .byob-card__reset {
   appearance: none;
   background: none;
@@ -691,6 +699,98 @@
 .byob-page .wallet-chip:hover {
   border-color: var(--border-strong);
   color: var(--byob-ink);
+}
+
+/* ── classic home ───────────────────────────────────────────────── */
+
+.byob-classic {
+  margin: 0 0 18px;
+  padding: 16px 16px 14px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--byob-track) 70%, transparent);
+  border: 1px solid var(--byob-line);
+}
+
+.byob-classic__title {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--byob-ink);
+}
+
+.byob-classic__lede {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--byob-muted);
+}
+
+.byob-classic__list {
+  margin: 0;
+  padding-left: 1.15rem;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--byob-muted);
+}
+
+.byob-classic__list li + li {
+  margin-top: 6px;
+}
+
+/* ── confirm dialog ─────────────────────────────────────────────── */
+
+.byob-confirm {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  max-width: calc(100vw - 32px);
+}
+
+.byob-confirm::backdrop {
+  background: rgba(27, 23, 16, 0.5);
+}
+
+.byob-confirm__panel {
+  width: min(420px, calc(100vw - 32px));
+  padding: 22px 20px 18px;
+  border-radius: 18px;
+  background: var(--byob-card, #f7f1e6);
+  border: 1px solid var(--byob-line-strong);
+  box-shadow: 0 18px 50px rgba(27, 23, 16, 0.22);
+  color: var(--byob-ink);
+}
+
+.byob-confirm__title {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.byob-confirm__body {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--byob-muted);
+}
+
+.byob-confirm__body p {
+  margin: 0;
+}
+
+.byob-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.byob-confirm__danger {
+  color: #8b2e2e !important;
+  border-color: color-mix(in srgb, #8b2e2e 35%, var(--byob-line)) !important;
 }
 
 @media (max-width: 720px) {

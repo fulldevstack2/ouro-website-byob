@@ -18,8 +18,8 @@ export function ByobChrome({
   footer,
   gate,
   totalOk = true,
-  onReset,
-  resetDisabled = false,
+  showTotal = true,
+  modeLabel,
   locked = false,
   hint,
 }: {
@@ -27,8 +27,8 @@ export function ByobChrome({
   footer?: ReactNode;
   gate?: ReactNode;
   totalOk?: boolean;
-  onReset?: () => void;
-  resetDisabled?: boolean;
+  showTotal?: boolean;
+  modeLabel?: string;
   locked?: boolean;
   hint?: string;
 }) {
@@ -42,21 +42,14 @@ export function ByobChrome({
 
         <div className="byob-card" data-locked={locked ? "true" : "false"}>
           <div className="byob-card__top">
-            {onReset && !locked ? (
-              <button
-                type="button"
-                className="byob-card__reset"
-                onClick={onReset}
-                disabled={resetDisabled}
-              >
-                Reset
-              </button>
+            {modeLabel ? <span className="byob-card__mode">{modeLabel}</span> : <span className="byob-card__top-spacer" />}
+            {showTotal ? (
+              <span className="byob-card__total" data-ok={totalOk ? "true" : "false"}>
+                Total <em>100%</em>
+              </span>
             ) : (
               <span className="byob-card__top-spacer" />
             )}
-            <span className="byob-card__total" data-ok={totalOk ? "true" : "false"}>
-              Total <em>100%</em>
-            </span>
           </div>
 
           {hint && !locked ? <p className="byob-card__hint">{hint}</p> : null}
@@ -248,6 +241,8 @@ export function ByobStatic() {
   return (
     <ByobChrome
       locked
+      showTotal={false}
+      modeLabel="Connect"
       gate={
         <Button size="md" disabled>
           Connect wallet
@@ -256,7 +251,7 @@ export function ByobStatic() {
       footer={
         <div className="byob-actions">
           <div className="byob-status">
-            <span className="byob-status__line">Connect a wallet to set your mix.</span>
+            <span className="byob-status__line">Connect a wallet to see classic vs BYOB for this account.</span>
           </div>
         </div>
       }
