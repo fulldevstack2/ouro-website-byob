@@ -657,8 +657,20 @@
   gap: 12px 16px;
 }
 
+.byob-actions__row--triple {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px 16px;
+}
+
 .byob-actions__wallet {
   min-width: 0;
+  justify-self: start;
+}
+
+.byob-actions__center {
+  justify-self: center;
 }
 
 .byob-actions__primary {
@@ -666,7 +678,34 @@
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-  margin-left: auto;
+  justify-content: flex-end;
+  justify-self: end;
+  margin-left: 0;
+}
+
+@media (max-width: 560px) {
+  .byob-actions__row--triple {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .byob-actions__wallet,
+  .byob-actions__center,
+  .byob-actions__primary {
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  .byob-actions__center {
+    order: -1;
+    display: flex;
+    justify-content: center;
+  }
+
+  .byob-actions__primary {
+    justify-content: center;
+  }
 }
 
 .byob-actions__btns {
@@ -794,6 +833,13 @@
 
 .byob-classic__list li + li {
   margin-top: 6px;
+}
+
+.byob-classic__cta {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+  padding-top: 4px;
 }
 
 /* ── confirm dialog ─────────────────────────────────────────────── */

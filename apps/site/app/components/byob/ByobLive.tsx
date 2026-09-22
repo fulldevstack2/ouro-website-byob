@@ -313,7 +313,7 @@ function LivePanel() {
         body: (
           <p>
             You will set a custom split of the airdrop basket. Nothing changes on payouts until you{" "}
-            <strong>Save mix</strong>, and then only after about {delayHours}h ({delayCycles} cycles).
+            <strong>Save</strong>, and then only after about {delayHours}h ({delayCycles} cycles).
           </p>
         ),
         label: "Continue",
@@ -321,7 +321,7 @@ function LivePanel() {
     }
     if (confirm === "save") {
       return {
-        title: "Save this mix?",
+        title: "Save this split?",
         body: (
           <p>
             This locks in your split for payouts starting at cycle{" "}
@@ -329,7 +329,7 @@ function LivePanel() {
             that wait.
           </p>
         ),
-        label: "Save mix",
+        label: "Save",
       };
     }
     if (confirm === "revert") {
@@ -492,16 +492,20 @@ function LivePanel() {
             <ByobBar
               status={hasFlash ? statusBits : undefined}
               wallet={<WalletButton disconnectAs="link" />}
-              actions={
-                <Button size="sm" onClick={() => setConfirm("enter")}>
-                  Customize with BYOB
-                </Button>
-              }
             />
           }
         >
           {balanceBlock}
-          <ClassicExplainer delayHours={delayHours} delayCycles={delayCycles} lineTokens={lineTokens} />
+          <ClassicExplainer
+            delayHours={delayHours}
+            delayCycles={delayCycles}
+            lineTokens={lineTokens}
+            cta={
+              <Button size="md" onClick={() => setConfirm("enter")}>
+                Customize with BYOB
+              </Button>
+            }
+          />
         </ByobChrome>
         {copy && (
           <ByobConfirm
@@ -535,7 +539,7 @@ function LivePanel() {
                   {statusBits}
                   {status?.pending && !status.pending.classic && (
                     <span className="byob-status__line">
-                      Pending mix activates at cycle <strong>{status.pending.effectiveFromCycle}</strong>
+                      Pending split activates at cycle <strong>{status.pending.effectiveFromCycle}</strong>
                       {status.cycle != null ? <> (now on {status.cycle})</> : null}.
                     </span>
                   )}
@@ -543,31 +547,31 @@ function LivePanel() {
               ) : undefined
             }
             wallet={<WalletButton disconnectAs="link" />}
+            center={
+              <Button
+                size="md"
+                disabled={!dirty || total !== 100 || editorLocked}
+                onClick={() => setConfirm("save")}
+              >
+                {busy === "sign" ? "Sign in wallet..." : busy === "save" ? "Saving..." : "Save"}
+              </Button>
+            }
             actions={
-              <>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={editorLocked}
-                  onClick={() => setConfirm("revert")}
-                >
-                  {busy === "revert" ? "Resetting..." : "Reset"}
-                </Button>
-                <Button
-                  size="sm"
-                  disabled={!dirty || total !== 100 || editorLocked}
-                  onClick={() => setConfirm("save")}
-                >
-                  {busy === "sign" ? "Sign in wallet..." : busy === "save" ? "Saving..." : "Save mix"}
-                </Button>
-              </>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={editorLocked}
+                onClick={() => setConfirm("revert")}
+              >
+                {busy === "revert" ? "Resetting..." : "Reset"}
+              </Button>
             }
           />
         }
       >
         {balanceBlock}
         <p className="byob-editor-note">
-          <strong>Save mix</strong> applies after about {delayHours}h ({delayCycles} cycles).{" "}
+          <strong>Save</strong> applies after about {delayHours}h ({delayCycles} cycles).{" "}
           <strong>Reset</strong> returns this wallet to classic airdrops (same delay if you already saved).
         </p>
         <div className="byob-mixer">
@@ -607,26 +611,29 @@ function LivePanel() {
   );
 }
 
-/** Footer: status above, wallet left / primary actions right. */
+/** Footer: status above; wallet left, optional center CTA, actions right. */
 function ByobBar({
   status,
   wallet,
+  center,
   actions,
 }: {
   status?: ReactNode;
   wallet?: ReactNode;
+  center?: ReactNode;
   actions?: ReactNode;
 }) {
   const hasStatus = Boolean(status);
-  const hasRow = Boolean(wallet || actions);
+  const hasRow = Boolean(wallet || center || actions);
   if (!hasStatus && !hasRow) return null;
   return (
     <div className="byob-actions">
       {hasStatus ? <div className="byob-status">{status}</div> : null}
       {hasRow ? (
-        <div className="byob-actions__row">
-          {wallet ? <div className="byob-actions__wallet">{wallet}</div> : <span />}
-          {actions ? <div className="byob-actions__primary">{actions}</div> : null}
+        <div className={`byob-actions__row${center ? " byob-actions__row--triple" : ""}`}>
+          <div className="byob-actions__wallet">{wallet ?? null}</div>
+          {center ? <div className="byob-actions__center">{center}</div> : null}
+          <div className="byob-actions__primary">{actions ?? null}</div>
         </div>
       ) : null}
     </div>
@@ -638,11 +645,13 @@ function ClassicExplainer({
   delayCycles,
   lineTokens,
   pending = false,
+  cta,
 }: {
   delayHours: number;
   delayCycles: number;
   lineTokens: number;
   pending?: boolean;
+  cta?: ReactNode;
 }) {
   return (
     <div className="byob-classic">
@@ -653,13 +662,14 @@ function ClassicExplainer({
         you get more of that token.
       </p>
       <ul className="byob-classic__list">
-        <li>No custom mix is stored for this wallet{pending ? " once the reset completes" : ""}.</li>
+        <li>No custom split is stored for this wallet{pending ? " once the reset completes" : ""}.</li>
         <li>
           BYOB lets you pick a custom split. After you save, it waits about {delayHours}h ({delayCycles}{" "}
           cycles) before payouts use it.
         </li>
         <li>You need at least {fmtTokens(lineTokens)} OURO for airdrops to include you.</li>
       </ul>
+      {cta ? <div className="byob-classic__cta">{cta}</div> : null}
     </div>
   );
 }
