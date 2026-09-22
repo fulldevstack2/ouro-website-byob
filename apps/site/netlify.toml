@@ -10,16 +10,14 @@
   command = "pnpm run build"
   publish = "build/client"
 
-# The public origin, read by scripts/site-url.mjs for canonical URLs, Open Graph URLs, robots.txt
-# and sitemap.xml. Set explicitly rather than relying on Netlify's own $URL, which follows whichever
-# domain is marked primary in the dashboard — if that ever slips back to the *.netlify.app subdomain
-# the whole site starts advertising the wrong address again.
+# Personal / fork Netlify: set SITE_URL in the Netlify UI (or here) to your deploy origin for
+# canonical URLs, OG, robots, sitemap. Leave unset to follow Netlify's $URL.
 [build.environment]
-  SITE_URL = "https://ourolayer.com"
+  # SITE_URL = "https://your-site.netlify.app"
 
-  # Origin of ouro-monitor, the indexer the /ledger and /monitor pages read. Vite inlines this at
+  # Origin of ouro-monitor, the indexer /byob and other live pages read. Vite inlines this at
   # BUILD time (vite.config.ts -> __MONITOR_API__), so a deploy is required to change it — and
-  # without it both pages render their "monitor not configured" state, every figure a dash.
+  # without it those pages render their "monitor not configured" state.
   # Keep CORS_ORIGINS on the monitor's Render service in step with the origins that read it.
   MONITOR_API_URL = "https://ouro-monitor.onrender.com"
 
@@ -52,17 +50,6 @@
 [[redirects]]
   from = "/airdrops/*"
   to = "https://analytics.ourolayer.com/airdrops/"
-  status = 301
-  force = true
-
-# One address for the site. The *.netlify.app subdomain stays reachable by default, which would give
-# us a second indexable copy of every page and split the same visitor across two hostnames in
-# analytics. Send it to the real domain, preserving the path and query string (so UTM-tagged links
-# posted against the old URL still report correctly). Deploy previews use a different hostname
-# (deploy-preview-N--*.netlify.app) and are unaffected.
-[[redirects]]
-  from = "https://loquacious-griffin-600837.netlify.app/*"
-  to = "https://ourolayer.com/:splat"
   status = 301
   force = true
 

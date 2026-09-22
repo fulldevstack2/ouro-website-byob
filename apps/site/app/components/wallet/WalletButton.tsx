@@ -1,7 +1,7 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useDisconnect } from "wagmi";
 
-import { Button, type ButtonSize } from "@ouro/ds";
+import { Button, type ButtonSize, type ButtonVariant } from "@ouro/ds";
 import { site } from "~/content/site";
 
 /**
@@ -15,7 +15,14 @@ import { site } from "~/content/site";
  * Client-only, like everything that imports wagmi: it is rendered from VaultsLive and PortfolioLive
  * and never reaches the prerender, which draws a disabled "Connect wallet" in its place.
  */
-export function WalletButton({ size = "sm" }: { size?: ButtonSize }) {
+export function WalletButton({
+  size = "sm",
+  disconnectVariant = "ghost",
+}: {
+  size?: ButtonSize;
+  /** Prefer `secondary` on light cream surfaces where ghost ink disappears. */
+  disconnectVariant?: ButtonVariant;
+}) {
   const { disconnect } = useDisconnect();
   return (
     <ConnectButton.Custom>
@@ -36,15 +43,15 @@ export function WalletButton({ size = "sm" }: { size?: ButtonSize }) {
           );
         }
         return (
-          <>
+          <span className="wallet-button-group">
             <button type="button" className="wallet-chip" onClick={openAccountModal} title={account.address} aria-label={`Connected as ${account.address}. Open the account.`}>
               <span className="wallet-chip__dot" aria-hidden="true" />
               {account.displayName}
             </button>
-            <Button size={size} variant="ghost" onClick={() => disconnect()}>
+            <Button size={size} variant={disconnectVariant} onClick={() => disconnect()}>
               Disconnect
             </Button>
-          </>
+          </span>
         );
       }}
     </ConnectButton.Custom>

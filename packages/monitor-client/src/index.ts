@@ -823,3 +823,104 @@ export function fmtAge(days: number | null | undefined): string {
   if (days === null || days === undefined || !Number.isFinite(days)) return "—";
   return fmtDuration(days * 86_400);
 }
+
+/* ── BYOB (Build Your Ouro Basket) ───────────────────────────────────────── */
+
+export type ByobWeightMap = Record<string, number>;
+
+export interface ByobBasketToken {
+  symbol: string;
+  address: string;
+  decimals: number;
+}
+
+export interface ByobStatus {
+  address: string;
+  cycle: number;
+  delayCycles: number;
+  basket: ByobBasketToken[];
+  defaultWeights: ByobWeightMap;
+  active: { weights: ByobWeightMap; updatedAt: number; updatedCycle: number } | null;
+  pending: {
+    weights: ByobWeightMap;
+    submittedCycle: number;
+    effectiveFromCycle: number;
+    submittedAt: number;
+  } | null;
+  lineTokens: number;
+}
+
+export interface ByobSaveResult {
+  address: string;
+  weights: ByobWeightMap;
+  submittedCycle: number;
+  effectiveFromCycle: number;
+  delayCycles: number;
+}
+
+async function byobFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  if (!MONITOR_API) throw new Error("monitor not configured");
+  const r = await fetch(`${MONITOR_API}${path}`, {
+    ...init,
+    headers: { accept: "application/json", ...(init?.headers ?? {}) },
+  });
+  if (!r.ok) {
+    let msg = `HTTP ${r.status}`;
+    try {
+      const j = (await r.json()) as { error?: string };
+      if (j.error) msg = j.error;
+    } catch {
+      /* keep msg */
+    }
+    throw new Error(msg);
+  }
+  return (await r.json()) as T;
+}
+
+export function fetchByobStatus(address: string): Promise<ByobStatus> {
+  return byobFetch(`/v1/byob/${address}`);
+}
+
+export function fetchByobBasket(): Promise<{
+  basket: ByobBasketToken[];
+  defaultWeights: ByobWeightMap;
+  delayCycles: number;
+}> {
+  return byobFetch("/v1/byob/basket");
+}
+
+export function byobChallenge(address: string, chainId: number): Promise<{ challengeId: string; message: string }> {
+  return byobFetch("/v1/auth/wallet/challenge", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ address, chainId }),
+  });
+}
+
+export function byobVerify(args: {
+  challengeId: string;
+  signature: `0x${string}`;
+  address: string;
+  chainId: number;
+}): Promise<{ accessToken: string }> {
+  return byobFetch("/v1/auth/wallet/verify", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(args),
+  });
+}
+
+export function byobSaveWeights(accessToken: string, weights: ByobWeightMap): Promise<ByobSaveResult> {
+  return byobFetch("/v1/byob", {
+    method: "PUT",
+    headers: { "content-type": "application/json", authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ weights }),
+  });
+}
+
+export function byobCancelPending(accessToken: string): Promise<{ cancelled: boolean }> {
+  return byobFetch("/v1/byob/pending", {
+    method: "DELETE",
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+}

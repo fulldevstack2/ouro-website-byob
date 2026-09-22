@@ -114,6 +114,7 @@ export const NAV: NavItem[] = [
   // Added 2026-09-10: the connected wallet's view of the same data. Its $OURO, every airdrop it
   // received, its vault deposits. (?address=0x… shows another wallet; the share card's code opens it.)
   { to: "/portfolio/", label: "Portfolio" },
+  { to: "/byob/", label: "BYOB" },
   { to: "/docs/", label: "Docs" },
   // The Ledger and the airdrops MOVED on 2026-09-15, to the analytics site, which is where everything
   // read off the chain now lives. This one link replaces both of them; their old URLs on this site

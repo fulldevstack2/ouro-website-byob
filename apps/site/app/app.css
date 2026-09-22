@@ -4,3 +4,6 @@
 
 /* Site-level styles: the design's <helmet> rules, hover states, layout, responsive. */
 @import "./styles/site.css";
+
+/* BYOB cream / magenta / gold slider page. */
+@import "./styles/byob.css";

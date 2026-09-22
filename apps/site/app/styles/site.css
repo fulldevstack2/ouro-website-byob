@@ -442,6 +442,7 @@ button:focus-visible,
 }
 .wallet-chip:hover { border-color: var(--border-strong); color: var(--text-primary); }
 .wallet-chip__dot { width: 7px; height: 7px; border-radius: 99px; background: var(--positive); flex: none; }
+.wallet-button-group { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 /* As many vaults across as fit at a card's width, the brief's own rule, so the third card sits alone
    on a second row from about 730 to 1085px. That orphan is the right trade: it keeps every card the

@@ -16,6 +16,8 @@ export default [
   // received, its vault deposits). ?address=0x… shows another wallet and is deliberately offered
   // nowhere on the site; it is read on the client only, since the route is prerendered.
   route("portfolio", "routes/portfolio.tsx"),
+  // BYOB: choose CASHCAT / PONS / AI weights for your airdrop (SIWE → ouro-monitor prefs).
+  route("byob", "routes/byob.tsx"),
   // /referral was DELETED on 2026-09-15, route and page and content file together: the programme is
   // not going ahead, and it had sat unregistered since 2026-09-08 with its own hardcoded copy of the
   // ops leg, which went stale the moment the tax split was rebalanced. ouro-monitor still answers
