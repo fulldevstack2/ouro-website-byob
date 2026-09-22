@@ -185,7 +185,7 @@ function LivePanel() {
       setBaseline({ ...pct });
       const hours = result.delayCycles * CYCLE_HOURS;
       setMsg(
-        `Saved as pending. It becomes your active mix at cycle ${result.effectiveFromCycle} (about ${result.delayCycles} cycles / ~${hours}h). Saving again restarts that wait.`,
+        `Saved. Pending until cycle ${result.effectiveFromCycle} (about ${result.delayCycles} cycles, ~${hours}h). Save again and the wait starts over.`,
       );
       await refresh(address);
     } catch (e) {
@@ -208,7 +208,7 @@ function LivePanel() {
       const token = await ensureJwt();
       setBusy("cancel");
       await byobCancelPending(token);
-      setMsg("Pending mix cancelled. Your last active mix (or classic equal) stays in force.");
+      setMsg("Pending cancel done. You keep whatever was already active, or the equal basket if you never had one.");
       await refresh(address);
     } catch (e) {
       const text = e instanceof Error ? e.message : "Cancel failed";
@@ -227,14 +227,14 @@ function LivePanel() {
       totalOk={total === 100}
       onReset={isConnected ? onReset : undefined}
       locked={!isConnected}
-      hint="Drag the seams — only neighbours move. Or tap − / +."
+      hint="Drag the dividers (only the two sides move), or use - / +."
       gate={!isConnected ? <WalletButton size="md" disconnectVariant="secondary" /> : undefined}
       footer={
         <div className="byob-actions">
           <div className="byob-status">
             {!isConnected && (
               <span className="byob-status__line">
-                Connect your wallet to set your airdrop mix. Until then, every eligible wallet stays on the classic equal basket.
+                Connect a wallet to set your mix. Without that, everyone stays on the equal basket.
               </span>
             )}
             {isConnected && loadErr && <span className="byob-status--err">{loadErr}</span>}
@@ -247,11 +247,11 @@ function LivePanel() {
               <WalletButton disconnectVariant="secondary" />
               {status?.pending && (
                 <Button size="sm" variant="secondary" disabled={busy !== null} onClick={() => void onCancelPending()}>
-                  {busy === "cancel" ? "Cancelling…" : "Cancel pending"}
+                  {busy === "cancel" ? "Cancelling..." : "Cancel pending"}
                 </Button>
               )}
               <Button size="sm" disabled={!dirty || total !== 100 || busy !== null} onClick={() => void onSave()}>
-                {busy === "sign" ? "Sign in wallet…" : busy === "save" ? "Saving…" : "Save mix"}
+                {busy === "sign" ? "Sign in wallet..." : busy === "save" ? "Saving..." : "Save mix"}
               </Button>
             </div>
           )}
@@ -320,9 +320,9 @@ function ByobRules({
   allocateEnabled: boolean;
 }) {
   const balLabel = balanceLoading
-    ? "…"
+    ? "..."
     : balanceTokens === undefined
-      ? "—"
+      ? "-"
       : `${fmtTokens(balanceTokens)} OURO`;
 
   return (
@@ -333,57 +333,56 @@ function ByobRules({
           <span className="byob-rules__v">{balLabel}</span>
         </div>
         <div className="byob-rules__balance-row">
-          <span className="byob-rules__k">Airdrop line</span>
-          <span className="byob-rules__v">≥ {fmtTokens(lineTokens)} OURO</span>
+          <span className="byob-rules__k">Need for airdrops</span>
+          <span className="byob-rules__v">{`>= ${fmtTokens(lineTokens)} OURO`}</span>
         </div>
         {atLine === false && (
           <p className="byob-rules__warn">
-            Below the line — this wallet is not paid in airdrop cycles. You can still save a mix; it
-            only affects payouts once you hold ≥ {fmtTokens(lineTokens)} OURO
+            You are under {fmtTokens(lineTokens)} OURO, so this wallet does not get airdrops yet. You can
+            still save a mix. It only starts mattering once you are at the line when a cycle pays
             {shortfallTokens !== undefined && shortfallTokens > 0
-              ? ` (about ${fmtTokens(shortfallTokens)} more)`
-              : ""}{" "}
-            when a cycle runs.
+              ? ` (about ${fmtTokens(shortfallTokens)} more OURO).`
+              : "."}
           </p>
         )}
         {atLine === true && (
           <p className="byob-rules__ok">
-            At or above the line — when your mix is active and allocation is on, cycles pay this wallet
-            with your custom split.
+            You clear the line. After your mix goes active (and allocation is on), cycles use your split.
           </p>
         )}
       </div>
 
       <ol className="byob-rules__steps">
         <li>
-          <strong>Save</strong> stores your mix right away. Nothing changes on the next payout yet.
+          <strong>Save</strong> locks in the mix. The next payout does not change yet.
         </li>
         <li>
-          After <strong>{delayCycles} airdrop cycles</strong> (~{delayHours}h; cycles are every {CYCLE_HOURS}h)
-          the pending mix becomes <strong>active</strong>
+          Wait <strong>{delayCycles} cycles</strong> (about {delayHours}h; a cycle is every {CYCLE_HOURS}h).
+          Then it goes <strong>active</strong>
           {pendingFrom !== null ? (
             <>
               {" "}
-              (yours: cycle <strong>{pendingFrom}</strong>
-              {cycle !== null ? <> · now {cycle}</> : null}).
+              (yours kicks in at cycle <strong>{pendingFrom}</strong>
+              {cycle !== null ? <>, now on {cycle}</> : null}).
             </>
           ) : (
             "."
           )}{" "}
-          Saving again restarts that wait.
+          Save again and the wait resets.
         </li>
         <li>
-          On a cycle where you hold ≥ {fmtTokens(lineTokens)} OURO, the active mix is what you receive
-          {hasActive && pendingFrom === null ? " (you already have an active custom mix)" : ""}
-          {!hasActive && pendingFrom === null ? " — until then you stay on the classic equal basket" : ""}
-          .
+          {hasActive && pendingFrom === null
+            ? `You already have an active custom mix. Cycles where you hold >= ${fmtTokens(lineTokens)} OURO use that split.`
+            : !hasActive && pendingFrom === null
+              ? `Until a mix is active, you get the equal basket. Once active, cycles where you hold >= ${fmtTokens(lineTokens)} OURO use your split.`
+              : `Once active, cycles where you hold >= ${fmtTokens(lineTokens)} OURO use your split.`}
         </li>
       </ol>
 
       {!allocateEnabled && (
         <p className="byob-rules__note">
-          Custom allocation is not switched on in production yet. Your save is stored and will follow
-          the timing above once it is enabled; until then payouts stay on the classic equal basket.
+          Custom allocation is still off live. Your save is kept and will use the timing above when it
+          turns on. For now, payouts stay on the equal basket.
         </p>
       )}
     </div>

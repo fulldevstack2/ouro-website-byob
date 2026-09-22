@@ -14,7 +14,7 @@ export function meta({ location }: Route.MetaArgs) {
   return pageMeta({
     title: "BYOB · build your airdrop basket",
     description:
-      "Set the mix of CASHCAT, PONS and AI in your Ouro airdrop. Changes take a couple of cycles to activate. Classic equal basket stays the default until you opt in.",
+      "Pick how much CASHCAT, PONS and AI you want in your Ouro airdrop. Changes wait a couple of cycles. Equal basket stays the default until you opt in.",
     path: location.pathname,
   });
 }
