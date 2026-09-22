@@ -174,26 +174,47 @@ export function ByobStack({
           })}
         </div>
         {!disabled &&
-          tokens.slice(0, -1).map((t, i) => {
-            const at = edges[i + 1] ?? 0;
-            return (
-              <button
-                key={`h-${t.address}`}
-                type="button"
-                className="byob-stack__handle"
-                data-edge={at <= 0 ? "start" : at >= 100 ? "end" : undefined}
-                style={{ left: `clamp(10px, ${at}%, calc(100% - 10px))` }}
-                aria-label={`Adjust boundary after $${t.symbol}`}
-                onPointerDown={(e) => onPointerDown(i, e)}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
-                onPointerCancel={onPointerUp}
-              >
-                <span />
-                <span />
-              </button>
-            );
-          })}
+          (() => {
+            // Skip pair===0 handles (both sides 0%) — they sit on top of a real handle at
+            // the same edge and eat pointer events, which stuck the slider at 100/0/0.
+            // When several movable handles share an edge (e.g. 50/0/50), fan them out a few
+            // px so each boundary stays grabbable.
+            const movable = tokens.slice(0, -1).flatMap((t, i) => {
+              const pair = (values[i] ?? 0) + (values[i + 1] ?? 0);
+              if (pair <= 0) return [];
+              return [{ t, i, at: edges[i + 1] ?? 0, pair }];
+            });
+            const rankAt = new Map<number, number>();
+            const countAt = new Map<number, number>();
+            for (const h of movable) countAt.set(h.at, (countAt.get(h.at) ?? 0) + 1);
+            return movable.map((h) => {
+              const rank = rankAt.get(h.at) ?? 0;
+              rankAt.set(h.at, rank + 1);
+              const n = countAt.get(h.at) ?? 1;
+              const offsetPx = n <= 1 ? 0 : (rank - (n - 1) / 2) * 14;
+              const left =
+                offsetPx === 0
+                  ? `clamp(10px, ${h.at}%, calc(100% - 10px))`
+                  : `clamp(10px, calc(${h.at}% + ${offsetPx}px), calc(100% - 10px))`;
+              return (
+                <button
+                  key={`h-${h.t.address}`}
+                  type="button"
+                  className="byob-stack__handle"
+                  data-edge={h.at <= 0 ? "start" : h.at >= 100 ? "end" : undefined}
+                  style={{ left }}
+                  aria-label={`Adjust boundary after $${h.t.symbol}`}
+                  onPointerDown={(e) => onPointerDown(h.i, e)}
+                  onPointerMove={onPointerMove}
+                  onPointerUp={onPointerUp}
+                  onPointerCancel={onPointerUp}
+                >
+                  <span />
+                  <span />
+                </button>
+              );
+            });
+          })()}
       </div>
       <div className="byob-stack__scale" aria-hidden>
         <span>0</span>
