@@ -231,17 +231,11 @@ export function ByobTokenRow({
       </div>
       {interactive ? (
         <div className="byob-nudge" role="group" aria-label={`${symbol} weight`}>
-          <button type="button" className="byob-nudge__btn" aria-label={`Decrease ${symbol} by 5`} onClick={() => onNudge?.(-5)} disabled={value <= 0}>
-            −5
-          </button>
           <button type="button" className="byob-nudge__btn byob-nudge__btn--icon" aria-label={`Decrease ${symbol}`} onClick={() => onNudge?.(-1)} disabled={value <= 0}>
             −
           </button>
           <button type="button" className="byob-nudge__btn byob-nudge__btn--icon" aria-label={`Increase ${symbol}`} onClick={() => onNudge?.(1)} disabled={value >= 100}>
             +
-          </button>
-          <button type="button" className="byob-nudge__btn" aria-label={`Increase ${symbol} by 5`} onClick={() => onNudge?.(5)} disabled={value >= 100}>
-            +5
           </button>
         </div>
       ) : (
