@@ -41,7 +41,7 @@ import {
 
 const CYCLE_HOURS = 2;
 
-type ConfirmKind = "enter" | "save" | "discard" | "revert" | "cancelRevert" | null;
+type ConfirmKind = "enter" | "save" | "revert" | "cancelRevert" | null;
 
 /**
  * Live BYOB page - classic home vs BYOB editor, SIWE only when saving/reverting.
@@ -224,13 +224,6 @@ function LivePanel() {
     }
   };
 
-  const doDiscard = () => {
-    setPct({ ...baseline });
-    setMsg("Unsaved changes discarded.");
-    setErr(null);
-    setConfirm(null);
-  };
-
   const doRevertClassic = async () => {
     if (!address) return;
     setErr(null);
@@ -242,11 +235,11 @@ function LivePanel() {
       setWantsEditor(false);
       const hours = result.delayCycles * CYCLE_HOURS;
       setMsg(
-        `Revert to classic scheduled for cycle ${result.effectiveFromCycle} (about ${result.delayCycles} cycles, ~${hours}h). Until then your last mix still applies.`,
+        `Reset to classic scheduled for cycle ${result.effectiveFromCycle} (about ${result.delayCycles} cycles, ~${hours}h). Until then your last mix still applies.`,
       );
       await refresh(address);
     } catch (e) {
-      const text = e instanceof Error ? e.message : "Revert failed";
+      const text = e instanceof Error ? e.message : "Reset failed";
       if (/unauthorized|jwt|expired|401/i.test(text)) {
         clearByobJwt();
         setJwt(null);
@@ -267,10 +260,10 @@ function LivePanel() {
       setBusy("cancel");
       await byobCancelPending(token);
       setWantsEditor(true);
-      setMsg("Revert cancelled. Your BYOB mix stays active.");
+      setMsg("Reset cancelled. Your BYOB mix stays active.");
       await refresh(address);
     } catch (e) {
-      const text = e instanceof Error ? e.message : "Could not cancel revert";
+      const text = e instanceof Error ? e.message : "Could not cancel reset";
       if (/unauthorized|jwt|expired|401/i.test(text)) {
         clearByobJwt();
         setJwt(null);
@@ -318,24 +311,16 @@ function LivePanel() {
         label: "Save mix",
       };
     }
-    if (confirm === "discard") {
-      return {
-        title: "Discard unsaved changes?",
-        body: <p>The bar goes back to your last saved mix (or the starting split if you have not saved yet).</p>,
-        label: "Discard",
-        danger: true,
-      };
-    }
     if (confirm === "revert") {
       if (!hasCustomServerMix) {
         return {
-          title: "Back to classic view?",
+          title: "Back to classic?",
           body: <p>You have not saved a BYOB mix. This only closes the editor. Payouts stay classic.</p>,
-          label: "Back to classic",
+          label: "Reset",
         };
       }
       return {
-        title: "Revert to classic airdrops?",
+        title: "Reset to classic?",
         body: (
           <p>
             Your custom mix stops after about {delayHours}h ({delayCycles} cycles). Until then the last mix
@@ -343,7 +328,7 @@ function LivePanel() {
             forced equal split.
           </p>
         ),
-        label: "Revert to classic",
+        label: "Reset",
         danger: true,
       };
     }
@@ -365,7 +350,6 @@ function LivePanel() {
   const onConfirmAction = () => {
     if (confirm === "enter") enterByob();
     else if (confirm === "save") void doSave();
-    else if (confirm === "discard") doDiscard();
     else if (confirm === "revert") {
       if (!hasCustomServerMix) leaveEditorToClassic();
       else void doRevertClassic();
@@ -385,6 +369,15 @@ function LivePanel() {
     />
   );
 
+  const statusBits = (
+    <>
+      {loadErr && <span className="byob-status--err">{loadErr}</span>}
+      {msg && <span className="byob-status__ok">{msg}</span>}
+      {err && <span className="byob-status--err">{err}</span>}
+    </>
+  );
+  const hasFlash = Boolean(loadErr || msg || err);
+
   // ── not connected ──
   if (!isConnected) {
     return (
@@ -392,13 +385,11 @@ function LivePanel() {
         locked
         showTotal={false}
         modeLabel="Connect"
-        gate={<WalletButton size="md" disconnectVariant="secondary" />}
+        gate={<WalletButton size="md" disconnectAs="link" />}
         footer={
-          <div className="byob-actions">
-            <div className="byob-status">
-              <span className="byob-status__line">Connect a wallet to see classic vs BYOB for this account.</span>
-            </div>
-          </div>
+          <ByobBar
+            status={<span className="byob-status__line">Connect a wallet to see classic vs BYOB for this account.</span>}
+          />
         }
       >
         <ClassicExplainer delayHours={delayHours} delayCycles={delayCycles} lineTokens={lineTokens} />
@@ -426,26 +417,26 @@ function LivePanel() {
         <ByobChrome
           locked={false}
           showTotal={false}
-          modeLabel="Reverting to classic"
+          modeLabel="Resetting to classic"
           footer={
-            <div className="byob-actions">
-              <div className="byob-status">
-                {loadErr && <span className="byob-status--err">{loadErr}</span>}
-                {msg && <span className="byob-status__ok">{msg}</span>}
-                {err && <span className="byob-status--err">{err}</span>}
-                <span className="byob-status__line">
-                  Classic again at cycle <strong>{status?.pending?.effectiveFromCycle}</strong>
-                  {status?.cycle != null ? <> (now on {status.cycle})</> : null}. Until then your previous mix
-                  still pays.
-                </span>
-              </div>
-              <div className="byob-actions__btns">
-                <WalletButton disconnectVariant="secondary" />
+            <ByobBar
+              status={
+                <>
+                  {statusBits}
+                  <span className="byob-status__line">
+                    Classic again at cycle <strong>{status?.pending?.effectiveFromCycle}</strong>
+                    {status?.cycle != null ? <> (now on {status.cycle})</> : null}. Until then your previous mix
+                    still pays.
+                  </span>
+                </>
+              }
+              wallet={<WalletButton disconnectAs="link" />}
+              actions={
                 <Button size="sm" disabled={busy !== null} onClick={() => setConfirm("cancelRevert")}>
                   {busy === "cancel" || busy === "sign" ? "Working..." : "Keep BYOB mix"}
                 </Button>
-              </div>
-            </div>
+              }
+            />
           }
         >
           {balanceBlock}
@@ -477,19 +468,15 @@ function LivePanel() {
           showTotal={false}
           modeLabel="Classic mode"
           footer={
-            <div className="byob-actions">
-              <div className="byob-status">
-                {loadErr && <span className="byob-status--err">{loadErr}</span>}
-                {msg && <span className="byob-status__ok">{msg}</span>}
-                {err && <span className="byob-status--err">{err}</span>}
-              </div>
-              <div className="byob-actions__btns">
-                <WalletButton disconnectVariant="secondary" />
+            <ByobBar
+              status={hasFlash ? statusBits : undefined}
+              wallet={<WalletButton disconnectAs="link" />}
+              actions={
                 <Button size="sm" onClick={() => setConfirm("enter")}>
                   Customize with BYOB
                 </Button>
-              </div>
-            </div>
+              }
+            />
           }
         >
           {balanceBlock}
@@ -520,56 +507,48 @@ function LivePanel() {
         hint="Drag the dividers. Only the two sides of a handle move. Whole percents only."
         locked={false}
         footer={
-          <div className="byob-actions">
-            <div className="byob-status">
-              {loadErr && <span className="byob-status--err">{loadErr}</span>}
-              {msg && <span className="byob-status__ok">{msg}</span>}
-              {err && <span className="byob-status--err">{err}</span>}
-              {status?.pending && !status.pending.classic && (
-                <span className="byob-status__line">
-                  Pending mix activates at cycle <strong>{status.pending.effectiveFromCycle}</strong>
-                  {status.cycle != null ? <> (now on {status.cycle})</> : null}.
-                </span>
-              )}
-            </div>
-            <div className="byob-actions__btns">
-              <WalletButton disconnectVariant="secondary" />
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={editorLocked}
-                onClick={() => setConfirm("revert")}
-              >
-                {busy === "revert" ? "Reverting..." : "Revert to classic"}
-              </Button>
-              <Button size="sm" variant="secondary" disabled={!dirty || editorLocked} onClick={() => setConfirm("discard")}>
-                Discard
-              </Button>
-              <Button
-                size="sm"
-                disabled={!dirty || total !== 100 || editorLocked}
-                onClick={() => setConfirm("save")}
-              >
-                {busy === "sign" ? "Sign in wallet..." : busy === "save" ? "Saving..." : "Save mix"}
-              </Button>
-            </div>
-          </div>
+          <ByobBar
+            status={
+              hasFlash || (status?.pending && !status.pending.classic) ? (
+                <>
+                  {statusBits}
+                  {status?.pending && !status.pending.classic && (
+                    <span className="byob-status__line">
+                      Pending mix activates at cycle <strong>{status.pending.effectiveFromCycle}</strong>
+                      {status.cycle != null ? <> (now on {status.cycle})</> : null}.
+                    </span>
+                  )}
+                </>
+              ) : undefined
+            }
+            wallet={<WalletButton disconnectAs="link" />}
+            actions={
+              <>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={editorLocked}
+                  onClick={() => setConfirm("revert")}
+                >
+                  {busy === "revert" ? "Resetting..." : "Reset"}
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={!dirty || total !== 100 || editorLocked}
+                  onClick={() => setConfirm("save")}
+                >
+                  {busy === "sign" ? "Sign in wallet..." : busy === "save" ? "Saving..." : "Save mix"}
+                </Button>
+              </>
+            }
+          />
         }
       >
         {balanceBlock}
-        <ol className="byob-rules__steps">
-          <li>
-            <strong>Save mix</strong> stores your split. Payouts change only after about {delayHours}h (
-            {delayCycles} cycles).
-          </li>
-          <li>
-            <strong>Discard</strong> throws away unsaved bar edits.
-          </li>
-          <li>
-            <strong>Revert to classic</strong> turns off BYOB for this wallet (same delay if you already
-            saved).
-          </li>
-        </ol>
+        <p className="byob-editor-note">
+          <strong>Save mix</strong> applies after about {delayHours}h ({delayCycles} cycles).{" "}
+          <strong>Reset</strong> returns this wallet to classic airdrops (same delay if you already saved).
+        </p>
         <div className="byob-mixer">
           <ByobStack
             tokens={tokens}
@@ -607,6 +586,32 @@ function LivePanel() {
   );
 }
 
+/** Footer: status above, wallet left / primary actions right. */
+function ByobBar({
+  status,
+  wallet,
+  actions,
+}: {
+  status?: ReactNode;
+  wallet?: ReactNode;
+  actions?: ReactNode;
+}) {
+  const hasStatus = Boolean(status);
+  const hasRow = Boolean(wallet || actions);
+  if (!hasStatus && !hasRow) return null;
+  return (
+    <div className="byob-actions">
+      {hasStatus ? <div className="byob-status">{status}</div> : null}
+      {hasRow ? (
+        <div className="byob-actions__row">
+          {wallet ? <div className="byob-actions__wallet">{wallet}</div> : <span />}
+          {actions ? <div className="byob-actions__primary">{actions}</div> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ClassicExplainer({
   delayHours,
   delayCycles,
@@ -627,7 +632,7 @@ function ClassicExplainer({
         you get more of that token.
       </p>
       <ul className="byob-classic__list">
-        <li>No custom mix is stored for this wallet{pending ? " once the revert completes" : ""}.</li>
+        <li>No custom mix is stored for this wallet{pending ? " once the reset completes" : ""}.</li>
         <li>
           BYOB lets you pick a custom split. After you save, it waits about {delayHours}h ({delayCycles}{" "}
           cycles) before payouts use it.

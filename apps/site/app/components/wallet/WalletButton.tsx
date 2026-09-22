@@ -18,10 +18,13 @@ import { site } from "~/content/site";
 export function WalletButton({
   size = "sm",
   disconnectVariant = "ghost",
+  disconnectAs = "button",
 }: {
   size?: ButtonSize;
   /** Prefer `secondary` on light cream surfaces where ghost ink disappears. */
   disconnectVariant?: ButtonVariant;
+  /** `link` keeps the address chip and a quiet text disconnect (less button clutter). */
+  disconnectAs?: "button" | "link";
 }) {
   const { disconnect } = useDisconnect();
   return (
@@ -48,9 +51,15 @@ export function WalletButton({
               <span className="wallet-chip__dot" aria-hidden="true" />
               {account.displayName}
             </button>
-            <Button size={size} variant={disconnectVariant} onClick={() => disconnect()}>
-              Disconnect
-            </Button>
+            {disconnectAs === "link" ? (
+              <button type="button" className="wallet-disconnect-link" onClick={() => disconnect()}>
+                Disconnect
+              </button>
+            ) : (
+              <Button size={size} variant={disconnectVariant} onClick={() => disconnect()}>
+                Disconnect
+              </Button>
+            )}
           </span>
         );
       }}
