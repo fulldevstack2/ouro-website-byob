@@ -176,15 +176,13 @@ export function ByobStack({
         {!disabled &&
           tokens.slice(0, -1).map((t, i) => {
             const at = edges[i + 1] ?? 0;
-            // No knob on the bar ends — a 0%/100% handle clips and looks broken.
-            // Recover a zeroed token with the row +/- controls instead.
-            if (at <= 0 || at >= 100) return null;
             return (
               <button
                 key={`h-${t.address}`}
                 type="button"
                 className="byob-stack__handle"
-                style={{ left: `${at}%` }}
+                data-edge={at <= 0 ? "start" : at >= 100 ? "end" : undefined}
+                style={{ left: `clamp(10px, ${at}%, calc(100% - 10px))` }}
                 aria-label={`Adjust boundary after $${t.symbol}`}
                 onPointerDown={(e) => onPointerDown(i, e)}
                 onPointerMove={onPointerMove}
