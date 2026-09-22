@@ -147,7 +147,7 @@ export function ByobStack({
           if (v <= 0) return null;
           return (
             <span key={`p-${t.address}`} className="byob-stack__pct" style={{ left: `${center}%` }}>
-              {v}%
+              {Math.round(v)}%
             </span>
           );
         })}
@@ -248,7 +248,7 @@ export function ByobTokenRow({
         <div className="byob-nudge byob-nudge--empty" aria-hidden />
       )}
       <div className="byob-pct" style={{ color: SEG_TONES[toneIndex % SEG_TONES.length] }}>
-        {value}
+        {Math.round(value)}
         <span className="byob-pct__unit">%</span>
       </div>
     </div>

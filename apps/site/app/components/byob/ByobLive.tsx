@@ -4,7 +4,6 @@ import { useAccount, useSignMessage } from "wagmi";
 
 import { Button } from "@ouro/ds";
 import {
-  byobCancelPending,
   byobChallenge,
   byobSaveWeights,
   byobVerify,
@@ -21,6 +20,7 @@ import { usePortfolioSummary } from "~/hooks/usePortfolio";
 import {
   bpsFromPct,
   clearByobJwt,
+  equalPct,
   nudgePct,
   pctFromBps,
   readByobJwt,
@@ -38,11 +38,11 @@ import {
   DEFAULT_PCT,
 } from "~/components/byob/ByobFrame";
 
-/** Airdrop cycles run every 2 hours — used only for plain-language timing copy. */
+/** Airdrop cycles run every 2 hours - used only for plain-language timing copy. */
 const CYCLE_HOURS = 2;
 
 /**
- * Live BYOB page — wallet SIWE → JWT → weight prefs on ouro-monitor.
+ * Live BYOB page - wallet SIWE -> JWT -> weight prefs on ouro-monitor.
  * Loaded client-only (see routes/byob.tsx) so wagmi never hits the prerender.
  */
 export default function ByobLive() {
@@ -63,7 +63,7 @@ function LivePanel() {
   const [status, setStatus] = useState<ByobStatus | null>(null);
   const [allocateEnabled, setAllocateEnabled] = useState(false);
   const [loadErr, setLoadErr] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"sign" | "save" | "cancel" | null>(null);
+  const [busy, setBusy] = useState<"sign" | "save" | "reset" | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [jwt, setJwt] = useState<string | null>(() => (typeof window !== "undefined" ? readByobJwt() : null));
@@ -85,8 +85,17 @@ function LivePanel() {
     });
   }, [status]);
 
-  const total = useMemo(() => Object.values(pct).reduce((a, b) => a + b, 0), [pct]);
-  const dirty = useMemo(() => addresses.some((a) => (pct[a] ?? 0) !== (baseline[a] ?? 0)), [pct, baseline, addresses]);
+  const wholePct = useMemo(() => {
+    const out: PctMap = {};
+    for (const a of addresses) out[a] = Math.round(pct[a] ?? 0);
+    return out;
+  }, [pct, addresses]);
+
+  const total = useMemo(() => Object.values(wholePct).reduce((a, b) => a + b, 0), [wholePct]);
+  const dirty = useMemo(
+    () => addresses.some((a) => (wholePct[a] ?? 0) !== Math.round(baseline[a] ?? 0)),
+    [wholePct, baseline, addresses],
+  );
 
   const lineTokens = status?.lineTokens ?? LINE_TOKENS;
   const delayCycles = status?.delayCycles ?? 2;
@@ -124,7 +133,6 @@ function LivePanel() {
     void refresh(address);
   }, [address, refresh]);
 
-  // Drop JWT when wallet changes.
   useEffect(() => {
     if (!address) {
       clearByobJwt();
@@ -154,7 +162,7 @@ function LivePanel() {
   };
 
   const onNudge = (addr: string, delta: number) => {
-    setPct((prev) => nudgePct(prev, addr, delta, addresses));
+    setPct((prev) => nudgePct(prev, addr, Math.trunc(delta), addresses));
     setMsg(null);
     setErr(null);
   };
@@ -165,31 +173,33 @@ function LivePanel() {
     setErr(null);
   };
 
-  const onReset = () => {
-    const defaults = status?.defaultWeights
-      ? pctFromBps(status.defaultWeights, addresses)
-      : DEFAULT_PCT;
-    setPct(defaults);
-    setMsg(null);
-    setErr(null);
-  };
-
-  const onSave = async () => {
-    if (!address || total !== 100) return;
+  const saveWeights = async (next: PctMap, kind: "save" | "reset") => {
+    if (!address) return;
+    if (Object.values(next).some((v) => !Number.isInteger(v))) {
+      setErr("Weights must be whole percents (no decimals).");
+      return;
+    }
+    if (Object.values(next).reduce((a, b) => a + b, 0) !== 100) {
+      setErr("Weights must add up to 100%.");
+      return;
+    }
     setErr(null);
     setMsg(null);
     try {
       const token = await ensureJwt();
-      setBusy("save");
-      const result = await byobSaveWeights(token, bpsFromPct(pct));
-      setBaseline({ ...pct });
+      setBusy(kind);
+      const result = await byobSaveWeights(token, bpsFromPct(next));
+      setPct(next);
+      setBaseline({ ...next });
       const hours = result.delayCycles * CYCLE_HOURS;
       setMsg(
-        `Saved. Pending until cycle ${result.effectiveFromCycle} (about ${result.delayCycles} cycles, ~${hours}h). Save again and the wait starts over.`,
+        kind === "reset"
+          ? `Reset to equal. Pending until cycle ${result.effectiveFromCycle} (about ${result.delayCycles} cycles, ~${hours}h).`
+          : `Saved. Pending until cycle ${result.effectiveFromCycle} (about ${result.delayCycles} cycles, ~${hours}h). Save again and the wait starts over.`,
       );
       await refresh(address);
     } catch (e) {
-      const text = e instanceof Error ? e.message : "Save failed";
+      const text = e instanceof Error ? e.message : kind === "reset" ? "Reset failed" : "Save failed";
       if (/unauthorized|jwt|expired|401/i.test(text)) {
         clearByobJwt();
         setJwt(null);
@@ -200,34 +210,20 @@ function LivePanel() {
     }
   };
 
-  const onCancelPending = async () => {
-    if (!address || !status?.pending) return;
-    setErr(null);
-    setMsg(null);
-    try {
-      const token = await ensureJwt();
-      setBusy("cancel");
-      await byobCancelPending(token);
-      setMsg("Pending cancel done. You keep whatever was already active, or the equal basket if you never had one.");
-      await refresh(address);
-    } catch (e) {
-      const text = e instanceof Error ? e.message : "Cancel failed";
-      if (/unauthorized|jwt|expired|401/i.test(text)) {
-        clearByobJwt();
-        setJwt(null);
-      }
-      setErr(text);
-    } finally {
-      setBusy(null);
-    }
+  const onResetEqual = () => {
+    void saveWeights(equalPct(addresses), "reset");
+  };
+
+  const onSave = () => {
+    void saveWeights(wholePct, "save");
   };
 
   return (
     <ByobChrome
       totalOk={total === 100}
-      onReset={isConnected ? onReset : undefined}
+      onReset={isConnected && busy === null ? onResetEqual : undefined}
       locked={!isConnected}
-      hint="Drag the dividers (only the two sides move), or use - / +."
+      hint="Drag the dividers (only the two sides move), or use - / +. Whole percents only."
       gate={!isConnected ? <WalletButton size="md" disconnectVariant="secondary" /> : undefined}
       footer={
         <div className="byob-actions">
@@ -245,12 +241,10 @@ function LivePanel() {
           {isConnected && (
             <div className="byob-actions__btns">
               <WalletButton disconnectVariant="secondary" />
-              {status?.pending && (
-                <Button size="sm" variant="secondary" disabled={busy !== null} onClick={() => void onCancelPending()}>
-                  {busy === "cancel" ? "Cancelling..." : "Cancel pending"}
-                </Button>
-              )}
-              <Button size="sm" disabled={!dirty || total !== 100 || busy !== null} onClick={() => void onSave()}>
+              <Button size="sm" variant="secondary" disabled={busy !== null} onClick={onResetEqual}>
+                {busy === "reset" ? "Resetting..." : "Reset"}
+              </Button>
+              <Button size="sm" disabled={!dirty || total !== 100 || busy !== null} onClick={onSave}>
                 {busy === "sign" ? "Sign in wallet..." : busy === "save" ? "Saving..." : "Save mix"}
               </Button>
             </div>
@@ -275,7 +269,7 @@ function LivePanel() {
       ) : null}
       <ByobStack
         tokens={tokens}
-        pct={pct}
+        pct={wholePct}
         disabled={!isConnected || busy !== null}
         onBoundary={isConnected ? onBoundary : undefined}
       />
@@ -284,7 +278,7 @@ function LivePanel() {
           key={t.address}
           symbol={t.symbol}
           icon={t.icon}
-          value={pct[t.address.toLowerCase()] ?? 0}
+          value={wholePct[t.address.toLowerCase()] ?? 0}
           toneIndex={i}
           disabled={!isConnected || busy !== null}
           onNudge={isConnected ? (d) => onNudge(t.address, d) : undefined}
@@ -368,7 +362,7 @@ function ByobRules({
           ) : (
             "."
           )}{" "}
-          Save again and the wait resets.
+          Save again and the wait resets. <strong>Reset</strong> sets equal shares and saves that.
         </li>
         <li>
           {hasActive && pendingFrom === null

@@ -33,7 +33,10 @@ export function pctFromBps(weights: Record<string, number>, addresses: string[])
 
 export function bpsFromPct(pct: PctMap): Record<string, number> {
   const out: Record<string, number> = {};
-  for (const [a, p] of Object.entries(pct)) out[a] = Math.round(p) * 100;
+  for (const [a, p] of Object.entries(pct)) {
+    if (!Number.isInteger(p)) throw new Error("weights must be whole percents");
+    out[a] = p * 100;
+  }
   const sum = Object.values(out).reduce((a, b) => a + b, 0);
   const keys = Object.keys(out);
   if (keys.length && sum !== 10_000) {
