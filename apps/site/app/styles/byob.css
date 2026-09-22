@@ -193,8 +193,13 @@
   transition: color 140ms ease;
 }
 
-.byob-card__reset:hover {
+.byob-card__reset:hover:not(:disabled) {
   color: var(--byob-ink);
+}
+
+.byob-card__reset:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .byob-card__total {
