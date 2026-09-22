@@ -842,7 +842,8 @@ export interface ByobStatus {
   defaultWeights: ByobWeightMap;
   active: { weights: ByobWeightMap; updatedAt: number; updatedCycle: number } | null;
   pending: {
-    weights: ByobWeightMap;
+    classic?: boolean;
+    weights: ByobWeightMap | null;
     submittedCycle: number;
     effectiveFromCycle: number;
     submittedAt: number;
@@ -852,7 +853,8 @@ export interface ByobStatus {
 
 export interface ByobSaveResult {
   address: string;
-  weights: ByobWeightMap;
+  weights?: ByobWeightMap;
+  classic?: boolean;
   submittedCycle: number;
   effectiveFromCycle: number;
   delayCycles: number;
@@ -916,6 +918,15 @@ export function byobSaveWeights(accessToken: string, weights: ByobWeightMap): Pr
     method: "PUT",
     headers: { "content-type": "application/json", authorization: `Bearer ${accessToken}` },
     body: JSON.stringify({ weights }),
+  });
+}
+
+/** Schedule revert to classic airdrop (clears active prefs after the delay). */
+export function byobRevertClassic(accessToken: string): Promise<ByobSaveResult> {
+  return byobFetch("/v1/byob", {
+    method: "PUT",
+    headers: { "content-type": "application/json", authorization: `Bearer ${accessToken}` },
+    body: JSON.stringify({ classic: true }),
   });
 }
 

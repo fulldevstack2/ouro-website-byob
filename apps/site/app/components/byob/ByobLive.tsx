@@ -5,6 +5,7 @@ import { useAccount, useSignMessage } from "wagmi";
 import { Button } from "@ouro/ds";
 import {
   byobChallenge,
+  byobRevertClassic,
   byobSaveWeights,
   byobVerify,
   fetchByobBasket,
@@ -100,8 +101,13 @@ function LivePanel() {
     () => addresses.every((a) => (wholePct[a] ?? 0) === (equal[a] ?? 0)),
     [wholePct, equal, addresses],
   );
-  /** Reset only when the bar is not already equal (local drag or a saved non-equal mix). */
-  const canReset = isConnected && busy === null && !atEqual;
+  const hasCustomServerMix = Boolean(
+    status?.active || (status?.pending && !status.pending.classic),
+  );
+  const pendingClassic = Boolean(status?.pending?.classic);
+  /** Reset when bar is not equal, or they have a custom saved mix (including pending classic wait). */
+  const canReset =
+    isConnected && busy === null && (!atEqual || hasCustomServerMix) && !pendingClassic;
 
   const lineTokens = status?.lineTokens ?? LINE_TOKENS;
   const delayCycles = status?.delayCycles ?? 2;
@@ -120,8 +126,11 @@ function LivePanel() {
       const [s, basket] = await Promise.all([fetchByobStatus(addr), fetchByobBasket()]);
       setStatus(s);
       setAllocateEnabled(Boolean(basket.allocateEnabled));
-      const source = s.pending?.weights ?? s.active?.weights ?? s.defaultWeights;
-      const next = pctFromBps(source, s.basket.map((t) => t.address));
+      const source =
+        s.pending?.classic
+          ? s.defaultWeights
+          : (s.pending?.weights ?? s.active?.weights ?? s.defaultWeights);
+      const next = pctFromBps(source ?? s.defaultWeights, s.basket.map((t) => t.address));
       setPct(next);
       setBaseline(next);
     } catch (e) {
@@ -212,16 +221,39 @@ function LivePanel() {
 
   const onResetEqual = () => {
     if (!canReset) return;
-    // No server mix yet: Reset is local undo only (no SIWE).
-    const hasServerMix = Boolean(status?.active || status?.pending);
-    if (!hasServerMix) {
+    // Local-only: never saved a mix -> already classic on server; just undo the bar.
+    if (!hasCustomServerMix) {
       setPct(equal);
       setBaseline(equal);
       setErr(null);
-      setMsg("Back to equal on this screen. Nothing is saved yet - use Save mix when you want that for payouts.");
+      setMsg("Back to the default bar. You are still on classic airdrops (no custom mix saved).");
       return;
     }
-    void saveWeights(equal, "reset");
+    void (async () => {
+      setErr(null);
+      setMsg(null);
+      try {
+        const token = await ensureJwt();
+        setBusy("reset");
+        const result = await byobRevertClassic(token);
+        setPct(equal);
+        setBaseline(equal);
+        const hours = result.delayCycles * CYCLE_HOURS;
+        setMsg(
+          `Reset to classic airdrops. Pending until cycle ${result.effectiveFromCycle} (about ${result.delayCycles} cycles, ~${hours}h). Until then your last mix still applies.`,
+        );
+        if (address) await refresh(address);
+      } catch (e) {
+        const text = e instanceof Error ? e.message : "Reset failed";
+        if (/unauthorized|jwt|expired|401/i.test(text)) {
+          clearByobJwt();
+          setJwt(null);
+        }
+        setErr(text);
+      } finally {
+        setBusy(null);
+      }
+    })();
   };
 
   const onSave = () => {
@@ -372,14 +404,15 @@ function ByobRules({
           ) : (
             "."
           )}{" "}
-          Save again and the wait resets. <strong>Reset</strong> puts the bar back to equal; if you
-          already saved a mix, it also saves equal to the server.
+          Save again and the wait resets. <strong>Reset</strong> returns you to classic airdrops
+          (not a forced equal split); if you already saved a mix, that clear waits the same{" "}
+          {delayCycles} cycles.
         </li>
         <li>
           {hasActive && pendingFrom === null
             ? `You already have an active custom mix. Cycles where you hold >= ${fmtTokens(lineTokens)} OURO use that split.`
             : !hasActive && pendingFrom === null
-              ? `Until a mix is active, you get the equal basket. Once active, cycles where you hold >= ${fmtTokens(lineTokens)} OURO use your split.`
+              ? `Until you save a custom mix, you stay on classic airdrops (your OURO share of each token as released). Once a mix is active, cycles where you hold >= ${fmtTokens(lineTokens)} OURO use your split.`
               : `Once active, cycles where you hold >= ${fmtTokens(lineTokens)} OURO use your split.`}
         </li>
       </ol>
