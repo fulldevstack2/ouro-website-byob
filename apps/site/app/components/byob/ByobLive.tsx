@@ -21,7 +21,6 @@ import {
   bpsFromPct,
   clearByobJwt,
   equalPct,
-  nudgePct,
   pctFromBps,
   readByobJwt,
   setBoundary,
@@ -161,12 +160,6 @@ function LivePanel() {
     return verified.accessToken;
   };
 
-  const onNudge = (addr: string, delta: number) => {
-    setPct((prev) => nudgePct(prev, addr, Math.trunc(delta), addresses));
-    setMsg(null);
-    setErr(null);
-  };
-
   const onBoundary = (left: string, right: string, leftPct: number) => {
     setPct((prev) => setBoundary(prev, left, right, leftPct, addresses));
     setMsg(null);
@@ -281,7 +274,6 @@ function LivePanel() {
           value={wholePct[t.address.toLowerCase()] ?? 0}
           toneIndex={i}
           disabled={!isConnected || busy !== null}
-          onNudge={isConnected ? (d) => onNudge(t.address, d) : undefined}
         />
       ))}
     </ByobChrome>

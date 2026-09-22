@@ -450,7 +450,7 @@
 
 .byob-row {
   display: grid;
-  grid-template-columns: minmax(150px, 1.15fr) minmax(168px, 1fr) 88px;
+  grid-template-columns: minmax(150px, 1fr) 88px;
   gap: 14px;
   align-items: center;
   margin: 0 -8px;
@@ -502,57 +502,6 @@
   font-weight: 700;
   letter-spacing: 0.01em;
   color: var(--byob-ink);
-}
-
-.byob-nudge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0;
-  padding: 3px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--byob-track) 80%, transparent);
-  border: 1px solid var(--byob-line);
-  justify-self: end;
-}
-
-.byob-nudge--empty {
-  min-height: 38px;
-  background: transparent;
-  border-color: transparent;
-}
-
-.byob-nudge__btn {
-  appearance: none;
-  height: 30px;
-  min-width: 40px;
-  padding: 0 11px;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--byob-ink);
-  font-size: 12px;
-  font-weight: 650;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
-}
-
-.byob-nudge__btn--icon {
-  min-width: 32px;
-  padding: 0;
-  font-size: 16px;
-  line-height: 1;
-}
-
-.byob-nudge__btn:hover:not(:disabled) {
-  background: var(--byob-thumb);
-  box-shadow: 0 1px 4px rgba(40, 30, 10, 0.08);
-}
-
-.byob-nudge__btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
 }
 
 .byob-pct {
@@ -746,16 +695,11 @@
   .byob-stack__fill { border-radius: 6px; }
   .byob-row {
     grid-template-columns: 1fr 72px;
-    grid-template-areas:
-      "token pct"
-      "nudge nudge";
     gap: 10px 12px;
     margin: 0;
     padding: 12px 6px;
   }
-  .byob-token { grid-area: token; }
-  .byob-nudge { grid-area: nudge; justify-self: start; }
-  .byob-pct { grid-area: pct; font-size: 1.7rem; }
+  .byob-pct { font-size: 1.7rem; }
   .byob-card__hint { font-size: 14px; }
 }
 

@@ -212,35 +212,20 @@ export function ByobTokenRow({
   value,
   toneIndex = 0,
   disabled,
-  onNudge,
 }: {
   symbol: string;
   icon?: string;
   value: number;
   toneIndex?: number;
   disabled?: boolean;
-  onNudge?: (delta: number) => void;
 }) {
-  const interactive = Boolean(onNudge) && !disabled;
   return (
-    <div className="byob-row" data-disabled={disabled || !interactive ? "true" : "false"}>
+    <div className="byob-row" data-disabled={disabled ? "true" : "false"}>
       <div className="byob-token">
         <span className="byob-token__swatch" style={{ background: SEG_TONES[toneIndex % SEG_TONES.length] }} aria-hidden />
         {icon ? <img className="byob-token__icon" src={icon} alt="" width={40} height={40} /> : <span className="byob-token__icon" />}
         <span className="byob-token__sym">${symbol}</span>
       </div>
-      {interactive ? (
-        <div className="byob-nudge" role="group" aria-label={`${symbol} weight`}>
-          <button type="button" className="byob-nudge__btn byob-nudge__btn--icon" aria-label={`Decrease ${symbol}`} onClick={() => onNudge?.(-1)} disabled={value <= 0}>
-            −
-          </button>
-          <button type="button" className="byob-nudge__btn byob-nudge__btn--icon" aria-label={`Increase ${symbol}`} onClick={() => onNudge?.(1)} disabled={value >= 100}>
-            +
-          </button>
-        </div>
-      ) : (
-        <div className="byob-nudge byob-nudge--empty" aria-hidden />
-      )}
       <div className="byob-pct" style={{ color: SEG_TONES[toneIndex % SEG_TONES.length] }}>
         {Math.round(value)}
         <span className="byob-pct__unit">%</span>
