@@ -153,27 +153,32 @@ export function ByobStack({
         })}
       </div>
       <div className="byob-stack__track" ref={trackRef} role="group" aria-label="Airdrop mix">
-        {tokens.map((t, i) => {
-          const v = values[i] ?? 0;
-          return (
-            <div
-              key={t.address}
-              className="byob-stack__seg"
-              style={{ width: `${v}%`, ["--seg" as string]: SEG_TONES[i % SEG_TONES.length] }}
-              title={`$${t.symbol} ${v}%`}
-            >
-              {v > 0 && (t.icon || t.symbol) ? (
-                <span className="byob-stack__seg-meta">
-                  {t.icon ? <img className="byob-stack__seg-icon" src={t.icon} alt="" /> : null}
-                  <span className="byob-stack__seg-label">${t.symbol}</span>
-                </span>
-              ) : null}
-            </div>
-          );
-        })}
+        <div className="byob-stack__fill">
+          {tokens.map((t, i) => {
+            const v = values[i] ?? 0;
+            return (
+              <div
+                key={t.address}
+                className="byob-stack__seg"
+                style={{ width: `${v}%`, ["--seg" as string]: SEG_TONES[i % SEG_TONES.length] }}
+                title={`$${t.symbol} ${v}%`}
+              >
+                {v > 0 && (t.icon || t.symbol) ? (
+                  <span className="byob-stack__seg-meta">
+                    {t.icon ? <img className="byob-stack__seg-icon" src={t.icon} alt="" /> : null}
+                    <span className="byob-stack__seg-label">${t.symbol}</span>
+                  </span>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
         {!disabled &&
           tokens.slice(0, -1).map((t, i) => {
             const at = edges[i + 1] ?? 0;
+            // No knob on the bar ends — a 0%/100% handle clips and looks broken.
+            // Recover a zeroed token with the row +/- controls instead.
+            if (at <= 0 || at >= 100) return null;
             return (
               <button
                 key={`h-${t.address}`}
