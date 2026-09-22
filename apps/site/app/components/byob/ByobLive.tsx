@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Address } from "viem";
 import { useAccount, useSignMessage } from "wagmi";
 
 import { Button } from "@ouro/ds";
@@ -7,12 +8,16 @@ import {
   byobChallenge,
   byobSaveWeights,
   byobVerify,
+  fetchByobBasket,
   fetchByobStatus,
+  fmtTokens,
   type ByobStatus,
 } from "@ouro/monitor-client";
 import { WalletButton } from "~/components/wallet/WalletButton";
 import { WalletProvider } from "~/components/wallet/WalletProvider";
+import { LINE_TOKENS } from "~/content/protocol";
 import { site } from "~/content/site";
+import { usePortfolioSummary } from "~/hooks/usePortfolio";
 import {
   bpsFromPct,
   clearByobJwt,
@@ -33,6 +38,9 @@ import {
   DEFAULT_PCT,
 } from "~/components/byob/ByobFrame";
 
+/** Airdrop cycles run every 2 hours — used only for plain-language timing copy. */
+const CYCLE_HOURS = 2;
+
 /**
  * Live BYOB page — wallet SIWE → JWT → weight prefs on ouro-monitor.
  * Loaded client-only (see routes/byob.tsx) so wagmi never hits the prerender.
@@ -48,10 +56,12 @@ export default function ByobLive() {
 function LivePanel() {
   const { address, chainId, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
+  const portfolio = usePortfolioSummary((address as Address | undefined) ?? null, 30_000);
 
   const [pct, setPct] = useState<PctMap>(DEFAULT_PCT);
   const [baseline, setBaseline] = useState<PctMap>(DEFAULT_PCT);
   const [status, setStatus] = useState<ByobStatus | null>(null);
+  const [allocateEnabled, setAllocateEnabled] = useState(false);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [busy, setBusy] = useState<"sign" | "save" | "cancel" | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -78,11 +88,23 @@ function LivePanel() {
   const total = useMemo(() => Object.values(pct).reduce((a, b) => a + b, 0), [pct]);
   const dirty = useMemo(() => addresses.some((a) => (pct[a] ?? 0) !== (baseline[a] ?? 0)), [pct, baseline, addresses]);
 
+  const lineTokens = status?.lineTokens ?? LINE_TOKENS;
+  const delayCycles = status?.delayCycles ?? 2;
+  const delayHours = delayCycles * CYCLE_HOURS;
+  const balanceTokens = portfolio.data?.balanceTokens;
+  const atLine =
+    balanceTokens !== undefined
+      ? balanceTokens >= lineTokens
+      : portfolio.data
+        ? portfolio.data.eligible && !portfolio.data.excluded
+        : null;
+
   const refresh = useCallback(async (addr: string) => {
     setLoadErr(null);
     try {
-      const s = await fetchByobStatus(addr);
+      const [s, basket] = await Promise.all([fetchByobStatus(addr), fetchByobBasket()]);
       setStatus(s);
+      setAllocateEnabled(Boolean(basket.allocateEnabled));
       const source = s.pending?.weights ?? s.active?.weights ?? s.defaultWeights;
       const next = pctFromBps(source, s.basket.map((t) => t.address));
       setPct(next);
@@ -161,8 +183,9 @@ function LivePanel() {
       setBusy("save");
       const result = await byobSaveWeights(token, bpsFromPct(pct));
       setBaseline({ ...pct });
+      const hours = result.delayCycles * CYCLE_HOURS;
       setMsg(
-        `Saved. Active from cycle ${result.effectiveFromCycle} (about ${result.delayCycles} cycles from now).`,
+        `Saved as pending. It becomes your active mix at cycle ${result.effectiveFromCycle} (about ${result.delayCycles} cycles / ~${hours}h). Saving again restarts that wait.`,
       );
       await refresh(address);
     } catch (e) {
@@ -185,7 +208,7 @@ function LivePanel() {
       const token = await ensureJwt();
       setBusy("cancel");
       await byobCancelPending(token);
-      setMsg("Pending weights cancelled. Classic equal basket until you save again.");
+      setMsg("Pending mix cancelled. Your last active mix (or classic equal) stays in force.");
       await refresh(address);
     } catch (e) {
       const text = e instanceof Error ? e.message : "Cancel failed";
@@ -215,27 +238,6 @@ function LivePanel() {
               </span>
             )}
             {isConnected && loadErr && <span className="byob-status--err">{loadErr}</span>}
-            {isConnected && !loadErr && status && (
-              <span className="byob-status__line">
-                Cycle <strong>{status.cycle}</strong>
-                {status.pending ? (
-                  <>
-                    {" "}
-                    · pending from cycle <strong>{status.pending.effectiveFromCycle}</strong>
-                  </>
-                ) : status.active ? (
-                  <> · custom mix active</>
-                ) : (
-                  <> · classic equal basket</>
-                )}
-                {status.lineTokens > 0 && (
-                  <>
-                    {" "}
-                    · needs ≥ <strong>{status.lineTokens.toLocaleString()}</strong> OURO
-                  </>
-                )}
-              </span>
-            )}
             {msg && <span className="byob-status__ok">{msg}</span>}
             {err && <span className="byob-status--err">{err}</span>}
           </div>
@@ -256,6 +258,21 @@ function LivePanel() {
         </div>
       }
     >
+      {isConnected ? (
+        <ByobRules
+          balanceTokens={balanceTokens}
+          balanceLoading={portfolio.loading && !portfolio.data}
+          lineTokens={lineTokens}
+          atLine={atLine}
+          shortfallTokens={portfolio.data?.shortfallTokens}
+          cycle={status?.cycle ?? null}
+          delayCycles={delayCycles}
+          delayHours={delayHours}
+          pendingFrom={status?.pending?.effectiveFromCycle ?? null}
+          hasActive={Boolean(status?.active)}
+          allocateEnabled={allocateEnabled}
+        />
+      ) : null}
       <ByobStack
         tokens={tokens}
         pct={pct}
@@ -274,5 +291,101 @@ function LivePanel() {
         />
       ))}
     </ByobChrome>
+  );
+}
+
+function ByobRules({
+  balanceTokens,
+  balanceLoading,
+  lineTokens,
+  atLine,
+  shortfallTokens,
+  cycle,
+  delayCycles,
+  delayHours,
+  pendingFrom,
+  hasActive,
+  allocateEnabled,
+}: {
+  balanceTokens: number | undefined;
+  balanceLoading: boolean;
+  lineTokens: number;
+  atLine: boolean | null;
+  shortfallTokens: number | undefined;
+  cycle: number | null;
+  delayCycles: number;
+  delayHours: number;
+  pendingFrom: number | null;
+  hasActive: boolean;
+  allocateEnabled: boolean;
+}) {
+  const balLabel = balanceLoading
+    ? "…"
+    : balanceTokens === undefined
+      ? "—"
+      : `${fmtTokens(balanceTokens)} OURO`;
+
+  return (
+    <div className="byob-rules">
+      <div className="byob-rules__balance" data-ok={atLine === true ? "true" : atLine === false ? "false" : undefined}>
+        <div className="byob-rules__balance-row">
+          <span className="byob-rules__k">Your OURO</span>
+          <span className="byob-rules__v">{balLabel}</span>
+        </div>
+        <div className="byob-rules__balance-row">
+          <span className="byob-rules__k">Airdrop line</span>
+          <span className="byob-rules__v">≥ {fmtTokens(lineTokens)} OURO</span>
+        </div>
+        {atLine === false && (
+          <p className="byob-rules__warn">
+            Below the line — this wallet is not paid in airdrop cycles. You can still save a mix; it
+            only affects payouts once you hold ≥ {fmtTokens(lineTokens)} OURO
+            {shortfallTokens !== undefined && shortfallTokens > 0
+              ? ` (about ${fmtTokens(shortfallTokens)} more)`
+              : ""}{" "}
+            when a cycle runs.
+          </p>
+        )}
+        {atLine === true && (
+          <p className="byob-rules__ok">
+            At or above the line — when your mix is active and allocation is on, cycles pay this wallet
+            with your custom split.
+          </p>
+        )}
+      </div>
+
+      <ol className="byob-rules__steps">
+        <li>
+          <strong>Save</strong> stores your mix right away. Nothing changes on the next payout yet.
+        </li>
+        <li>
+          After <strong>{delayCycles} airdrop cycles</strong> (~{delayHours}h; cycles are every {CYCLE_HOURS}h)
+          the pending mix becomes <strong>active</strong>
+          {pendingFrom !== null ? (
+            <>
+              {" "}
+              (yours: cycle <strong>{pendingFrom}</strong>
+              {cycle !== null ? <> · now {cycle}</> : null}).
+            </>
+          ) : (
+            "."
+          )}{" "}
+          Saving again restarts that wait.
+        </li>
+        <li>
+          On a cycle where you hold ≥ {fmtTokens(lineTokens)} OURO, the active mix is what you receive
+          {hasActive && pendingFrom === null ? " (you already have an active custom mix)" : ""}
+          {!hasActive && pendingFrom === null ? " — until then you stay on the classic equal basket" : ""}
+          .
+        </li>
+      </ol>
+
+      {!allocateEnabled && (
+        <p className="byob-rules__note">
+          Custom allocation is not switched on in production yet. Your save is stored and will follow
+          the timing above once it is enabled; until then payouts stay on the classic equal basket.
+        </p>
+      )}
+    </div>
   );
 }

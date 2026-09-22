@@ -885,6 +885,7 @@ export function fetchByobBasket(): Promise<{
   basket: ByobBasketToken[];
   defaultWeights: ByobWeightMap;
   delayCycles: number;
+  allocateEnabled?: boolean;
 }> {
   return byobFetch("/v1/byob/basket");
 }

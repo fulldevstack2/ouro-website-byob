@@ -572,6 +572,91 @@
   font-weight: 600;
 }
 
+/* ── eligibility / timing copy ───────────────────────────────────── */
+
+.byob-rules {
+  display: grid;
+  gap: 12px;
+  margin: 4px 0 18px;
+  padding: 14px 14px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--byob-line);
+  background: color-mix(in srgb, var(--byob-track) 55%, var(--byob-card));
+}
+
+.byob-rules__balance {
+  display: grid;
+  gap: 6px;
+}
+
+.byob-rules__balance-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13.5px;
+}
+
+.byob-rules__k {
+  color: var(--byob-muted);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.byob-rules__v {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--byob-ink);
+}
+
+.byob-rules__balance[data-ok="true"] .byob-rules__v {
+  color: var(--byob-ok);
+}
+
+.byob-rules__balance[data-ok="false"] .byob-rules__v {
+  color: var(--byob-err);
+}
+
+.byob-rules__warn,
+.byob-rules__ok,
+.byob-rules__note {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.byob-rules__warn {
+  color: var(--byob-err);
+  font-weight: 550;
+}
+
+.byob-rules__ok {
+  color: var(--byob-ok);
+  font-weight: 550;
+}
+
+.byob-rules__note {
+  padding-top: 8px;
+  border-top: 1px dashed var(--byob-line);
+  font-size: 12.5px;
+}
+
+.byob-rules__steps {
+  margin: 0;
+  padding: 0 0 0 1.15em;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.byob-rules__steps strong {
+  color: var(--byob-ink);
+  font-weight: 700;
+}
+
 .byob-actions {
   display: flex;
   flex-wrap: wrap;
