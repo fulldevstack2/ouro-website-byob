@@ -204,7 +204,18 @@ function LivePanel() {
   };
 
   const onResetEqual = () => {
-    void saveWeights(equalPct(addresses), "reset");
+    const equal = equalPct(addresses);
+    // No server mix yet: Reset is local undo only (no SIWE). Joseph's case - dragged the bar
+    // but never saved; do not invent a pending equal row or force a wallet sign.
+    const hasServerMix = Boolean(status?.active || status?.pending);
+    if (!hasServerMix) {
+      setPct(equal);
+      setBaseline(equal);
+      setErr(null);
+      setMsg("Back to equal on this screen. Nothing is saved yet - use Save mix when you want that for payouts.");
+      return;
+    }
+    void saveWeights(equal, "reset");
   };
 
   const onSave = () => {
@@ -216,7 +227,7 @@ function LivePanel() {
       totalOk={total === 100}
       onReset={isConnected && busy === null ? onResetEqual : undefined}
       locked={!isConnected}
-      hint="Drag the dividers (only the two sides move), or use - / +. Whole percents only."
+      hint="Drag the dividers. Only the two sides of a handle move. Whole percents only."
       gate={!isConnected ? <WalletButton size="md" disconnectVariant="secondary" /> : undefined}
       footer={
         <div className="byob-actions">
@@ -354,7 +365,8 @@ function ByobRules({
           ) : (
             "."
           )}{" "}
-          Save again and the wait resets. <strong>Reset</strong> sets equal shares and saves that.
+          Save again and the wait resets. <strong>Reset</strong> puts the bar back to equal; if you
+          already saved a mix, it also saves equal to the server.
         </li>
         <li>
           {hasActive && pendingFrom === null
