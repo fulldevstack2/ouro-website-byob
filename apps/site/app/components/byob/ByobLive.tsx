@@ -365,17 +365,19 @@ function LivePanel() {
         }
       >
         <ClassicExplainer delayHours={delayHours} delayCycles={delayCycles} lineTokens={lineTokens} />
-        <ByobStack tokens={tokens} pct={equal} disabled />
-        {tokens.map((t, i) => (
-          <ByobTokenRow
-            key={t.address}
-            symbol={t.symbol}
-            icon={t.icon}
-            value={equal[t.address.toLowerCase()] ?? 0}
-            toneIndex={i}
-            disabled
-          />
-        ))}
+        <div className="byob-mixer">
+          <ByobStack tokens={tokens} pct={equal} disabled />
+          {tokens.map((t, i) => (
+            <ByobTokenRow
+              key={t.address}
+              symbol={t.symbol}
+              icon={t.icon}
+              value={equal[t.address.toLowerCase()] ?? 0}
+              toneIndex={i}
+              disabled
+            />
+          ))}
+        </div>
       </ByobChrome>
     );
   }
@@ -512,22 +514,24 @@ function LivePanel() {
             saved).
           </li>
         </ol>
-        <ByobStack
-          tokens={tokens}
-          pct={wholePct}
-          disabled={editorLocked}
-          onBoundary={onBoundary}
-        />
-        {tokens.map((t, i) => (
-          <ByobTokenRow
-            key={t.address}
-            symbol={t.symbol}
-            icon={t.icon}
-            value={wholePct[t.address.toLowerCase()] ?? 0}
-            toneIndex={i}
+        <div className="byob-mixer">
+          <ByobStack
+            tokens={tokens}
+            pct={wholePct}
             disabled={editorLocked}
+            onBoundary={onBoundary}
           />
-        ))}
+          {tokens.map((t, i) => (
+            <ByobTokenRow
+              key={t.address}
+              symbol={t.symbol}
+              icon={t.icon}
+              value={wholePct[t.address.toLowerCase()] ?? 0}
+              toneIndex={i}
+              disabled={editorLocked}
+            />
+          ))}
+        </div>
       </ByobChrome>
       {copy && confirm && (
         <ByobConfirm
@@ -610,8 +614,8 @@ function BalanceStrip({
       {atLine === false && (
         <p className="byob-rules__warn">
           Under the line - this wallet does not get airdrops yet. You can still set a mix; it only matters
-          once you clear {fmtTokens(lineTokens)} OURO
-          {shortfallTokens !== undefined && shortfallTokens > 0
+          once you hold at least {fmtTokens(lineTokens)} OURO
+          {balanceTokens !== undefined && balanceTokens > 0 && shortfallTokens !== undefined && shortfallTokens > 0
             ? ` (about ${fmtTokens(shortfallTokens)} more).`
             : "."}
         </p>

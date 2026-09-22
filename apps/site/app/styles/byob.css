@@ -141,6 +141,15 @@
 
 .byob-card__body {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.byob-mixer {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .byob-card__gate {
@@ -539,8 +548,8 @@
 .byob-rules {
   display: grid;
   gap: 12px;
-  margin: 4px 0 18px;
-  padding: 14px 14px 12px;
+  margin: 0;
+  padding: 14px;
   border-radius: 12px;
   border: 1px solid var(--byob-line);
   background: color-mix(in srgb, var(--byob-track) 55%, var(--byob-card));
@@ -548,7 +557,7 @@
 
 .byob-rules__balance {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .byob-rules__balance-row {
@@ -582,9 +591,9 @@
 .byob-rules__warn,
 .byob-rules__ok,
 .byob-rules__note {
-  margin: 4px 0 0;
+  margin: 0;
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.5;
   color: var(--text-secondary);
 }
 
@@ -608,9 +617,9 @@
   margin: 0;
   padding: 0 0 0 1.15em;
   display: grid;
-  gap: 6px;
+  gap: 8px;
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.5;
   color: var(--text-secondary);
 }
 
@@ -625,8 +634,8 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-top: 10px;
-  padding: 16px 4px 12px;
+  margin-top: 4px;
+  padding: 20px 4px 8px;
   border-top: 1px solid var(--byob-line);
 }
 
@@ -704,15 +713,15 @@
 /* ── classic home ───────────────────────────────────────────────── */
 
 .byob-classic {
-  margin: 0 0 18px;
-  padding: 16px 16px 14px;
+  margin: 0;
+  padding: 16px;
   border-radius: 16px;
   background: color-mix(in srgb, var(--byob-track) 70%, transparent);
   border: 1px solid var(--byob-line);
 }
 
 .byob-classic__title {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   font-family: var(--font-display);
   font-size: 1.35rem;
   font-weight: 600;

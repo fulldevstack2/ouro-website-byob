@@ -256,17 +256,19 @@ export function ByobStatic() {
         </div>
       }
     >
-      <ByobStack tokens={tokens} pct={pct} disabled />
-      {BYOB_TOKENS.map((t, i) => (
-        <ByobTokenRow
-          key={t.address}
-          symbol={t.symbol}
-          icon={t.icon}
-          value={pct[t.address.toLowerCase()] ?? 0}
-          toneIndex={i}
-          disabled
-        />
-      ))}
+      <div className="byob-mixer">
+        <ByobStack tokens={tokens} pct={pct} disabled />
+        {BYOB_TOKENS.map((t, i) => (
+          <ByobTokenRow
+            key={t.address}
+            symbol={t.symbol}
+            icon={t.icon}
+            value={pct[t.address.toLowerCase()] ?? 0}
+            toneIndex={i}
+            disabled
+          />
+        ))}
+      </div>
     </ByobChrome>
   );
 }
