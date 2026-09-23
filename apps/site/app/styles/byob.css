@@ -657,20 +657,8 @@
   gap: 12px 16px;
 }
 
-.byob-actions__row--triple {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
-  gap: 12px 16px;
-}
-
 .byob-actions__wallet {
   min-width: 0;
-  justify-self: start;
-}
-
-.byob-actions__center {
-  justify-self: center;
 }
 
 .byob-actions__primary {
@@ -679,32 +667,22 @@
   gap: 8px;
   align-items: center;
   justify-content: flex-end;
-  justify-self: end;
-  margin-left: 0;
+  margin-left: auto;
 }
 
 @media (max-width: 560px) {
-  .byob-actions__row--triple {
-    display: flex;
+  .byob-actions__row {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .byob-actions__wallet,
-  .byob-actions__center,
   .byob-actions__primary {
-    justify-self: stretch;
-    width: 100%;
+    margin-left: 0;
+    justify-content: stretch;
   }
 
-  .byob-actions__center {
-    order: -1;
-    display: flex;
-    justify-content: center;
-  }
-
-  .byob-actions__primary {
-    justify-content: center;
+  .byob-actions__primary > * {
+    flex: 1 1 auto;
   }
 }
 
@@ -842,27 +820,32 @@
   padding-top: 4px;
 }
 
-/* ── confirm dialog ─────────────────────────────────────────────── */
+/* ── confirm dialog ───────────────────────────────────────────────
+ * Lives outside .byob-page (sibling of ByobChrome), so --byob-* vars never
+ * apply here. Use document theme tokens like .pf-share, or dark text paints
+ * on the light fallback cream.
+ */
 
 .byob-confirm {
   padding: 0;
   border: 0;
   background: transparent;
   max-width: calc(100vw - 32px);
+  color: var(--text-primary);
 }
 
 .byob-confirm::backdrop {
-  background: rgba(27, 23, 16, 0.5);
+  background: color-mix(in srgb, var(--neutral-900, #1b1710) 55%, transparent);
 }
 
 .byob-confirm__panel {
   width: min(420px, calc(100vw - 32px));
   padding: 22px 20px 18px;
   border-radius: 18px;
-  background: var(--byob-card, #f7f1e6);
-  border: 1px solid var(--byob-line-strong);
-  box-shadow: 0 18px 50px rgba(27, 23, 16, 0.22);
-  color: var(--byob-ink);
+  background: var(--surface-card);
+  border: 1px solid var(--border-hairline);
+  box-shadow: var(--shadow-pop, 0 18px 50px rgba(27, 23, 16, 0.22));
+  color: var(--text-primary);
 }
 
 .byob-confirm__title {
@@ -871,12 +854,13 @@
   font-size: 1.25rem;
   font-weight: 600;
   letter-spacing: -0.02em;
+  color: var(--text-primary);
 }
 
 .byob-confirm__body {
   font-size: 14px;
   line-height: 1.55;
-  color: var(--byob-muted);
+  color: var(--text-muted);
 }
 
 .byob-confirm__body p {
@@ -892,8 +876,8 @@
 }
 
 .byob-confirm__danger {
-  color: #8b2e2e !important;
-  border-color: color-mix(in srgb, #8b2e2e 35%, var(--byob-line)) !important;
+  color: var(--text-negative, #8b2e2e) !important;
+  border-color: color-mix(in srgb, var(--text-negative, #8b2e2e) 35%, var(--border-hairline)) !important;
 }
 
 @media (max-width: 720px) {

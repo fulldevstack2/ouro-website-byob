@@ -547,24 +547,24 @@ function LivePanel() {
               ) : undefined
             }
             wallet={<WalletButton disconnectAs="link" />}
-            center={
-              <Button
-                size="md"
-                disabled={!dirty || total !== 100 || editorLocked}
-                onClick={() => setConfirm("save")}
-              >
-                {busy === "sign" ? "Sign in wallet..." : busy === "save" ? "Saving..." : "Save"}
-              </Button>
-            }
             actions={
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={editorLocked}
-                onClick={() => setConfirm("revert")}
-              >
-                {busy === "revert" ? "Resetting..." : "Reset"}
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  disabled={!dirty || total !== 100 || editorLocked}
+                  onClick={() => setConfirm("save")}
+                >
+                  {busy === "sign" ? "Sign in wallet..." : busy === "save" ? "Saving..." : "Save"}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={editorLocked}
+                  onClick={() => setConfirm("revert")}
+                >
+                  {busy === "revert" ? "Resetting..." : "Reset"}
+                </Button>
+              </>
             }
           />
         }
@@ -611,28 +611,25 @@ function LivePanel() {
   );
 }
 
-/** Footer: status above; wallet left, optional center CTA, actions right. */
+/** Footer: status above; wallet left, actions right. */
 function ByobBar({
   status,
   wallet,
-  center,
   actions,
 }: {
   status?: ReactNode;
   wallet?: ReactNode;
-  center?: ReactNode;
   actions?: ReactNode;
 }) {
   const hasStatus = Boolean(status);
-  const hasRow = Boolean(wallet || center || actions);
+  const hasRow = Boolean(wallet || actions);
   if (!hasStatus && !hasRow) return null;
   return (
     <div className="byob-actions">
       {hasStatus ? <div className="byob-status">{status}</div> : null}
       {hasRow ? (
-        <div className={`byob-actions__row${center ? " byob-actions__row--triple" : ""}`}>
+        <div className="byob-actions__row">
           <div className="byob-actions__wallet">{wallet ?? null}</div>
-          {center ? <div className="byob-actions__center">{center}</div> : null}
           <div className="byob-actions__primary">{actions ?? null}</div>
         </div>
       ) : null}
